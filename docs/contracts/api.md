@@ -295,3 +295,34 @@ The backend serves the compiled frontend at `/`. Unknown paths that do not start
 with `/api` or `/ws` return `index.html` so client-side routing works. Unknown
 `/api/*` paths return the error envelope with `404 not_found`. When the frontend
 has not been built, `/` returns `404` with code `frontend_not_built`.
+
+## 7. Backend extension points
+
+Feature modules must not rewrite `app.py`. They receive the shared `Services`
+object and wire themselves in before calling `create_app(services)`:
+
+```python
+from ros_studio.app import create_app
+from ros_studio.channels import Channel
+from ros_studio.services import Services
+
+services.routers.append(my_router)  # FastAPI APIRouter from the feature module
+services.channels.register(         # one Channel per WebSocket subscription unit
+    Channel("graph", matches=lambda event: event.type in {"graph.update", "ros.status"})
+)
+services.startup.append(watcher.start)    # async hooks run inside the lifespan
+services.shutdown.append(watcher.stop)
+app = create_app(services)
+```
+
+`Services` fields: `env: EnvironmentInfo`, `ros: RosThread`, `bus: EventBus`,
+`auth: Auth`, `db: Database`, `channels: ChannelRegistry`,
+`routers: list[APIRouter]`, `spa_dir: Path | None`,
+`startup: list[Callable[[], Awaitable[None]]]`,
+`shutdown: list[Callable[[], Awaitable[None]]]`.
+
+`create_app(services: Services) -> FastAPI` installs the error handlers, CORS,
+core routes (`/api/health`, `/api/env`, `/ws`), feature routers, and the SPA
+mount. The lifespan starts `RosThread`, runs `startup` hooks, then migrates the
+database; on shutdown it runs `shutdown` hooks in reverse order, stops
+`RosThread` and closes the database.
