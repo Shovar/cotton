@@ -34,14 +34,14 @@
 
 ## Bloque F3 — Entorno ROS y API base
 
-- [ ] **T036 · 10 min** — Escribir el test de `detect_environment` con `ROS_DISTRO`, dominio, RMW y workspace. **Hecho:** el test existe y falla por módulo ausente.
-- [ ] **T037 · 10 min** — Escribir los tests de distro ausente y dominio inválido con mensajes accionables. **Hecho:** ambos fallan como se espera.
-- [ ] **T038 · 15 min** — Implementar `EnvironmentInfo` y `detect_environment`; derivar workspace del padre de `COLCON_PREFIX_PATH`. **Hecho:** T036 en verde.
-- [ ] **T039 · 10 min** — Implementar `ensure_ros_environment` y `RosEnvironmentError` comprobando `rclpy`, `AMENT_PREFIX_PATH` y `ros2` en `PATH`. **Hecho:** T037 en verde.
-- [ ] **T040 · 10 min** — Crear `errors.py` con `ApiError` y el handler `{code, message}`. **Hecho:** un endpoint de prueba devuelve el formato.
-- [ ] **T041 · 10 min** — Crear `create_app(env)` y `GET /api/env`; test con `TestClient`. **Hecho:** responde 200 con la distro.
-- [ ] **T042 · 10 min** — Añadir `cli.py` y `__main__.py` con `--host`, `--port`, `--no-browser` y `uvicorn.run`. **Hecho:** `ros-studio --help` lista las opciones.
-- [ ] **T043 · 10 min** — Ejecutar tests, ruff y mypy; commit `feat: detect ros environment and expose /api/env`. **Hecho:** commit creado.
+- [x] **T036 · 10 min** — Escribir el test de `detect_environment` con `ROS_DISTRO`, dominio, RMW y workspace. **Hecho:** el test existe y falla por módulo ausente.
+- [x] **T037 · 10 min** — Escribir los tests de distro ausente y dominio inválido con mensajes accionables. **Hecho:** ambos fallan como se espera.
+- [x] **T038 · 15 min** — Implementar `EnvironmentInfo` y `detect_environment`; derivar workspace del padre de `COLCON_PREFIX_PATH`. **Hecho:** T036 en verde.
+- [x] **T039 · 10 min** — Implementar `ensure_ros_environment` y `RosEnvironmentError` comprobando `rclpy`, `AMENT_PREFIX_PATH` y `ros2` en `PATH`. **Hecho:** T037 en verde.
+- [x] **T040 · 10 min** — Crear `errors.py` con `ApiError` y el handler `{code, message}`. **Hecho:** un endpoint de prueba devuelve el formato.
+- [x] **T041 · 10 min** — Crear `create_app(env)` y `GET /api/env`; test con `TestClient`. **Hecho:** responde 200 con la distro.
+- [x] **T042 · 10 min** — Añadir `cli.py` y `__main__.py` con `--host`, `--port`, `--no-browser` y `uvicorn.run`. **Hecho:** `ros-studio --help` lista las opciones.
+- [x] **T043 · 10 min** — Ejecutar tests, ruff y mypy; commit `feat: detect ros environment and expose /api/env`. **Hecho:** commit creado.
 
 ## Bloque F4 — Hilo ROS
 
