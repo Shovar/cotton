@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -28,8 +29,16 @@ def create_app(services: Services) -> FastAPI:
 
     app = FastAPI(title="ROS Studio", version=services.env.app_version, lifespan=lifespan)
     app.state.env = services.env
+    app.state.auth = services.auth
     app.state.services = services
     install_error_handlers(app)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=sorted(services.auth.allowed_origins),
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
     app.include_router(routes_env.router)
     for router in services.routers:
         app.include_router(router)

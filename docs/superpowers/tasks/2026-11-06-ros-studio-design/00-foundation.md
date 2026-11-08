@@ -67,15 +67,15 @@
 
 ## Bloque F7 — Token de sesión y Origin
 
-- [ ] **T104 · 10 min** — Escribir los tests de `Auth` (token correcto/incorrecto y generación aleatoria). **Hecho:** fallan por módulo ausente.
-- [ ] **T105 · 10 min** — Implementar `Auth` con `secrets.compare_digest`. **Hecho:** T104 en verde.
-- [ ] **T106 · 10 min** — Añadir la dependencia `require_auth` y el 401 `{code: "unauthorized"}`. **Hecho:** `/api/env` exige token.
-- [ ] **T107 · 5 min** — Añadir `GET /api/health` sin token y su test. **Hecho:** responde 200.
-- [ ] **T108 · 10 min** — Configurar CORS sin comodines y el test de origen desconocido. **Hecho:** no aparece `access-control-allow-origin`.
-- [ ] **T109 · 15 min** — Validar token y `Origin` en `/ws` antes de aceptar; cierre 1008. **Hecho:** el test de origen malo pasa.
-- [ ] **T110 · 10 min** — Generar token en el CLI, abrir `#token=...` y aceptar `--token` solo para automatización. **Hecho:** el navegador recibe el token.
-- [ ] **T111 · 10 min** — Actualizar los fixtures de tests existentes con cabeceras de autenticación. **Hecho:** toda la suite pasa.
-- [ ] **T112 · 10 min** — Checks y commit `feat: require session token and validate websocket origin`. **Hecho:** commit creado.
+- [x] **T104 · 10 min** — Escribir los tests de `Auth` (token correcto/incorrecto y generación aleatoria). **Hecho:** fallan por módulo ausente.
+- [x] **T105 · 10 min** — Implementar `Auth` con `secrets.compare_digest`. **Hecho:** T104 en verde.
+- [x] **T106 · 10 min** — Añadir la dependencia `require_auth` y el 401 `{code: "unauthorized"}`. **Hecho:** `/api/env` exige token.
+- [x] **T107 · 5 min** — Añadir `GET /api/health` sin token y su test. **Hecho:** responde 200.
+- [x] **T108 · 10 min** — Configurar CORS sin comodines y el test de origen desconocido. **Hecho:** no aparece `access-control-allow-origin`.
+- [x] **T109 · 15 min** — Validar token y `Origin` en `/ws` antes de aceptar; cierre 1008. **Hecho:** el test de origen malo pasa.
+- [x] **T110 · 10 min** — Generar token en el CLI, abrir `#token=...` y aceptar `--token` solo para automatización. **Hecho:** el navegador recibe el token.
+- [x] **T111 · 10 min** — Actualizar los fixtures de tests existentes con cabeceras de autenticación. **Hecho:** toda la suite pasa.
+- [x] **T112 · 10 min** — Checks y commit `feat: require session token and validate websocket origin`. **Hecho:** commit creado.
 
 ## Bloque F8 — SQLite base
 

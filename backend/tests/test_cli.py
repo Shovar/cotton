@@ -25,6 +25,18 @@ def test_parse_overrides() -> None:
     assert (args.host, args.port, args.no_browser) == ("0.0.0.0", 9000, True)
 
 
+def test_default_origins_cover_loopback_and_extra() -> None:
+    origins = cli.allowed_origins(8000, ["http://dev.test:5173"])
+    assert "http://127.0.0.1:8000" in origins
+    assert "http://localhost:8000" in origins
+    assert "http://dev.test:5173" in origins
+
+
+def test_browser_url_uses_loopback_for_wildcard_hosts() -> None:
+    assert cli.browser_url("0.0.0.0", 8000, "abc") == "http://127.0.0.1:8000/#token=abc"
+    assert cli.browser_url("localhost", 9000, "abc") == "http://localhost:9000/#token=abc"
+
+
 def test_main_reports_missing_environment(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -46,3 +58,27 @@ def test_main_runs_uvicorn_with_parsed_options(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(cli.uvicorn, "run", run)
     assert cli.main(["--host", "0.0.0.0", "--port", "9000", "--no-browser"]) == 0
     assert (calls["host"], calls["port"]) == ("0.0.0.0", 9000)
+    services = calls["app"].state.services  # type: ignore[attr-defined]
+    assert services.auth.token
+    assert "http://127.0.0.1:9000" in services.auth.allowed_origins
+
+
+def test_main_opens_browser_with_fixed_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    opened: dict[str, str] = {}
+
+    class ImmediateTimer:
+        def __init__(self, _delay: float, fn: object, args: tuple[str, ...]) -> None:
+            self.fn = fn
+            self.args = args
+            self.daemon = False
+
+        def start(self) -> None:
+            self.fn(*self.args)  # type: ignore[operator]
+
+    monkeypatch.setattr(cli, "ensure_ros_environment", environment)
+    monkeypatch.setattr(cli.uvicorn, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli.threading, "Timer", ImmediateTimer)
+    monkeypatch.setattr(cli.webbrowser, "open", lambda url: opened.setdefault("url", url))
+
+    assert cli.main(["--port", "9000", "--token", "fixed"]) == 0
+    assert opened["url"] == "http://127.0.0.1:9000/#token=fixed"

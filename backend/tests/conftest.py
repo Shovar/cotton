@@ -10,6 +10,7 @@ from ros_studio.channels import Channel, ChannelRegistry
 from ros_studio.env import EnvironmentInfo
 from ros_studio.events import Event, EventBus
 from ros_studio.ros.thread import RosThread
+from ros_studio.security import Auth
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"
@@ -61,7 +62,13 @@ def bus() -> EventBus:
 def services(env_info: EnvironmentInfo, bus: EventBus) -> Services:
     channels = ChannelRegistry()
     channels.register(test_channel(bus))
-    return Services(env=env_info, ros=NoopRos(), bus=bus, channels=channels)
+    return Services(
+        env=env_info,
+        ros=NoopRos(),
+        bus=bus,
+        auth=Auth(TOKEN, {ORIGIN}),
+        channels=channels,
+    )
 
 
 @pytest.fixture

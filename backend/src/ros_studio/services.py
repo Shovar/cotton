@@ -10,6 +10,7 @@ from ros_studio.channels import ChannelRegistry
 from ros_studio.env import EnvironmentInfo
 from ros_studio.events import EventBus
 from ros_studio.ros.thread import RosThread
+from ros_studio.security import Auth
 
 LifecycleHook = Callable[[], Awaitable[None]]
 
@@ -21,6 +22,7 @@ class Services:
     env: EnvironmentInfo
     ros: RosThread
     bus: EventBus
+    auth: Auth
     channels: ChannelRegistry = field(default_factory=ChannelRegistry)
     routers: list[APIRouter] = field(default_factory=list)
     spa_dir: Path | None = None

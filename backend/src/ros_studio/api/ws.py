@@ -6,6 +6,8 @@ import contextlib
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from ros_studio.errors import ApiError
+from ros_studio.security import Auth
 from ros_studio.services import Services
 
 router = APIRouter()
@@ -14,6 +16,12 @@ router = APIRouter()
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     services: Services = websocket.app.state.services
+    auth: Auth = websocket.app.state.auth
+    try:
+        auth.check_ws(websocket.query_params.get("token"), websocket.headers.get("origin"))
+    except ApiError:
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     queue = services.bus.subscribe()
     subscribed: set[str] = set()
