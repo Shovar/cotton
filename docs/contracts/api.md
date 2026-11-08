@@ -321,6 +321,12 @@ app = create_app(services)
 `startup: list[Callable[[], Awaitable[None]]]`,
 `shutdown: list[Callable[[], Awaitable[None]]]`.
 
+Every router appended to `Services.routers` is mounted with the `require_auth`
+dependency, so feature routes under `/api` require `Authorization: Bearer`
+without adding it route by route. `/api/health` is the only unauthenticated API
+route. Register routes under `/api` in your own `APIRouter`; do not add routes
+directly to `app.py`.
+
 `create_app(services: Services) -> FastAPI` installs the error handlers, CORS,
 core routes (`/api/health`, `/api/env`, `/ws`), feature routers, and the SPA
 mount. The lifespan starts `RosThread`, runs `startup` hooks, then migrates the

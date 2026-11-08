@@ -4,13 +4,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from ros_studio.api import routes_env, ws
 from ros_studio.errors import install_error_handlers
+from ros_studio.security import require_auth
 from ros_studio.services import Services
 
 
@@ -41,9 +42,10 @@ def create_app(services: Services) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
-    app.include_router(routes_env.router)
+    app.include_router(routes_env.health_router)
+    app.include_router(routes_env.router, dependencies=[Depends(require_auth)])
     for router in services.routers:
-        app.include_router(router)
+        app.include_router(router, dependencies=[Depends(require_auth)])
     app.include_router(ws.router)
     mount_spa(app, services.spa_dir)
     return app

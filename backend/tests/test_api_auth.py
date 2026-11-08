@@ -1,6 +1,10 @@
 import pytest
+from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+
+from ros_studio.app import create_app
+from ros_studio.services import Services
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"
@@ -24,6 +28,21 @@ def test_health_is_open(client: TestClient) -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_feature_routers_are_protected_automatically(services: Services) -> None:
+    router = APIRouter(prefix="/api")
+
+    @router.get("/feature")
+    async def feature() -> dict[str, bool]:
+        return {"ok": True}
+
+    services.routers.append(router)
+    with TestClient(create_app(services)) as client:
+        assert client.get("/api/feature").status_code == 401
+        response = client.get("/api/feature", headers={"Authorization": f"Bearer {TOKEN}"})
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
 
 
 def test_ws_rejects_bad_origin(client: TestClient) -> None:
