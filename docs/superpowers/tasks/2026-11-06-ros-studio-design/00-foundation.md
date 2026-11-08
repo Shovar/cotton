@@ -62,8 +62,8 @@
 
 ## Bloque F6 — Servido de la SPA
 
-- [ ] **T089 · 10 min** — Escribir el test de `mount_spa` (index, fallback y `/api` 404). **Hecho:** falla por función ausente.
-- [ ] **T090 · 10 min** — Implementar `mount_spa` en el backend y pasarlo desde el CLI. **Hecho:** T089 en verde.
+- [x] **T089 · 10 min** — Escribir el test de `mount_spa` (index, fallback y `/api` 404). **Hecho:** falla por función ausente.
+- [x] **T090 · 10 min** — Implementar `mount_spa` en el backend y pasarlo desde el CLI. **Hecho:** T089 en verde.
 
 ## Bloque F7 — Token de sesión y Origin
 
