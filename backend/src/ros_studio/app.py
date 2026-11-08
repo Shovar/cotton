@@ -19,6 +19,7 @@ def create_app(services: Services) -> FastAPI:
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         services.ros.start()
         try:
+            services.db.migrate()
             for hook in services.startup:
                 await hook()
             yield
@@ -26,6 +27,7 @@ def create_app(services: Services) -> FastAPI:
             for hook in reversed(services.shutdown):
                 await hook()
             services.ros.stop()
+            services.db.close()
 
     app = FastAPI(title="ROS Studio", version=services.env.app_version, lifespan=lifespan)
     app.state.env = services.env

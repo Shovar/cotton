@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +12,7 @@ from ros_studio.env import EnvironmentInfo
 from ros_studio.events import Event, EventBus
 from ros_studio.ros.thread import RosThread
 from ros_studio.security import Auth
+from ros_studio.storage.db import Database
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"
@@ -59,7 +61,7 @@ def bus() -> EventBus:
 
 
 @pytest.fixture
-def services(env_info: EnvironmentInfo, bus: EventBus) -> Services:
+def services(env_info: EnvironmentInfo, bus: EventBus, tmp_path: Path) -> Services:
     channels = ChannelRegistry()
     channels.register(test_channel(bus))
     return Services(
@@ -67,6 +69,7 @@ def services(env_info: EnvironmentInfo, bus: EventBus) -> Services:
         ros=NoopRos(),
         bus=bus,
         auth=Auth(TOKEN, {ORIGIN}),
+        db=Database(tmp_path / "state.db"),
         channels=channels,
     )
 

@@ -79,8 +79,8 @@
 
 ## Bloque F8 — SQLite base
 
-- [ ] **T130 · 10 min** — Escribir el test de migración de `Database` y `user_version()`. **Hecho:** falla por módulo ausente.
-- [ ] **T131 · 10 min** — Implementar `Database` con WAL y migración v1. **Hecho:** T130 en verde.
+- [x] **T130 · 10 min** — Escribir el test de migración de `Database` y `user_version()`. **Hecho:** falla por módulo ausente.
+- [x] **T131 · 10 min** — Implementar `Database` con WAL y migración v1. **Hecho:** T130 en verde.
 
 ## Verificación
 
@@ -105,8 +105,8 @@ npm test -- --coverage
 
 ## Gate de cierre
 
-- [ ] `ruff`, `mypy` y `pytest` en verde con cobertura ≥ 80 %.
-- [ ] `/api/health` responde sin token; el resto exige Bearer y el WS valida `Origin`.
-- [ ] `GET /api/env` devuelve distro, dominio, RMW y workspace.
-- [ ] El WebSocket entrega eventos de un canal de prueba y cierra limpio al apagar.
-- [ ] `user_version = 1` con la tabla `process_registry`.
+- [x] `ruff`, `mypy` y `pytest` en verde con cobertura ≥ 80 %.
+- [x] `/api/health` responde sin token; el resto exige Bearer y el WS valida `Origin`.
+- [x] `GET /api/env` devuelve distro, dominio, RMW y workspace.
+- [x] El WebSocket entrega eventos de un canal de prueba y cierra limpio al apagar.
+- [x] `user_version = 1` con la tabla `process_registry`.

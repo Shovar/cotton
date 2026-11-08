@@ -7,6 +7,7 @@ import webbrowser
 from pathlib import Path
 
 import uvicorn
+from platformdirs import user_config_dir
 
 from ros_studio.app import create_app
 from ros_studio.channels import ChannelRegistry
@@ -15,6 +16,7 @@ from ros_studio.events import EventBus
 from ros_studio.ros.thread import RosThread
 from ros_studio.security import Auth, generate_token
 from ros_studio.services import Services
+from ros_studio.storage.db import Database
 
 
 def allowed_origins(port: int, extra: list[str] | None = None) -> set[str]:
@@ -28,13 +30,17 @@ def browser_url(host: str, port: int, token: str) -> str:
     return f"http://{display_host}:{port}/#token={token}"
 
 
-def build_services(env: EnvironmentInfo, token: str, origins: set[str]) -> Services:
+def build_services(
+    env: EnvironmentInfo, token: str, origins: set[str], db_path: Path | None = None
+) -> Services:
     web_dir = Path(__file__).parent / "web"
+    database = Database(db_path or Path(user_config_dir("ros-studio")) / "state.db")
     return Services(
         env=env,
         ros=RosThread(),
         bus=EventBus(),
         auth=Auth(token, origins),
+        db=database,
         channels=ChannelRegistry(),
         spa_dir=web_dir if web_dir.is_dir() else None,
     )

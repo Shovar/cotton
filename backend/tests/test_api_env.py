@@ -9,7 +9,11 @@ from ros_studio.services import Services
 def test_env_endpoint(client: TestClient, auth_headers: dict[str, str]) -> None:
     response = client.get("/api/env", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json()["distro"] == "jazzy"
+    body = response.json()
+    assert body["distro"] == "jazzy"
+    assert body["domain_id"] == 0
+    assert body["rmw"] is None
+    assert body["workspace"] == "/ws"
 
 
 def test_unknown_api_route_uses_error_envelope(client: TestClient) -> None:

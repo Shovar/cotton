@@ -50,6 +50,7 @@ include = [
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+addopts = "-p no:launch_testing -p no:launch_ros"
 markers = ["integration: requires a real ROS 2 environment"]
 
 [tool.coverage.run]

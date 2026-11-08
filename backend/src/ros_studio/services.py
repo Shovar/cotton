@@ -11,6 +11,7 @@ from ros_studio.env import EnvironmentInfo
 from ros_studio.events import EventBus
 from ros_studio.ros.thread import RosThread
 from ros_studio.security import Auth
+from ros_studio.storage.db import Database
 
 LifecycleHook = Callable[[], Awaitable[None]]
 
@@ -23,6 +24,7 @@ class Services:
     ros: RosThread
     bus: EventBus
     auth: Auth
+    db: Database
     channels: ChannelRegistry = field(default_factory=ChannelRegistry)
     routers: list[APIRouter] = field(default_factory=list)
     spa_dir: Path | None = None
