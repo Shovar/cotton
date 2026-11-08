@@ -30,7 +30,7 @@
 
 ## Bloque F2 — Contrato REST/WS
 
-- [ ] **T214 · 10 min** — Escribir `docs/contracts/api.md` con endpoints, modelos, códigos de error, canales WS, eventos y cabeceras de auth. **Hecho:** cada fichero de feature referencia el contrato y no inventa campos.
+- [x] **T214 · 10 min** — Escribir `docs/contracts/api.md` con endpoints, modelos, códigos de error, canales WS, eventos y cabeceras de auth. **Hecho:** cada fichero de feature referencia el contrato y no inventa campos.
 
 ## Bloque F3 — Entorno ROS y API base
 
