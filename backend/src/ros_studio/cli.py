@@ -2,11 +2,27 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 import uvicorn
 
 from ros_studio.app import create_app
-from ros_studio.env import RosEnvironmentError, ensure_ros_environment
+from ros_studio.channels import ChannelRegistry
+from ros_studio.env import EnvironmentInfo, RosEnvironmentError, ensure_ros_environment
+from ros_studio.events import EventBus
+from ros_studio.ros.thread import RosThread
+from ros_studio.services import Services
+
+
+def build_services(env: EnvironmentInfo) -> Services:
+    web_dir = Path(__file__).parent / "web"
+    return Services(
+        env=env,
+        ros=RosThread(),
+        bus=EventBus(),
+        channels=ChannelRegistry(),
+        spa_dir=web_dir if web_dir.is_dir() else None,
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -28,5 +44,5 @@ def main(argv: list[str] | None = None) -> int:
     except RosEnvironmentError as exc:
         print(f"ros-studio: {exc}", file=sys.stderr)
         return 2
-    uvicorn.run(create_app(env), host=args.host, port=args.port)
+    uvicorn.run(create_app(build_services(env)), host=args.host, port=args.port)
     return 0

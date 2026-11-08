@@ -54,11 +54,11 @@
 
 ## Bloque F5 — Bus de eventos y WebSocket genérico
 
-- [ ] **T057 · 10 min** — Escribir el test de fan-out de `EventBus` e implementarlo. **Hecho:** dos suscriptores reciben el evento.
-- [ ] **T063 · 15 min** — Implementar `/ws` con `subscribe`, un registro de canales y reenvío de eventos; cada feature registra su canal. **Hecho:** un cliente suscrito recibe los eventos del bus.
-- [ ] **T064 · 10 min** — Escribir el test del WebSocket con `TestClient` sobre un canal de prueba. **Hecho:** el test recibe el mensaje y lo valida.
-- [ ] **T065 · 10 min** — Enganchar arranque/parada del watcher al `lifespan` y al CLI. **Hecho:** no quedan tareas al cerrar.
-- [ ] **T066 · 10 min** — Checks y commit `feat: stream graph snapshots over websocket`. **Hecho:** commit creado.
+- [x] **T057 · 10 min** — Escribir el test de fan-out de `EventBus` e implementarlo. **Hecho:** dos suscriptores reciben el evento.
+- [x] **T063 · 15 min** — Implementar `/ws` con `subscribe`, un registro de canales y reenvío de eventos; cada feature registra su canal. **Hecho:** un cliente suscrito recibe los eventos del bus.
+- [x] **T064 · 10 min** — Escribir el test del WebSocket con `TestClient` sobre un canal de prueba. **Hecho:** el test recibe el mensaje y lo valida.
+- [x] **T065 · 10 min** — Enganchar arranque/parada del watcher al `lifespan` y al CLI. **Hecho:** no quedan tareas al cerrar.
+- [x] **T066 · 10 min** — Checks y commit `feat: stream graph snapshots over websocket`. **Hecho:** commit creado.
 
 ## Bloque F6 — Servido de la SPA
 
