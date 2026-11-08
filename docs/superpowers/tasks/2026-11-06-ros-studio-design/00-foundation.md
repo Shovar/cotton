@@ -45,12 +45,12 @@
 
 ## Bloque F4 — Hilo ROS
 
-- [ ] **T044 · 10 min** — Escribir el test de `RosThread.call` con un doble que ejecuta una función. **Hecho:** falla por módulo ausente.
-- [ ] **T045 · 10 min** — Escribir el test de timeout con una función que duerme. **Hecho:** falla como se espera.
-- [ ] **T046 · 15 min** — Implementar el esqueleto de `RosThread` con hilo, cola de trabajos y futuros. **Hecho:** T044 en verde.
-- [ ] **T047 · 10 min** — Implementar `_setup`/`_spin_once`/`_teardown` con `rclpy` importado en runtime. **Hecho:** el hilo arranca y para sin dejar hilos.
-- [ ] **T048 · 10 min** — Añadir el test de integración marcado `integration` con un `RosThread` real. **Hecho:** se salta sin ROS y pasa con ROS.
-- [ ] **T049 · 10 min** — Checks y commit `feat: add single-owner ros thread with command queue`. **Hecho:** commit creado.
+- [x] **T044 · 10 min** — Escribir el test de `RosThread.call` con un doble que ejecuta una función. **Hecho:** falla por módulo ausente.
+- [x] **T045 · 10 min** — Escribir el test de timeout con una función que duerme. **Hecho:** falla como se espera.
+- [x] **T046 · 15 min** — Implementar el esqueleto de `RosThread` con hilo, cola de trabajos y futuros. **Hecho:** T044 en verde.
+- [x] **T047 · 10 min** — Implementar `_setup`/`_spin_once`/`_teardown` con `rclpy` importado en runtime. **Hecho:** el hilo arranca y para sin dejar hilos.
+- [x] **T048 · 10 min** — Añadir el test de integración marcado `integration` con un `RosThread` real. **Hecho:** se salta sin ROS y pasa con ROS.
+- [x] **T049 · 10 min** — Checks y commit `feat: add single-owner ros thread with command queue`. **Hecho:** commit creado.
 
 ## Bloque F5 — Bus de eventos y WebSocket genérico
 
