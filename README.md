@@ -25,3 +25,23 @@ pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
 Use `--system-site-packages` so the virtual environment can import the `rclpy`
 provided by the active ROS 2 installation. Run `ros-studio --help` after
 activating a ROS 2 environment; without one, the CLI reports how to activate it.
+
+## Frontend development
+
+The commands below run from the repository root and delegate to `frontend/`:
+
+```bash
+npm install
+npm run dev
+npm run lint
+npm run typecheck
+npm test -- --coverage
+npm run build
+```
+
+The Vite dev server proxies `/api` and `/ws` to `http://127.0.0.1:8000`. Open
+the printed URL with the session token in the fragment (`/#token=<token>`); the
+frontend stores it in `sessionStorage` and removes it from the address bar.
+
+The backend serves the compiled SPA from `frontend/dist` after `npm run build`
+and a frontend package build copies it to `backend/src/ros_studio/web`.

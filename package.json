@@ -1,0 +1,13 @@
+{
+  "name": "ros-studio",
+  "private": true,
+  "description": "Root command delegation for the ROS Studio frontend",
+  "scripts": {
+    "postinstall": "npm --prefix frontend install",
+    "dev": "npm --prefix frontend run dev --",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "test": "npm --prefix frontend run test --"
+  }
+}
