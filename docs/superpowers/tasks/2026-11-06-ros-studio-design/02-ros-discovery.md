@@ -37,13 +37,13 @@
 
 ## Bloque D4 — Parámetros remotos
 
-- [ ] **T067 · 10 min** — Escribir los tests de `coerce_value` para bool, int, float, string y arrays. **Hecho:** fallan por módulo ausente.
-- [ ] **T068 · 10 min** — Implementar `coerce_value` con error que nombra el tipo esperado. **Hecho:** T067 en verde.
-- [ ] **T069 · 15 min** — Implementar `RemoteParams.get_all` y `set` con clientes de servicio. **Hecho:** un nodo real devuelve sus parámetros.
-- [ ] **T070 · 10 min** — Añadir `spin_until_future_complete` durante la espera para no bloquear sin girar. **Hecho:** la llamada devuelve en menos del timeout.
-- [ ] **T071 · 15 min** — Crear `GET`/`PUT /api/nodes/{node_name:path}/params` con validación de nombre. **Hecho:** los tests de API pasan.
-- [ ] **T072 · 10 min** — Mapear nodo inexistente a 404 y parámetro no escribible a 409. **Hecho:** hay tests para ambos.
-- [ ] **T073 · 10 min** — Checks y commit `feat: read and write remote ros parameters`. **Hecho:** commit creado.
+- [x] **T067 · 10 min** — Escribir los tests de `coerce_value` para bool, int, float, string y arrays. **Hecho:** fallan por módulo ausente.
+- [x] **T068 · 10 min** — Implementar `coerce_value` con error que nombra el tipo esperado. **Hecho:** T067 en verde.
+- [!] **T069 · 15 min** — Implementar `RemoteParams.get_all` y `set` con clientes de servicio. **Hecho:** un nodo real devuelve sus parámetros. _(Implementado; falta verificarlo con un nodo real: en este entorno no hay ROS.)_
+- [!] **T070 · 10 min** — Añadir `spin_until_future_complete` durante la espera para no bloquear sin girar. **Hecho:** la llamada devuelve en menos del timeout. _(Implementado; falta medirlo con un nodo real: en este entorno no hay ROS.)_
+- [x] **T071 · 15 min** — Crear `GET`/`PUT /api/nodes/{node_name:path}/params` con validación de nombre. **Hecho:** los tests de API pasan.
+- [x] **T072 · 10 min** — Mapear nodo inexistente a 404 y parámetro no escribible a 409. **Hecho:** hay tests para ambos.
+- [x] **T073 · 10 min** — Checks y commit `feat: read and write remote ros parameters`. **Hecho:** commit creado.
 
 ## Bloque D5 — Frecuencia de topic
 

@@ -13,7 +13,11 @@ Job = tuple[Callable[..., Any], tuple[Any, ...], "concurrent.futures.Future[Any]
 
 
 class RosCallError(RuntimeError):
-    """A ROS call could not be executed."""
+    """A ROS call could not be executed; `code` names the API error when known."""
+
+    def __init__(self, message: str, code: str | None = None) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class RosCallTimeout(RosCallError):
