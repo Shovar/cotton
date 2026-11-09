@@ -38,13 +38,13 @@
 
 ## Bloque P3 — Registro y recuperación
 
-- [ ] **T132 · 10 min** — Escribir el test de `ProcessRegistry` (save/all/delete). **Hecho:** falla como se espera.
-- [ ] **T133 · 10 min** — Implementar el registro sobre SQLite. **Hecho:** T132 en verde.
-- [ ] **T134 · 10 min** — Escribir el test de recuperación de un proceso vivo. **Hecho:** falla por `recover` ausente.
-- [ ] **T135 · 15 min** — Implementar `recover()` con `os.kill(pid, 0)` y `recovered=True`. **Hecho:** T134 en verde.
-- [ ] **T136 · 10 min** — Escribir y resolver el caso de PID muerto que se borra del registro. **Hecho:** la lista queda vacía.
-- [ ] **T137 · 10 min** — Enganchar `recover()` al arranque y `shutdown()` al cierre de la app. **Hecho:** los hijos mueren al cerrar.
-- [ ] **T138 · 10 min** — Checks y commit `feat: persist process registry and recover orphans`. **Hecho:** commit creado.
+- [x] **T132 · 10 min** — Escribir el test de `ProcessRegistry` (save/all/delete). **Hecho:** falla como se espera.
+- [x] **T133 · 10 min** — Implementar el registro sobre SQLite. **Hecho:** T132 en verde.
+- [x] **T134 · 10 min** — Escribir el test de recuperación de un proceso vivo. **Hecho:** falla por `recover` ausente.
+- [x] **T135 · 15 min** — Implementar `recover()` con `os.kill(pid, 0)` y `recovered=True`. **Hecho:** T134 en verde.
+- [x] **T136 · 10 min** — Escribir y resolver el caso de PID muerto que se borra del registro. **Hecho:** la lista queda vacía.
+- [x] **T137 · 10 min** — Enganchar `recover()` al arranque y `shutdown()` al cierre de la app. **Hecho:** los hijos mueren al cerrar.
+- [x] **T138 · 10 min** — Checks y commit `feat: persist process registry and recover orphans`. **Hecho:** commit creado.
 
 ## Bloque P4 — API y WS de procesos
 

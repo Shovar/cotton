@@ -57,7 +57,6 @@ class ProcessManager:
     ) -> None:
         self._bus = bus
         self._logs_dir = Path(logs_dir)
-        self._logs_dir.mkdir(parents=True, exist_ok=True)
         self._registry = registry
         self._stop_timeouts = stop_timeouts or StopTimeouts()
         self._env = None if env is None else dict(env)
