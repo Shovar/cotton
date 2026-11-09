@@ -15,36 +15,36 @@
 
 ## Bloque P1 — Modelos de proceso y logs
 
-- [ ] **T113 · 10 min** — Escribir el test del buffer circular e implementarlo. **Hecho:** conserva las últimas 3 líneas.
-- [ ] **T114 · 10 min** — Escribir el test del parser de nivel e implementarlo (`[WARN]` → `warn`). **Hecho:** el test pasa.
-- [ ] **T115 · 5 min** — Escribir el test de rotación de fichero. **Hecho:** aparecen `.log.1` y `.log.2`.
-- [ ] **T116 · 15 min** — Implementar `LogFileWriter` con límite de 5 MB y 3 copias. **Hecho:** T115 en verde.
-- [ ] **T117 · 10 min** — Crear `ProcessSpec`, `ProcessRecord`, `ProcessState` y `LogLine`. **Hecho:** serializan a JSON.
-- [ ] **T118 · 10 min** — Checks y commit `feat: add process models and rotating logs with levels`. **Hecho:** commit creado.
+- [x] **T113 · 10 min** — Escribir el test del buffer circular e implementarlo. **Hecho:** conserva las últimas 3 líneas.
+- [x] **T114 · 10 min** — Escribir el test del parser de nivel e implementarlo (`[WARN]` → `warn`). **Hecho:** el test pasa.
+- [x] **T115 · 5 min** — Escribir el test de rotación de fichero. **Hecho:** aparecen `.log.1` y `.log.2`.
+- [x] **T116 · 15 min** — Implementar `LogFileWriter` con límite de 5 MB y 3 copias. **Hecho:** T115 en verde.
+- [x] **T117 · 10 min** — Crear `ProcessSpec`, `ProcessRecord`, `ProcessState` y `LogLine`. **Hecho:** serializan a JSON.
+- [x] **T118 · 10 min** — Checks y commit `feat: add process models and rotating logs with levels`. **Hecho:** commit creado.
 
 ## Bloque P2 — ProcessManager
 
-- [ ] **T119 · 10 min** — Escribir el test de arranque con log y parada ordenada. **Hecho:** falla por módulo ausente.
-- [ ] **T120 · 15 min** — Implementar `start` con `create_subprocess_exec` y grupo propio. **Hecho:** el proceso aparece `running`.
-- [ ] **T121 · 15 min** — Implementar lectores de stdout/stderr que llenan buffer, fichero y evento. **Hecho:** el test ve la línea «hola».
-- [ ] **T122 · 10 min** — Implementar la tarea `wait()` que fija `exited`/`failed` y publica estado. **Hecho:** el estado final es correcto.
-- [ ] **T123 · 10 min** — Escribir y resolver el test de comando inexistente (`failed` con error). **Hecho:** no queda en `starting`.
-- [ ] **T124 · 5 min** — Escribir y resolver el test de salida distinta de cero (`exit_code == 3`). **Hecho:** el test pasa.
-- [ ] **T125 · 10 min** — Escribir y resolver el test de id duplicado (`ProcessConflict`). **Hecho:** el test pasa.
-- [ ] **T126 · 15 min** — Escribir el test de parada con hijo que ignora `SIGINT`. **Hecho:** falla antes de implementar la escalada.
-- [ ] **T127 · 15 min** — Implementar la escalada `SIGINT` → 5 s → `SIGTERM` → 3 s → `SIGKILL`. **Hecho:** T126 en verde y grupo vacío.
-- [ ] **T128 · 10 min** — Implementar `shutdown()` en orden inverso y `logs(id)`. **Hecho:** no quedan procesos hijos.
-- [ ] **T129 · 10 min** — Checks y commit `feat: manage child processes with ordered shutdown`. **Hecho:** commit creado.
+- [x] **T119 · 10 min** — Escribir el test de arranque con log y parada ordenada. **Hecho:** falla por módulo ausente.
+- [x] **T120 · 15 min** — Implementar `start` con `create_subprocess_exec` y grupo propio. **Hecho:** el proceso aparece `running`.
+- [x] **T121 · 15 min** — Implementar lectores de stdout/stderr que llenan buffer, fichero y evento. **Hecho:** el test ve la línea «hola».
+- [x] **T122 · 10 min** — Implementar la tarea `wait()` que fija `exited`/`failed` y publica estado. **Hecho:** el estado final es correcto.
+- [x] **T123 · 10 min** — Escribir y resolver el test de comando inexistente (`failed` con error). **Hecho:** no queda en `starting`.
+- [x] **T124 · 5 min** — Escribir y resolver el test de salida distinta de cero (`exit_code == 3`). **Hecho:** el test pasa.
+- [x] **T125 · 10 min** — Escribir y resolver el test de id duplicado (`ProcessConflict`). **Hecho:** el test pasa.
+- [x] **T126 · 15 min** — Escribir el test de parada con hijo que ignora `SIGINT`. **Hecho:** falla antes de implementar la escalada.
+- [x] **T127 · 15 min** — Implementar la escalada `SIGINT` → 5 s → `SIGTERM` → 3 s → `SIGKILL`. **Hecho:** T126 en verde y grupo vacío.
+- [x] **T128 · 10 min** — Implementar `shutdown()` en orden inverso y `logs(id)`. **Hecho:** no quedan procesos hijos.
+- [x] **T129 · 10 min** — Checks y commit `feat: manage child processes with ordered shutdown`. **Hecho:** commit creado.
 
 ## Bloque P3 — Registro y recuperación
 
-- [ ] **T132 · 10 min** — Escribir el test de `ProcessRegistry` (save/all/delete). **Hecho:** falla como se espera.
-- [ ] **T133 · 10 min** — Implementar el registro sobre SQLite. **Hecho:** T132 en verde.
-- [ ] **T134 · 10 min** — Escribir el test de recuperación de un proceso vivo. **Hecho:** falla por `recover` ausente.
-- [ ] **T135 · 15 min** — Implementar `recover()` con `os.kill(pid, 0)` y `recovered=True`. **Hecho:** T134 en verde.
-- [ ] **T136 · 10 min** — Escribir y resolver el caso de PID muerto que se borra del registro. **Hecho:** la lista queda vacía.
-- [ ] **T137 · 10 min** — Enganchar `recover()` al arranque y `shutdown()` al cierre de la app. **Hecho:** los hijos mueren al cerrar.
-- [ ] **T138 · 10 min** — Checks y commit `feat: persist process registry and recover orphans`. **Hecho:** commit creado.
+- [x] **T132 · 10 min** — Escribir el test de `ProcessRegistry` (save/all/delete). **Hecho:** falla como se espera.
+- [x] **T133 · 10 min** — Implementar el registro sobre SQLite. **Hecho:** T132 en verde.
+- [x] **T134 · 10 min** — Escribir el test de recuperación de un proceso vivo. **Hecho:** falla por `recover` ausente.
+- [x] **T135 · 15 min** — Implementar `recover()` con `os.kill(pid, 0)` y `recovered=True`. **Hecho:** T134 en verde.
+- [x] **T136 · 10 min** — Escribir y resolver el caso de PID muerto que se borra del registro. **Hecho:** la lista queda vacía.
+- [x] **T137 · 10 min** — Enganchar `recover()` al arranque y `shutdown()` al cierre de la app. **Hecho:** los hijos mueren al cerrar.
+- [x] **T138 · 10 min** — Checks y commit `feat: persist process registry and recover orphans`. **Hecho:** commit creado.
 
 ## Bloque P4 — API y WS de procesos
 
