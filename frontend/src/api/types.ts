@@ -87,6 +87,15 @@ export interface ErrorData {
   message: string;
 }
 
+export type ParamValue = boolean | number | string | (boolean | number | string)[] | null;
+
+export interface RateResult {
+  available: boolean;
+  hz: number | null;
+  window_s: number;
+  reason: string | null;
+}
+
 export type ServerEvent =
   | { type: "graph.update"; data: GraphSnapshot }
   | { type: "ros.status"; data: { connected: boolean; error: string | null } }
