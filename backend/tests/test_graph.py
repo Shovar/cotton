@@ -1,0 +1,173 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ros_studio.ros.graph import RclpyGraphSource
+from ros_studio.ros.models import GraphSnapshot, NodeInfo, TopicInfo
+
+
+@dataclass
+class Endpoint:
+    node_name: str
+    node_namespace: str
+    topic_type: str
+
+
+class FakeNode:
+    actions = [("/talker/fibonacci", ["action_tutorials_interfaces/action/Fibonacci"])]
+
+    def get_node_names_and_namespaces(self) -> list[tuple[str, str]]:
+        return [("talker", "/"), ("listener", "/"), ("ros_studio_1", "/")]
+
+    def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]:
+        return [("/chatter", ["std_msgs/msg/String"])]
+
+    def get_service_names_and_types(self) -> list[tuple[str, list[str]]]:
+        return [
+            ("/talker/get_parameters", ["rcl_interfaces/srv/GetParameters"]),
+            ("/listener/describe_parameters", ["rcl_interfaces/srv/DescribeParameters"]),
+        ]
+
+    def get_action_names_and_types(self) -> list[tuple[str, list[str]]]:
+        return self.actions
+
+    def get_publishers_info_by_topic(self, _topic: str) -> list[Endpoint]:
+        return [Endpoint("talker", "/", "std_msgs/msg/String")]
+
+    def get_subscriptions_info_by_topic(self, _topic: str) -> list[Endpoint]:
+        return [Endpoint("listener", "/", "std_msgs/msg/String")]
+
+
+def test_snapshot_excludes_self_and_inverts_endpoints() -> None:
+    graph = RclpyGraphSource(FakeNode(), self_node_name="/ros_studio_1").snapshot()
+
+    assert [node.name for node in graph.nodes] == ["/listener", "/talker"]
+    nodes = {node.name: node for node in graph.nodes}
+    assert nodes["/talker"].publishers == ["/chatter"]
+    assert nodes["/listener"].subscribers == ["/chatter"]
+    assert graph.topics == [
+        TopicInfo(
+            name="/chatter",
+            types=["std_msgs/msg/String"],
+            publishers=["/talker"],
+            subscribers=["/listener"],
+        )
+    ]
+    assert graph.services["/talker/get_parameters"] == ["rcl_interfaces/srv/GetParameters"]
+
+
+def test_topic_without_endpoints_is_listed() -> None:
+    class EmptyNode(FakeNode):
+        def get_publishers_info_by_topic(self, _topic: str) -> list[Endpoint]:
+            return []
+
+        def get_subscriptions_info_by_topic(self, _topic: str) -> list[Endpoint]:
+            return []
+
+    graph = RclpyGraphSource(EmptyNode(), self_node_name="/ros_studio_1").snapshot()
+
+    assert graph.topics[0].publishers == []
+    assert graph.topics[0].subscribers == []
+
+
+def test_services_and_actions_belong_to_their_node() -> None:
+    graph = RclpyGraphSource(FakeNode(), self_node_name="/ros_studio_1").snapshot()
+    nodes = {node.name: node for node in graph.nodes}
+
+    assert nodes["/talker"].services == ["/talker/get_parameters"]
+    assert nodes["/listener"].services == ["/listener/describe_parameters"]
+    assert nodes["/talker"].actions == ["/talker/fibonacci"]
+    assert graph.actions == {"/talker/fibonacci": ["action_tutorials_interfaces/action/Fibonacci"]}
+
+
+def test_node_without_actions_api_degrades() -> None:
+    class NoActionsNode(FakeNode):
+        get_action_names_and_types = None
+
+    graph = RclpyGraphSource(NoActionsNode(), self_node_name="/ros_studio_1").snapshot()
+
+    assert graph.actions == {}
+    assert all(node.actions == [] for node in graph.nodes)
+
+
+def test_snapshot_lists_are_sorted_and_revision_starts_at_zero() -> None:
+    class UnorderedNode(FakeNode):
+        def get_node_names_and_namespaces(self) -> list[tuple[str, str]]:
+            return [("zeta", "/b"), ("alpha", "/a"), ("ros_studio_1", "/")]
+
+        def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]:
+            return [
+                ("/zeta", ["std_msgs/msg/String", "std_msgs/msg/Int32"]),
+                ("/alpha", ["std_msgs/msg/String"]),
+            ]
+
+        def get_service_names_and_types(self) -> list[tuple[str, list[str]]]:
+            return [("/zeta/set_parameters", ["b"]), ("/alpha/get_parameters", ["a"])]
+
+        def get_action_names_and_types(self) -> list[tuple[str, list[str]]]:
+            return []
+
+        def get_publishers_info_by_topic(self, topic: str) -> list[Endpoint]:
+            return [Endpoint("zeta", "/b", "x"), Endpoint("alpha", "/a", "x")]
+
+        def get_subscriptions_info_by_topic(self, _topic: str) -> list[Endpoint]:
+            return []
+
+    graph = RclpyGraphSource(UnorderedNode(), self_node_name="/ros_studio_1").snapshot()
+
+    assert [node.name for node in graph.nodes] == ["/a/alpha", "/b/zeta"]
+    assert [topic.name for topic in graph.topics] == ["/alpha", "/zeta"]
+    assert graph.topics[1].types == ["std_msgs/msg/Int32", "std_msgs/msg/String"]
+    assert graph.topics[1].publishers == ["/a/alpha", "/b/zeta"]
+    assert list(graph.services) == ["/alpha/get_parameters", "/zeta/set_parameters"]
+    assert graph.revision == 0
+
+
+def test_models_serialize_to_contract_shape() -> None:
+    graph = GraphSnapshot(
+        nodes=[
+            NodeInfo(
+                name="/talker",
+                namespace="/",
+                publishers=["/chatter"],
+                subscribers=[],
+                services=["/talker/get_parameters"],
+                actions=[],
+            )
+        ],
+        topics=[
+            TopicInfo(
+                name="/chatter",
+                types=["std_msgs/msg/String"],
+                publishers=["/talker"],
+                subscribers=[],
+            )
+        ],
+        services={"/talker/get_parameters": ["rcl_interfaces/srv/GetParameters"]},
+        actions={},
+        revision=3,
+    )
+
+    assert graph.to_dict() == {
+        "nodes": [
+            {
+                "name": "/talker",
+                "namespace": "/",
+                "publishers": ["/chatter"],
+                "subscribers": [],
+                "services": ["/talker/get_parameters"],
+                "actions": [],
+            }
+        ],
+        "topics": [
+            {
+                "name": "/chatter",
+                "types": ["std_msgs/msg/String"],
+                "publishers": ["/talker"],
+                "subscribers": [],
+            }
+        ],
+        "services": {"/talker/get_parameters": ["rcl_interfaces/srv/GetParameters"]},
+        "actions": {},
+        "revision": 3,
+    }
