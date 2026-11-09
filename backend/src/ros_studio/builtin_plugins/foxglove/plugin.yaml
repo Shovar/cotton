@@ -1,0 +1,24 @@
+name: foxglove
+version: 0.1.0
+description: Foxglove bridge with the locally served Lichtblick viewer
+permissions:
+  - process
+  - network
+processes:
+  - id: bridge
+    argv:
+      - ros2
+      - launch
+      - foxglove_bridge
+      - foxglove_bridge_launch.xml
+      - port:=8765
+healthcheck:
+  url: tcp://127.0.0.1:8765
+  timeout_s: 5.0
+  retries: 40
+  delay_s: 0.5
+panels:
+  - id: viewer
+    title: Foxglove
+    type: iframe
+    url: "http://{hostname}:8000/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765"

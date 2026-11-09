@@ -78,5 +78,5 @@ no_implicit_optional = true
 warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
-module = ["rclpy.*", "rcl_interfaces.*", "rosidl_runtime_py.*"]
+module = ["rclpy.*", "rcl_interfaces.*", "rosidl_runtime_py.*", "yaml.*"]
 ignore_missing_imports = true
