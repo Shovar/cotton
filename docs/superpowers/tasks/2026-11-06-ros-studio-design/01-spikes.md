@@ -26,13 +26,13 @@
 
 ## Bloque S2 — Señales y huérfanos
 
-- [ ] **T020 · 10 min** — Crear `spikes/signals_probe.py` que lance un hijo con grupo propio y un nieto `sleep 60`. **Hecho:** se imprimen `pid` y `pgid` de ambos.
-- [ ] **T021 · 10 min** — Enviar `SIGINT` al grupo y comprobar con `os.killpg(pgid, 0)` si queda alguien. **Hecho:** se imprime `orphans_after_sigint`.
-- [ ] **T022 · 5 min** — Añadir la escalada `SIGTERM` y `SIGKILL` hasta dejar el grupo vacío. **Hecho:** se imprime `group_empty: true`.
-- [ ] **T023 · 10 min** — Añadir el escenario de registro JSON + `kill -9` del padre + comprobación del nieto desde un proceso nuevo. **Hecho:** se imprime si el huérfano sigue vivo.
-- [ ] **T024 · 10 min** — Añadir un hijo que ignora `SIGINT` y verificar que la escalada termina en `SIGKILL`. **Hecho:** el grupo queda vacío.
-- [ ] **T025 · 5 min** — Anotar en `docs/etapa-0-mediciones.md` si 5 s + 3 s de gracia son suficientes. **Hecho:** valor anotado.
-- [ ] **T026 · 5 min** — Commit `spike: validate process group shutdown and orphan detection`. **Hecho:** commit creado.
+- [x] **T020 · 10 min** — Crear `spikes/signals_probe.py` que lance un hijo con grupo propio y un nieto `sleep 60`. **Hecho:** se imprimen `pid` y `pgid` de ambos.
+- [x] **T021 · 10 min** — Enviar `SIGINT` al grupo y comprobar con `os.killpg(pgid, 0)` si queda alguien. **Hecho:** se imprime `orphans_after_sigint`.
+- [x] **T022 · 5 min** — Añadir la escalada `SIGTERM` y `SIGKILL` hasta dejar el grupo vacío. **Hecho:** se imprime `group_empty: true`.
+- [x] **T023 · 10 min** — Añadir el escenario de registro JSON + `kill -9` del padre + comprobación del nieto desde un proceso nuevo. **Hecho:** se imprime si el huérfano sigue vivo.
+- [x] **T024 · 10 min** — Añadir un hijo que ignora `SIGINT` y verificar que la escalada termina en `SIGKILL`. **Hecho:** el grupo queda vacío.
+- [x] **T025 · 5 min** — Anotar en `docs/etapa-0-mediciones.md` si 5 s + 3 s de gracia son suficientes. **Hecho:** valor anotado.
+- [x] **T026 · 5 min** — Commit `spike: validate process group shutdown and orphan detection`. **Hecho:** commit creado.
 
 ## Bloque S3 — Lichtblick y assets
 

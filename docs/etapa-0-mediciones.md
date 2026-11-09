@@ -66,3 +66,47 @@ Acción: se mantiene el sondeo de 1 s con la caché y las consultas perezosas de
 endpoints que ya prevé el diseño (solo topics cambiados). RNF-1 se re-medirá en
 Linux, que es la plataforma de soporte; en macOS el objetivo se cumple con
 Cyclone DDS y se incumple por poco con Fast DDS.
+
+## S2 — Señales y huérfanos
+
+`spikes/signals_probe.py` usa solo la biblioteca estándar. Los tres escenarios
+lanzan el hijo con `start_new_session=True`, de modo que el hijo es líder de su
+propio grupo, y un nieto real (`sleep 60`) que hereda el grupo.
+
+Comando:
+
+```bash
+/Users/toni/robostack/.pixi/envs/jazzy/bin/python3.12 spikes/signals_probe.py
+```
+
+| Escenario | Señal que vació el grupo | Tiempo hasta grupo vacío | Huérfanos tras `SIGINT` | Huérfanos tras `SIGTERM` | Grupo vacío |
+| --- | --- | --- | --- | --- | --- |
+| 1. Hijo cooperativo | `SIGINT` | 0.025 s | 0 | — | sí |
+| 2. Padre muerto con `SIGKILL` | `SIGTERM` (desde un proceso nuevo) | < 1 s | — | — | sí |
+| 3. Hijo y nieto ignoran `SIGINT`/`SIGTERM` | `SIGKILL` | 8.036 s | 2 | 2 | sí |
+
+Resultados:
+
+- **`SIGINT` al grupo basta para procesos cooperativos.** El nieto `sleep`
+  murió con el grupo en 25 ms; no quedó nadie (`orphans_after_sigint: 0`).
+- **El huérfano es detectable y se puede parar.** Tras `kill -9` del padre, el
+  nieto sigue vivo y el grupo también: `pgid` sobrevive mientras quede un
+  miembro. Un proceso nuevo lo comprobó con `os.killpg(pgid, 0)` y lo paró con
+  `killpg`, así que el registro de PIDs debe guardar el `pgid`, no solo el PID
+  del padre.
+- **El escalado termina en `SIGKILL`.** El escenario 3 ignoró `SIGINT` y
+  `SIGTERM`; se agotaron los 5 s y los 3 s de gracia y solo `SIGKILL` vació el
+  grupo (`orphans_after_sigint: 2`, `orphans_after_sigterm: 2`,
+  `orphans_after_sigkill: 0`).
+
+### Decisión sobre los tiempos de gracia (T025)
+
+**5 s para `SIGINT` y 3 s para `SIGTERM` son suficientes.** Un proceso
+cooperativo muere en milisegundos y uno que ignora ambas señales termina en
+`SIGKILL` como muy tarde a los 8 s. No hay margen adicional después del
+`SIGKILL`, pero `SIGKILL` no se puede ignorar.
+
+Límite conocido: un proceso que haga `setsid()` por su cuenta escapa del grupo
+y no se puede parar con `killpg`; la v1 no lo contempla. Los procesos lanzados
+por ROS suelen respetar el grupo, así que el riesgo es bajo.
+
