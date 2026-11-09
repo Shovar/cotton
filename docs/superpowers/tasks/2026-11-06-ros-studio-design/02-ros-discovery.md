@@ -47,12 +47,12 @@
 
 ## Bloque D5 — Frecuencia de topic
 
-- [ ] **T074 · 5 min** — Escribir los tests de `compute_hz`. **Hecho:** fallan por módulo ausente.
-- [ ] **T075 · 5 min** — Escribir el test de topic sin editores (`no_publishers`). **Hecho:** el test existe.
-- [ ] **T076 · 15 min** — Implementar `measure_rate` con nodo temporal, QoS del editor y ventana de 2 s. **Hecho:** T074 y T075 en verde.
-- [ ] **T077 · 10 min** — Crear `GET /api/topics/{topic:path}/rate`. **Hecho:** responde `available` y `hz`.
-- [ ] **T078 · 10 min** — Traducir topic inexistente a 404 y limitar `window_s` a `[0.5, 5]`. **Hecho:** tests de ambos casos.
-- [ ] **T079 · 10 min** — Checks y commit `feat: measure topic rate on demand`. **Hecho:** commit creado.
+- [x] **T074 · 5 min** — Escribir los tests de `compute_hz`. **Hecho:** fallan por módulo ausente.
+- [x] **T075 · 5 min** — Escribir el test de topic sin editores (`no_publishers`). **Hecho:** el test existe.
+- [x] **T076 · 15 min** — Implementar `measure_rate` con nodo temporal, QoS del editor y ventana de 2 s. **Hecho:** T074 y T075 en verde.
+- [x] **T077 · 10 min** — Crear `GET /api/topics/{topic:path}/rate`. **Hecho:** responde `available` y `hz`.
+- [x] **T078 · 10 min** — Traducir topic inexistente a 404 y limitar `window_s` a `[0.5, 5]`. **Hecho:** tests de ambos casos.
+- [x] **T079 · 10 min** — Checks y commit `feat: measure topic rate on demand`. **Hecho:** commit creado.
 
 ## Verificación
 

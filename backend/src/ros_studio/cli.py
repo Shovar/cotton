@@ -9,13 +9,14 @@ from pathlib import Path
 import uvicorn
 from platformdirs import user_config_dir
 
-from ros_studio.api import routes_graph, routes_params
+from ros_studio.api import routes_graph, routes_params, routes_topics
 from ros_studio.app import create_app
 from ros_studio.channels import ChannelRegistry
 from ros_studio.env import EnvironmentInfo, RosEnvironmentError, ensure_ros_environment
 from ros_studio.events import EventBus
 from ros_studio.ros.graph import ThreadGraphSource
 from ros_studio.ros.params import ThreadParamsSource
+from ros_studio.ros.rate import ThreadRateSource
 from ros_studio.ros.thread import RosThread
 from ros_studio.ros.watcher import GraphWatcher
 from ros_studio.security import Auth, generate_token
@@ -54,6 +55,7 @@ def build_services(
     services.routers.append(routes_graph.create_router(watcher))
     services.channels.register(routes_graph.graph_channel(watcher))
     services.routers.append(routes_params.create_router(ros, ThreadParamsSource(ros)))
+    services.routers.append(routes_topics.create_router(ros, ThreadRateSource(ros)))
     services.startup.append(watcher.start)
     services.shutdown.append(watcher.stop)
     return services
