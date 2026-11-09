@@ -1,0 +1,118 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Protocol
+
+from ros_studio.ros.models import GraphSnapshot, NodeInfo, TopicInfo
+
+
+class EndpointLike(Protocol):
+    node_name: str
+    node_namespace: str
+
+
+class NodeLike(Protocol):
+    def get_node_names_and_namespaces(self) -> list[tuple[str, str]]: ...
+
+    def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]: ...
+
+    def get_service_names_and_types(self) -> list[tuple[str, list[str]]]: ...
+
+    def get_publishers_info_by_topic(self, topic: str) -> list[EndpointLike]: ...
+
+    def get_subscriptions_info_by_topic(self, topic: str) -> list[EndpointLike]: ...
+
+
+class GraphSource(Protocol):
+    def snapshot(self) -> GraphSnapshot: ...
+
+
+class RclpyGraphSource:
+    """Reads one immutable graph snapshot from an rclpy node."""
+
+    def __init__(self, node: NodeLike, self_node_name: str) -> None:
+        self._node = node
+        self._self_node_name = self_node_name
+
+    def snapshot(self) -> GraphSnapshot:
+        services = _typed_names(self._node.get_service_names_and_types())
+        actions = _typed_names(_action_names(self._node))
+        topics = [
+            TopicInfo(
+                name=name,
+                types=sorted(types),
+                publishers=_endpoints(self._node.get_publishers_info_by_topic(name)),
+                subscribers=_endpoints(self._node.get_subscriptions_info_by_topic(name)),
+            )
+            for name, types in self._node.get_topic_names_and_types()
+        ]
+        published = _topics_by_endpoint(topics, "publishers")
+        subscribed = _topics_by_endpoint(topics, "subscribers")
+        nodes = [
+            self._node_info(
+                name,
+                namespace,
+                services,
+                actions,
+                published.get(full_name, []),
+                subscribed.get(full_name, []),
+            )
+            for name, namespace in self._node.get_node_names_and_namespaces()
+            if (full_name := _full_name(name, namespace)) != self._self_node_name
+        ]
+        return GraphSnapshot(
+            nodes=sorted(nodes, key=lambda node: node.name),
+            topics=sorted(topics, key=lambda topic: topic.name),
+            services=services,
+            actions=actions,
+        )
+
+    def _node_info(
+        self,
+        name: str,
+        namespace: str,
+        services: Mapping[str, list[str]],
+        actions: Mapping[str, list[str]],
+        publishers: list[str],
+        subscribers: list[str],
+    ) -> NodeInfo:
+        full_name = _full_name(name, namespace)
+        prefix = f"{full_name}/"
+        return NodeInfo(
+            name=full_name,
+            namespace=namespace or "/",
+            publishers=sorted(publishers),
+            subscribers=sorted(subscribers),
+            services=sorted(service for service in services if service.startswith(prefix)),
+            actions=sorted(action for action in actions if action.startswith(prefix)),
+        )
+
+
+def _full_name(name: str, namespace: str) -> str:
+    return f"{namespace.rstrip('/')}/{name}"
+
+
+def _typed_names(
+    entries: list[tuple[str, list[str]]],
+) -> dict[str, list[str]]:
+    return {name: sorted(types) for name, types in sorted(entries)}
+
+
+def _action_names(node: NodeLike) -> list[tuple[str, list[str]]]:
+    get_actions = getattr(node, "get_action_names_and_types", None)
+    if not callable(get_actions):
+        return []
+    return list(get_actions())
+
+
+def _endpoints(endpoints: list[EndpointLike]) -> list[str]:
+    names = {_full_name(endpoint.node_name, endpoint.node_namespace) for endpoint in endpoints}
+    return sorted(names)
+
+
+def _topics_by_endpoint(topics: list[TopicInfo], attribute: str) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    for topic in topics:
+        for endpoint in getattr(topic, attribute):
+            result.setdefault(endpoint, []).append(topic.name)
+    return {endpoint: sorted(names) for endpoint, names in result.items()}
