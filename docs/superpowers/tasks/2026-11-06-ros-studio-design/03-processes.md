@@ -59,13 +59,13 @@
 
 ## Bloque P5 — Perfiles
 
-- [ ] **T147 · 10 min** — Añadir la migración v2 con tabla `profiles`. **Hecho:** `user_version` pasa a 2.
-- [ ] **T148 · 10 min** — Escribir el test de `ProfileRepository` (upsert/list/delete). **Hecho:** falla por módulo ausente.
-- [ ] **T149 · 10 min** — Implementar el repositorio. **Hecho:** T148 en verde.
-- [ ] **T150 · 10 min** — Escribir los tests de las rutas de perfiles. **Hecho:** fallan por rutas ausentes.
-- [ ] **T151 · 15 min** — Implementar `POST`/`PUT`/`DELETE /api/profiles`. **Hecho:** T150 en verde.
-- [ ] **T152 · 10 min** — Escribir y resolver el arranque con fallo: para los ya arrancados y responde 409. **Hecho:** el test pasa.
-- [ ] **T153 · 10 min** — Checks y commit `feat: persist and launch process profiles`. **Hecho:** commit creado.
+- [x] **T147 · 10 min** — Añadir la migración v2 con tabla `profiles`. **Hecho:** `user_version` pasa a 2.
+- [x] **T148 · 10 min** — Escribir el test de `ProfileRepository` (upsert/list/delete). **Hecho:** falla por módulo ausente.
+- [x] **T149 · 10 min** — Implementar el repositorio. **Hecho:** T148 en verde.
+- [x] **T150 · 10 min** — Escribir los tests de las rutas de perfiles. **Hecho:** fallan por rutas ausentes.
+- [x] **T151 · 15 min** — Implementar `POST`/`PUT`/`DELETE /api/profiles`. **Hecho:** T150 en verde.
+- [x] **T152 · 10 min** — Escribir y resolver el arranque con fallo: para los ya arrancados y responde 409. **Hecho:** el test pasa.
+- [x] **T153 · 10 min** — Checks y commit `feat: persist and launch process profiles`. **Hecho:** commit creado.
 
 ## Verificación
 

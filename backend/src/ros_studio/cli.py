@@ -9,12 +9,19 @@ from pathlib import Path
 import uvicorn
 from platformdirs import user_config_dir
 
-from ros_studio.api import routes_graph, routes_params, routes_processes, routes_topics
+from ros_studio.api import (
+    routes_graph,
+    routes_params,
+    routes_processes,
+    routes_profiles,
+    routes_topics,
+)
 from ros_studio.app import create_app
 from ros_studio.channels import ChannelRegistry
 from ros_studio.env import EnvironmentInfo, RosEnvironmentError, ensure_ros_environment
 from ros_studio.events import EventBus
 from ros_studio.processes.manager import ProcessManager
+from ros_studio.processes.profiles import ProfileRepository
 from ros_studio.ros.graph import ThreadGraphSource
 from ros_studio.ros.params import ThreadParamsSource
 from ros_studio.ros.rate import ThreadRateSource
@@ -60,6 +67,7 @@ def build_services(
     services.routers.append(routes_topics.create_router(ros, ThreadRateSource(ros)))
     manager = ProcessManager(bus, database.path.parent / "logs", registry=ProcessRegistry(database))
     services.routers.append(routes_processes.create_router(manager))
+    services.routers.append(routes_profiles.create_router(manager, ProfileRepository(database)))
     routes_processes.register_process_channels(services.channels, manager)
 
     async def recover() -> None:

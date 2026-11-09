@@ -15,6 +15,13 @@ _MIGRATIONS = {
             exit_code INTEGER
         );
     """,
+    2: """
+        CREATE TABLE profiles (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            processes_json TEXT NOT NULL
+        );
+    """,
 }
 
 
