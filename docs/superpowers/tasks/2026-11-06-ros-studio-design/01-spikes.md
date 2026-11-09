@@ -15,14 +15,14 @@
 
 ## Bloque S1 — Sondeo del grafo
 
-- [ ] **T012 · 10 min** — Crear `spikes/graph_probe.py` con argumentos, init de `rclpy` y salida JSON. **Hecho:** `--help` funciona sin ROS.
-- [ ] **T013 · 10 min** — Añadir la creación de 100 publishers `std_msgs/msg/String` en `probe/topic_000…099`. **Hecho:** el script arranca y crea los topics.
-- [ ] **T014 · 10 min** — Medir 20 s de polling (nombres, tipos y endpoints) y calcular `p50`, `p95`, `max` y `cpu_percent`. **Hecho:** imprime el JSON completo.
-- [ ] **T015 · 10 min** — Ejecutarlo con 100 topics en el entorno ROS real. **Hecho:** JSON guardado con `topic_count: 100`.
-- [ ] **T016 · 5 min** — Repetir con `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` si está instalado. **Hecho:** segunda fila o nota de que no está disponible.
-- [ ] **T017 · 10 min** — Crear `docs/etapa-0-mediciones.md` con la tabla de máquina, distro, RMW y tiempos. **Hecho:** la tabla tiene al menos una fila.
-- [ ] **T018 · 5 min** — Anotar la decisión go/no-go: sondeo de 1 s válido si CPU <5 % y p95 <200 ms. **Hecho:** hay una frase de decisión explícita.
-- [ ] **T019 · 5 min** — Commit `spike: measure ros graph polling cost`. **Hecho:** commit creado.
+- [x] **T012 · 10 min** — Crear `spikes/graph_probe.py` con argumentos, init de `rclpy` y salida JSON. **Hecho:** `--help` funciona sin ROS.
+- [x] **T013 · 10 min** — Añadir la creación de 100 publishers `std_msgs/msg/String` en `probe/topic_000…099`. **Hecho:** el script arranca y crea los topics.
+- [x] **T014 · 10 min** — Medir 20 s de polling (nombres, tipos y endpoints) y calcular `p50`, `p95`, `max` y `cpu_percent`. **Hecho:** imprime el JSON completo.
+- [x] **T015 · 10 min** — Ejecutarlo con 100 topics en el entorno ROS real. **Hecho:** JSON guardado con `topic_count: 100`.
+- [x] **T016 · 5 min** — Repetir con `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` si está instalado. **Hecho:** segunda fila o nota de que no está disponible.
+- [x] **T017 · 10 min** — Crear `docs/etapa-0-mediciones.md` con la tabla de máquina, distro, RMW y tiempos. **Hecho:** la tabla tiene al menos una fila.
+- [x] **T018 · 5 min** — Anotar la decisión go/no-go: sondeo de 1 s válido si CPU <5 % y p95 <200 ms. **Hecho:** hay una frase de decisión explícita.
+- [x] **T019 · 5 min** — Commit `spike: measure ros graph polling cost`. **Hecho:** commit creado.
 
 ## Bloque S2 — Señales y huérfanos
 
