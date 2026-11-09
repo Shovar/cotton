@@ -110,3 +110,151 @@ Límite conocido: un proceso que haga `setsid()` por su cuenta escapa del grupo
 y no se puede parar con `killpg`; la v1 no lo contempla. Los procesos lanzados
 por ROS suelen respetar el grupo, así que el riesgo es bajo.
 
+## S3 — Lichtblick y assets
+
+Versión fijada: **v1.30.0** (tag `v1.30.0`, publicado el 2026-10-22, commit
+`fcfc7d559d8e76db36c9730e78049a60f976c2d2`). Licencia **MPL-2.0**
+(`package.json` y cabecera de `LICENSE`: BMW AG 2024 y Foxglove Technologies
+2021–2024).
+
+### Incidencia con `npm ci` (T027)
+
+El repositorio **no tiene `package-lock.json`**: usa Yarn 4.17.0 vía corepack
+(`packageManager: yarn@4.17.0`, `yarnPath: .yarn/yarn-wrapper.js`). Por eso
+`npm ci` falla con `EUSAGE` («can only install with an existing
+package-lock.json»). Node 26 ya no incluye corepack, así que se instaló con
+`npm install -g corepack@latest` (0.36.0) y se usó el gestor oficial:
+
+```bash
+yarn install --immutable
+# Done with warnings in 22s 15ms, exit 0, 1276 paquetes en node_modules
+```
+
+### Build (T028)
+
+`package.json` tampoco tiene un script `build`; el CI oficial ejecuta
+`build:packages` y `web:build:prod`, y eso es lo que se usó:
+
+```bash
+yarn build:packages && yarn web:build:prod
+# webpack 5.108.3 compiled with 2 warnings in 19069 ms, exit 0
+```
+
+El resultado queda en `web/.webpack/` (`index.html` + bundles con hash).
+
+| Medida | Valor |
+| --- | --- |
+| `du -sh web/.webpack` | 172 MB |
+| Build sin ficheros `.map` | 41.5 MiB (129.9 MiB son source maps) |
+| `lichtblick-web.tar.gz` oficial (release v1.30.0) | 40 636 655 B (38.75 MiB) |
+| Build oficial extraído | 172 MB |
+| Licencia | MPL-2.0 |
+| Login o nube | no; el visor funciona en local sin cuenta |
+
+### Servido y conexión con el puente (T030)
+
+Se sirvió el build con `python3 -m http.server 8080 --bind 127.0.0.1
+--directory web/.webpack` y `foxglove_bridge` 3.6.0 (RoboStack, entorno pixi
+temporal) con `--port 8765`. La URL exacta que conecta es:
+
+```text
+http://127.0.0.1:8080/?ds=foxglove-websocket&ds.url=ws://127.0.0.1:8765
+```
+
+Evidencia: captura headless de Microsoft Edge con el visor cargado, la cabecera
+mostrando `ws://127.0.0.1:8765` y el log del puente registrando el cliente y su
+suscripción al grafo. El host **no puede ser relativo**: `ds.url` exige una URL
+`ws://` absoluta, así que la app debe componerla con el host del navegador.
+
+Incidencia: Edge headless no crea contexto WebGL y los paneles 3D muestran
+«Error creating WebGL context». El resto del visor y la conexión WebSocket
+funcionan; la comprobación visual de un topic 3D queda para un navegador con
+GPU y pertenece al criterio de la etapa 3.
+
+### Formato de layout por URL (T031)
+
+**`?layout=...` no existe en v1.30.0.** El código solo interpreta:
+
+- `?layoutUrl=<URL http(s)>`: descarga un JSON de layout, lo instala como layout
+  local y lo selecciona. Verificado: el fichero se pidió al servidor y el visor
+  aplicó el layout vacío.
+- `?defaultLayout=<nombre>`: selecciona un layout ya instalado por su nombre.
+
+Formato mínimo del JSON (validado por `validateLayoutData`):
+
+```json
+{
+  "configById": {},
+  "globalVariables": {},
+  "playbackConfig": { "speed": 1 }
+}
+```
+
+`userNodes` es opcional. El diseño debe sustituir `?layout=...` por
+`layoutUrl` (layout empaquetado y servido por el backend) o por
+`defaultLayout` (layout incluido en el visor).
+
+### Decisión de empaquetado (T032)
+
+**Descargar, no vendorizar.** El build oficial pesa 38.75 MiB comprimido
+(172 MB extraído, 41.5 MiB sin source maps). Vendorizarlo obligaría a meter
+decenas de MiB en el wheel o a compilar Lichtblick en cada CI, y a mantener
+avisos y disponibilidad de fuentes MPL-2.0. La descarga fijada evita ambas
+cosas y el manifiesto ya abstrae la URL.
+
+| Campo | Valor |
+| --- | --- |
+| URL | `https://github.com/lichtblick-suite/lichtblick/releases/download/v1.30.0/lichtblick-web.tar.gz` |
+| Versión | `v1.30.0` |
+| SHA-256 | `f73b6bd0b4d2857b7311eb780279494334690e203de43440b54bc75994fd16c6` |
+| Tamaño | 40 636 655 B |
+| Verificación | `shasum -a 256 lichtblick-web-1.30.0.tar.gz` |
+
+Al primer arranque: descargar a la caché local, comprobar el SHA-256, extraer y
+servir desde el backend. Para instalaciones sin red se documentará cómo
+pre-sembrar la caché copiando el `.tar.gz` ya verificado.
+
+## S4 — Validación de instalaciones
+
+### pixi / RoboStack (T033)
+
+Entorno pixi temporal con `python 3.12`, `pip`, `fastapi`, `uvicorn` desde
+conda-forge y `ros-jazzy-rclpy` desde RoboStack. Wheel construido en el worktree
+(`ros_studio-0.1.0-py3-none-any.whl`, 17 442 B) e instalado dentro del entorno:
+
+```bash
+pixi install
+pip install dist/ros_studio-0.1.0-py3-none-any.whl
+python -c "import rclpy, fastapi, uvicorn, ros_studio; ..."
+ros-studio --help
+```
+
+Resultado: instalación correcta. Pip solo trajo `platformdirs` de PyPI; el resto
+de dependencias (FastAPI 0.162.2, uvicorn 0.54.0, Pydantic) ya venían de
+conda-forge y no hubo conflicto de resolvedor. `import rclpy` funciona desde el
+entorno (rclpy de RoboStack) y `ros-studio --help` imprime el uso. No hizo falta
+la variante `--no-deps`.
+
+### Ubuntu con venv `--system-site-packages` (T034)
+
+**No validado en esta sesión.** La máquina es macOS 26.6.2 arm64 y no hay un
+host Ubuntu 24.04 con ROS 2 instalado por apt. Queda pendiente ejecutar:
+
+```bash
+python3 -m venv --system-site-packages /tmp/rs
+/tmp/rs/bin/pip install dist/ros_studio-0.1.0-py3-none-any.whl
+/tmp/rs/bin/python -c "import rclpy"
+```
+
+La incidencia es de plataforma, no del paquete: el wheel es `py3-none-any` y la
+validación pixi ya demuestra que `rclpy` del entorno se ve sin declararlo.
+
+## Gate de cierre
+
+- Sondeo con p50/p95/max y CPU: sí (S1, tres filas).
+- 5 s + 3 s de gracia: suficientes (S2, escenario 3 usa 8 s y solo `SIGKILL`
+  vacía el grupo).
+- Vendorizar o descargar Lichtblick: descargar, con URL, versión y SHA-256 (S3).
+- Instalaciones: pixi/RoboStack validada; Ubuntu bloqueada y anotada (S4).
+
+

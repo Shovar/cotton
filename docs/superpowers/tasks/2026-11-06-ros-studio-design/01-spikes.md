@@ -36,21 +36,21 @@
 
 ## Bloque S3 — Lichtblick y assets
 
-- [ ] **T027 · 15 min** — Clonar la release estable elegida de Lichtblick y lanzar `npm ci`. **Hecho:** dependencias instaladas o incidencia anotada.
-- [ ] **T028 · 10 min** — Lanzar `npm run build` y comprobar que termina. **Hecho:** existe el directorio de build.
-- [ ] **T029 · 10 min** — Medir `du -sh` del build y revisar `LICENSE`. **Hecho:** tamaño, licencia y versión anotados.
-- [ ] **T030 · 10 min** — Servir el build y conectar con `foxglove_bridge` en `8765`. **Hecho:** la URL conecta y se ve el visor.
-- [ ] **T031 · 10 min** — Probar `?layout=...` con un layout mínimo. **Hecho:** se anota si funciona y el formato.
-- [ ] **T032 · 10 min** — Decidir vendorizar vs descargar con checksum y anotar URL/hash/versión. **Hecho:** decisión registrada.
+- [x] **T027 · 15 min** — Clonar la release estable elegida de Lichtblick y lanzar `npm ci`. **Hecho:** dependencias instaladas o incidencia anotada.
+- [x] **T028 · 10 min** — Lanzar `npm run build` y comprobar que termina. **Hecho:** existe el directorio de build.
+- [x] **T029 · 10 min** — Medir `du -sh` del build y revisar `LICENSE`. **Hecho:** tamaño, licencia y versión anotados.
+- [x] **T030 · 10 min** — Servir el build y conectar con `foxglove_bridge` en `8765`. **Hecho:** la URL conecta y se ve el visor.
+- [x] **T031 · 10 min** — Probar `?layout=...` con un layout mínimo. **Hecho:** se anota si funciona y el formato.
+- [x] **T032 · 10 min** — Decidir vendorizar vs descargar con checksum y anotar URL/hash/versión. **Hecho:** decisión registrada.
 
 ## Bloque S4 — Validación de instalaciones
 
-- [ ] **T033 · 15 min** — Validar la instalación en pixi/RoboStack (`pixi add fastapi uvicorn`, wheel local, `import rclpy`). **Hecho:** resultado anotado.
-- [ ] **T034 · 15 min** — Validar la instalación en Ubuntu con venv `--system-site-packages`. **Hecho:** `import rclpy` funciona.
+- [x] **T033 · 15 min** — Validar la instalación en pixi/RoboStack (`pixi add fastapi uvicorn`, wheel local, `import rclpy`). **Hecho:** resultado anotado.
+- [ ] **T034 · 15 min** — Validar la instalación en Ubuntu con venv `--system-site-packages`. **Hecho:** `import rclpy` funciona. **Bloqueado:** la sesión corre en macOS arm64 y no hay host Ubuntu 24.04 con ROS 2 por apt; queda anotado en `docs/etapa-0-mediciones.md`.
 
 ## Bloque S5 — Cierre
 
-- [ ] **T035 · 10 min** — Escribir `spikes/lichtblick_probe.md` y commit `spike: measure lichtblick assets and install paths`. **Hecho:** commit creado.
+- [x] **T035 · 10 min** — Escribir `spikes/lichtblick_probe.md` y commit `spike: measure lichtblick assets and install paths`. **Hecho:** commit creado.
 
 ## Verificación
 
@@ -58,7 +58,7 @@ Los spikes se ejecutan a mano dentro del entorno ROS activo. No hay suite autom�
 
 ## Gate de cierre
 
-- [ ] `docs/etapa-0-mediciones.md` tiene filas de sondeo con p50/p95/max y CPU.
-- [ ] Está anotado si 5 s + 3 s de gracia bastan para apagar grupos de procesos.
-- [ ] Está decidido vendorizar o descargar Lichtblick, con URL, versión y sha256.
-- [ ] Las instalaciones de pixi/RoboStack y Ubuntu quedan validadas o con incidencia escrita.
+- [x] `docs/etapa-0-mediciones.md` tiene filas de sondeo con p50/p95/max y CPU.
+- [x] Está anotado si 5 s + 3 s de gracia bastan para apagar grupos de procesos.
+- [x] Está decidido vendorizar o descargar Lichtblick, con URL, versión y sha256.
+- [x] Las instalaciones de pixi/RoboStack y Ubuntu quedan validadas o con incidencia escrita.
