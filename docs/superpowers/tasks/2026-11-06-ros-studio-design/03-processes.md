@@ -48,14 +48,14 @@
 
 ## Bloque P4 — API y WS de procesos
 
-- [ ] **T139 · 10 min** — Escribir el test de crear, listar y parar un proceso. **Hecho:** falla por rutas ausentes.
-- [ ] **T140 · 15 min** — Implementar las rutas REST de procesos y el estado 201. **Hecho:** T139 en verde.
-- [ ] **T141 · 10 min** — Escribir y resolver el test de `command` string con `shlex.split`. **Hecho:** `["sleep", "30"]`.
-- [ ] **T142 · 10 min** — Mapear `ProcessConflict` a 409 y `ProcessNotFound` a 404. **Hecho:** tests de ambos.
-- [ ] **T143 · 10 min** — Implementar `GET /logs?lines=` con límite 1–2000. **Hecho:** devuelve las últimas líneas.
-- [ ] **T144 · 10 min** — Escribir el test de backfill por WS (`processes` + `logs:id`). **Hecho:** falla antes de implementar.
-- [ ] **T145 · 15 min** — Implementar los canales WS y el reenvío inicial de estado y logs. **Hecho:** T144 en verde.
-- [ ] **T146 · 10 min** — Checks y commit `feat: expose process api and websocket channels`. **Hecho:** commit creado.
+- [x] **T139 · 10 min** — Escribir el test de crear, listar y parar un proceso. **Hecho:** falla por rutas ausentes.
+- [x] **T140 · 15 min** — Implementar las rutas REST de procesos y el estado 201. **Hecho:** T139 en verde.
+- [x] **T141 · 10 min** — Escribir y resolver el test de `command` string con `shlex.split`. **Hecho:** `["sleep", "30"]`.
+- [x] **T142 · 10 min** — Mapear `ProcessConflict` a 409 y `ProcessNotFound` a 404. **Hecho:** tests de ambos.
+- [x] **T143 · 10 min** — Implementar `GET /logs?lines=` con límite 1–2000. **Hecho:** devuelve las últimas líneas.
+- [x] **T144 · 10 min** — Escribir el test de backfill por WS (`processes` + `logs:id`). **Hecho:** falla antes de implementar.
+- [x] **T145 · 15 min** — Implementar los canales WS y el reenvío inicial de estado y logs. **Hecho:** T144 en verde.
+- [x] **T146 · 10 min** — Checks y commit `feat: expose process api and websocket channels`. **Hecho:** commit creado.
 
 ## Bloque P5 — Perfiles
 

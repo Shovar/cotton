@@ -22,6 +22,20 @@ def test_registry_rejects_duplicate_names() -> None:
         registry.register(Channel("graph", matches=lambda event: True))
 
 
+def test_registry_resolves_channel_families() -> None:
+    registry = ChannelRegistry()
+
+    def build(name: str) -> Channel | None:
+        return Channel(name, matches=lambda event: True) if name != "logs:nope" else None
+
+    registry.register_family("logs:", build)
+
+    assert registry.get("logs:p1") is not None
+    assert registry.get("logs:nope") is None
+    assert registry.get("other") is None
+    assert registry.names() == ()
+
+
 def test_channel_matches_events() -> None:
     channel = Channel("logs:p1", matches=lambda event: event.data.get("id") == "p1")
 
