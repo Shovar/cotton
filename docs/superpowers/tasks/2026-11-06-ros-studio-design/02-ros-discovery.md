@@ -15,25 +15,25 @@
 
 ## Bloque D1 — Modelos y GraphSource
 
-- [ ] **T050 · 10 min** — Crear `models.py` con `NodeInfo`, `TopicInfo` y `GraphSnapshot`. **Hecho:** instancian y serializan.
-- [ ] **T051 · 10 min** — Crear el `FakeNode` del test y comprobar que el nodo propio se excluye. **Hecho:** el test falla por implementación ausente.
-- [ ] **T052 · 5 min** — Añadir el test de topic sin editores ni suscriptores. **Hecho:** el test existe.
-- [ ] **T053 · 15 min** — Implementar `snapshot()` para nodos y topics, invirtiendo endpoints. **Hecho:** T051 y T052 en verde.
-- [ ] **T054 · 10 min** — Añadir servicios y acciones por prefijo de nodo. **Hecho:** el test comprueba `/talker/get_parameters`.
-- [ ] **T055 · 5 min** — Ordenar listas y fijar `revision = 0` en el snapshot. **Hecho:** el orden es estable.
-- [ ] **T056 · 10 min** — Checks y commit `feat: add rclpy graph source and models`. **Hecho:** commit creado.
+- [x] **T050 · 10 min** — Crear `models.py` con `NodeInfo`, `TopicInfo` y `GraphSnapshot`. **Hecho:** instancian y serializan.
+- [x] **T051 · 10 min** — Crear el `FakeNode` del test y comprobar que el nodo propio se excluye. **Hecho:** el test falla por implementación ausente.
+- [x] **T052 · 5 min** — Añadir el test de topic sin editores ni suscriptores. **Hecho:** el test existe.
+- [x] **T053 · 15 min** — Implementar `snapshot()` para nodos y topics, invirtiendo endpoints. **Hecho:** T051 y T052 en verde.
+- [x] **T054 · 10 min** — Añadir servicios y acciones por prefijo de nodo. **Hecho:** el test comprueba `/talker/get_parameters`.
+- [x] **T055 · 5 min** — Ordenar listas y fijar `revision = 0` en el snapshot. **Hecho:** el orden es estable.
+- [x] **T056 · 10 min** — Checks y commit `feat: add rclpy graph source and models`. **Hecho:** commit creado.
 
 ## Bloque D2 — Watcher y estado de conexión
 
-- [ ] **T058 · 10 min** — Escribir el test de watcher que solo emite al cambiar el snapshot. **Hecho:** falla por módulo ausente.
-- [ ] **T059 · 15 min** — Implementar `GraphWatcher.run`, comparación por JSON y `current()`. **Hecho:** T058 en verde.
-- [ ] **T060 · 10 min** — Escribir el test de `ros.status` cuando el snapshot lanza. **Hecho:** el test existe.
-- [ ] **T061 · 10 min** — Implementar `connected=False`, backoff 1→30 s y recuperación. **Hecho:** T060 en verde.
-- [ ] **T062 · 10 min** — Añadir `GET /api/graph` con el snapshot actual. **Hecho:** responde 200 con listas.
+- [x] **T058 · 10 min** — Escribir el test de watcher que solo emite al cambiar el snapshot. **Hecho:** falla por módulo ausente.
+- [x] **T059 · 15 min** — Implementar `GraphWatcher.run`, comparación por JSON y `current()`. **Hecho:** T058 en verde.
+- [x] **T060 · 10 min** — Escribir el test de `ros.status` cuando el snapshot lanza. **Hecho:** el test existe.
+- [x] **T061 · 10 min** — Implementar `connected=False`, backoff 1→30 s y recuperación. **Hecho:** T060 en verde.
+- [x] **T062 · 10 min** — Añadir `GET /api/graph` con el snapshot actual. **Hecho:** responde 200 con listas.
 
 ## Bloque D3 — Canal WS del grafo
 
-- [ ] **T216 · 5 min** — Registrar el canal `graph` en el registro del WebSocket y enviar el snapshot inicial al suscribirse. **Hecho:** un cliente suscrito a `graph` recibe `graph.update` al conectar.
+- [x] **T216 · 5 min** — Registrar el canal `graph` en el registro del WebSocket y enviar el snapshot inicial al suscribirse. **Hecho:** un cliente suscrito a `graph` recibe `graph.update` al conectar.
 
 ## Bloque D4 — Parámetros remotos
 

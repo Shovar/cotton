@@ -9,16 +9,17 @@ from pathlib import Path
 import uvicorn
 from platformdirs import user_config_dir
 
+from ros_studio.api import routes_graph
 from ros_studio.app import create_app
 from ros_studio.channels import ChannelRegistry
 from ros_studio.env import EnvironmentInfo, RosEnvironmentError, ensure_ros_environment
 from ros_studio.events import EventBus
-from ros_studio.processes.manager import ProcessManager
+from ros_studio.ros.graph import ThreadGraphSource
 from ros_studio.ros.thread import RosThread
+from ros_studio.ros.watcher import GraphWatcher
 from ros_studio.security import Auth, generate_token
 from ros_studio.services import Services
 from ros_studio.storage.db import Database
-from ros_studio.storage.process_registry import ProcessRegistry
 
 
 def allowed_origins(port: int, extra: list[str] | None = None) -> set[str]:
@@ -36,29 +37,24 @@ def build_services(
     env: EnvironmentInfo, token: str, origins: set[str], db_path: Path | None = None
 ) -> Services:
     web_dir = Path(__file__).parent / "web"
-    config_dir = Path(user_config_dir("ros-studio"))
-    database = Database(db_path or config_dir / "state.db")
+    database = Database(db_path or Path(user_config_dir("ros-studio")) / "state.db")
+    ros = RosThread()
     bus = EventBus()
-    processes = ProcessManager(
-        bus=bus,
-        logs_dir=(Path(db_path).parent if db_path else config_dir) / "logs",
-        registry=ProcessRegistry(database),
-    )
-
-    async def recover_processes() -> None:
-        await processes.recover()
-
-    return Services(
+    services = Services(
         env=env,
-        ros=RosThread(),
+        ros=ros,
         bus=bus,
         auth=Auth(token, origins),
         db=database,
         channels=ChannelRegistry(),
         spa_dir=web_dir if web_dir.is_dir() else None,
-        startup=[recover_processes],
-        shutdown=[processes.shutdown],
     )
+    watcher = GraphWatcher(ros, ThreadGraphSource(ros), bus)
+    services.routers.append(routes_graph.create_router(watcher))
+    services.channels.register(routes_graph.graph_channel(watcher))
+    services.startup.append(watcher.start)
+    services.shutdown.append(watcher.stop)
+    return services
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

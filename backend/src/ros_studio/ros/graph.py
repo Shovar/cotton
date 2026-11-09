@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Protocol
 
 from ros_studio.ros.models import GraphSnapshot, NodeInfo, TopicInfo
+from ros_studio.ros.thread import RosCallError, RosThread
 
 
 class EndpointLike(Protocol):
@@ -86,6 +87,19 @@ class RclpyGraphSource:
             services=sorted(service for service in services if service.startswith(prefix)),
             actions=sorted(action for action in actions if action.startswith(prefix)),
         )
+
+
+class ThreadGraphSource:
+    """Resolves the ROS node lazily so the watcher can be built before startup."""
+
+    def __init__(self, ros: RosThread) -> None:
+        self._ros = ros
+
+    def snapshot(self) -> GraphSnapshot:
+        node = self._ros.node
+        if node is None:
+            raise RosCallError("the ROS thread is not running")
+        return RclpyGraphSource(node, f"/{self._ros.node_name}").snapshot()
 
 
 def _full_name(name: str, namespace: str) -> str:
