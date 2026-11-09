@@ -22,6 +22,12 @@ _MIGRATIONS = {
             processes_json TEXT NOT NULL
         );
     """,
+    3: """
+        CREATE TABLE settings (
+            key TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL
+        );
+    """,
 }
 
 

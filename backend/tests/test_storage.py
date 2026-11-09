@@ -8,13 +8,13 @@ def tables(db: Database) -> set[str]:
     return {row[0] for row in rows}
 
 
-def test_migrates_to_version_two_with_registry_and_profiles(tmp_path: Path) -> None:
+def test_migrates_to_head_version_with_registry_profiles_and_settings(tmp_path: Path) -> None:
     db = Database(tmp_path / "state.db")
 
     db.migrate()
 
-    assert db.user_version() == 2
-    assert {"process_registry", "profiles"} <= tables(db)
+    assert db.user_version() == 3
+    assert {"process_registry", "profiles", "settings"} <= tables(db)
     assert db.connection().execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     db.close()
 
@@ -25,7 +25,7 @@ def test_migrate_is_idempotent_and_creates_parent_directory(tmp_path: Path) -> N
     db.migrate()
     db.migrate()
 
-    assert db.user_version() == 2
+    assert db.user_version() == 3
     assert (tmp_path / "nested").is_dir()
     db.close()
 
@@ -38,5 +38,5 @@ def test_close_is_idempotent_and_reopening_keeps_version(tmp_path: Path) -> None
     db.close()
 
     reopened = Database(path)
-    assert reopened.user_version() == 2
+    assert reopened.user_version() == 3
     reopened.close()
