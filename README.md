@@ -12,6 +12,7 @@ requires a session token instead of accounts or cloud services.
 - [Implementation plan](docs/superpowers/plans/2026-11-06-ros-studio-mvp.md)
 - [Task list](docs/superpowers/tasks/2026-11-06-ros-studio-design.md)
 - [REST and WebSocket contract](docs/contracts/api.md)
+- [Plugin manifests and Lichtblick assets](docs/plugins.md)
 
 ## Development
 

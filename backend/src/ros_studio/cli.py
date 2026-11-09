@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 import threading
 import webbrowser
 from pathlib import Path
 
 import uvicorn
-from platformdirs import user_config_dir
+from platformdirs import user_cache_dir, user_config_dir
 
 from ros_studio.api import (
     routes_graph,
     routes_params,
+    routes_plugins,
     routes_processes,
     routes_profiles,
     routes_topics,
@@ -20,6 +22,10 @@ from ros_studio.app import create_app
 from ros_studio.channels import ChannelRegistry
 from ros_studio.env import EnvironmentInfo, RosEnvironmentError, ensure_ros_environment
 from ros_studio.events import EventBus
+from ros_studio.plugins.assets import AssetError, LichtblickAssets
+from ros_studio.plugins.loader import BUILTIN_PLUGINS_DIR, PluginLoader
+from ros_studio.plugins.manager import PluginManager
+from ros_studio.plugins.settings import SettingsRepository
 from ros_studio.processes.manager import ProcessManager
 from ros_studio.processes.profiles import ProfileRepository
 from ros_studio.ros.graph import ThreadGraphSource
@@ -70,11 +76,30 @@ def build_services(
     services.routers.append(routes_profiles.create_router(manager, ProfileRepository(database)))
     routes_processes.register_process_channels(services.channels, manager)
 
+    plugins = PluginManager(
+        PluginLoader(BUILTIN_PLUGINS_DIR, Path(user_config_dir("ros-studio")) / "plugins"),
+        SettingsRepository(database),
+        manager,
+        bus,
+    )
+    services.routers.append(routes_plugins.create_router(plugins))
+    routes_plugins.register_plugin_channel(services.channels, plugins)
+    viewer_assets = LichtblickAssets(Path(user_cache_dir("ros-studio")) / "lichtblick")
+
     async def recover() -> None:
         await manager.recover()
 
+    async def prepare_viewer() -> None:
+        try:
+            await viewer_assets.ensure()
+        except AssetError as exc:
+            logging.getLogger(__name__).warning("Lichtblick assets unavailable: %s", exc)
+
     services.startup.append(recover)
+    services.startup.append(plugins.restore)
+    services.startup.append(prepare_viewer)
     services.shutdown.append(manager.shutdown)
+    services.shutdown.append(plugins.shutdown)
     services.startup.append(watcher.start)
     services.shutdown.append(watcher.stop)
     return services
