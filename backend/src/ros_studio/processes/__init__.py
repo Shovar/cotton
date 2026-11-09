@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 from ros_studio.processes.logs import LogBuffer, LogFileWriter, parse_level
+from ros_studio.processes.manager import (
+    ProcessConflict,
+    ProcessManager,
+    ProcessNotFound,
+    ProcessRegistryPort,
+    StopTimeouts,
+)
 from ros_studio.processes.models import (
     LogLevel,
     LogLine,
@@ -16,8 +23,13 @@ __all__ = [
     "LogLevel",
     "LogLine",
     "LogStream",
+    "ProcessConflict",
+    "ProcessManager",
+    "ProcessNotFound",
     "ProcessRecord",
+    "ProcessRegistryPort",
     "ProcessSpec",
     "ProcessState",
+    "StopTimeouts",
     "parse_level",
 ]
