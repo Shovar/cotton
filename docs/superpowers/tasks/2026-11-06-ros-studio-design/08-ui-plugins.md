@@ -15,24 +15,24 @@
 
 ## Bloque X1 — Lista y activación
 
-- [ ] **T187 · 10 min** — Escribir el test de `PluginsView` con permisos y activación. **Hecho:** falla por componente ausente.
-- [ ] **T188 · 15 min** — Implementar `PluginsView` y el estado/error. **Hecho:** T187 en verde.
+- [x] **T187 · 10 min** — Escribir el test de `PluginsView` con permisos y activación. **Hecho:** falla por componente ausente.
+- [x] **T188 · 15 min** — Implementar `PluginsView` y el estado/error. **Hecho:** T187 en verde.
 
 ## Bloque X2 — Panel embebido
 
-- [ ] **T189 · 10 min** — Implementar `PluginPanel` con iframe para `iframe`/`stream`. **Hecho:** se abre al activar.
-- [ ] **T190 · 10 min** — Sustituir `{hostname}` por `location.hostname` y probarlo. **Hecho:** el `src` es correcto.
+- [x] **T189 · 10 min** — Implementar `PluginPanel` con iframe para `iframe`/`stream`. **Hecho:** se abre al activar.
+- [x] **T190 · 10 min** — Sustituir `{hostname}` por `location.hostname` y probarlo. **Hecho:** el `src` es correcto.
 
 ## Bloque X3 — Panel de Foxglove
 
-- [ ] **T196 · 10 min** — Crear `layout.json` con panel 3D sobre `/tf` y Plot sobre `/turtle1/pose`. **Hecho:** el JSON es válido.
-- [ ] **T197 · 10 min** — Montar `/lichtblick` antes del catch-all y copiar el layout. **Hecho:** `/lichtblick/index.html` responde.
-- [ ] **T198 · 10 min** — Escribir el test de `PluginPanel` que sustituye el host. **Hecho:** falla por componente ausente.
-- [ ] **T199 · 10 min** — Implementar el iframe a pantalla completa y el fallback sin assets. **Hecho:** T198 en verde.
+- [x] **T196 · 10 min** — Crear `layout.json` con panel 3D sobre `/tf` y Plot sobre `/turtle1/pose`. **Hecho:** el JSON es válido.
+- [x] **T197 · 10 min** — Montar `/lichtblick` antes del catch-all y copiar el layout. **Hecho:** `/lichtblick/index.html` responde.
+- [x] **T198 · 10 min** — Escribir el test de `PluginPanel` que sustituye el host. **Hecho:** falla por componente ausente.
+- [x] **T199 · 10 min** — Implementar el iframe a pantalla completa y el fallback sin assets. **Hecho:** T198 en verde.
 
 ## Bloque X4 — Cierre
 
-- [ ] **T191 · 10 min** — Checks, build y commit `feat: expose and manage plugins in the ui`. **Hecho:** commit creado.
+- [x] **T191 · 10 min** — Checks, build y commit `feat: expose and manage plugins in the ui`. **Hecho:** commit creado.
 
 ## Verificación
 

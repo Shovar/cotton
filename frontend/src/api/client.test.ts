@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { apiGet, apiSend, ApiError } from "./client";
+import { apiExists, apiGet, apiSend, ApiError } from "./client";
 import { TOKEN_STORAGE_KEY } from "./session";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -70,6 +70,24 @@ describe("apiSend", () => {
     stubFetch(new Response(null, { status: 204 }));
 
     await expect(apiSend("DELETE", "/api/processes/p1")).resolves.toBeUndefined();
+  });
+});
+
+describe("apiExists", () => {
+  it("reports a missing asset and survives a network failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+    await expect(apiExists("/lichtblick/index.html")).resolves.toBe(false);
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network")));
+    await expect(apiExists("/lichtblick/index.html")).resolves.toBe(false);
+  });
+
+  it("uses HEAD and reports a present asset", async () => {
+    const fetchMock = stubFetch(new Response(null, { status: 200 }));
+
+    await expect(apiExists("/lichtblick/index.html")).resolves.toBe(true);
+
+    expect(fetchMock.mock.calls[0][1]).toEqual({ method: "HEAD" });
   });
 });
 

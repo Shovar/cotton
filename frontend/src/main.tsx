@@ -9,6 +9,7 @@ import { App } from "./App";
 import { readTokenFromHash } from "./api/session";
 import "./layout/shellPanels";
 import "./features/graph/register";
+import "./features/plugins/register";
 import { applyTheme, loadPreferences } from "./state/preferences";
 
 const { hash } = readTokenFromHash(window.location.hash);

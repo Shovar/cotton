@@ -1,0 +1,54 @@
+{
+  "configById": {
+    "3D!rosstudio": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 45,
+        "target": [0, 0, 0],
+        "targetOffset": [0, 0, 0],
+        "targetOrientation": [0, 0, 0, 1],
+        "thetaOffset": 0,
+        "fovy": 45
+      },
+      "followMode": "follow-none",
+      "scene": {},
+      "transforms": {},
+      "topics": {
+        "/tf": { "visible": true }
+      },
+      "layers": {}
+    },
+    "Plot!rosstudio": {
+      "paths": [
+        {
+          "value": "/turtle1/pose.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/turtle1/pose.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": { "speed": 1 },
+  "layout": {
+    "first": "3D!rosstudio",
+    "second": "Plot!rosstudio",
+    "direction": "row",
+    "splitPercentage": 60
+  }
+}

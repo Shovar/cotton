@@ -28,5 +28,6 @@ class Services:
     channels: ChannelRegistry = field(default_factory=ChannelRegistry)
     routers: list[APIRouter] = field(default_factory=list)
     spa_dir: Path | None = None
+    viewer_dir: Path | None = None
     startup: list[LifecycleHook] = field(default_factory=list)
     shutdown: list[LifecycleHook] = field(default_factory=list)

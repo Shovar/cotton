@@ -21,4 +21,4 @@ panels:
   - id: viewer
     title: Foxglove
     type: iframe
-    url: "http://{hostname}:8000/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765"
+    url: "http://{hostname}:8000/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765&layoutUrl=http://{hostname}:8000/lichtblick/layout.json"

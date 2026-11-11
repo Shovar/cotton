@@ -2,17 +2,32 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from html import escape
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Receive, Scope, Send
 
 from ros_studio.api import routes_env, ws
 from ros_studio.errors import install_error_handlers
 from ros_studio.security import require_auth
 from ros_studio.services import Services
+
+
+def _viewer_missing_page(viewer_dir: Path) -> str:
+    cache = escape(str(viewer_dir.parent))
+    return f"""<!doctype html>
+<html lang="es">
+  <head><meta charset="utf-8"><title>Visor no disponible</title></head>
+  <body>
+    <h1>Visor Lichtblick no disponible</h1>
+    <p>ROS Studio descarga el visor fijado en el primer arranque. Revisa la conexión y reinicia,
+    o copia <code>lichtblick-web.tar.gz</code> en <code>{cache}</code> antes de arrancar.</p>
+  </body>
+</html>"""
 
 
 def create_app(services: Services) -> FastAPI:
@@ -47,8 +62,24 @@ def create_app(services: Services) -> FastAPI:
     for router in services.routers:
         app.include_router(router, dependencies=[Depends(require_auth)])
     app.include_router(ws.router)
+    mount_viewer(app, services.viewer_dir)
     mount_spa(app, services.spa_dir)
     return app
+
+
+def mount_viewer(app: FastAPI, viewer_dir: Path | None) -> None:
+    if viewer_dir is None:
+        return
+    static = StaticFiles(directory=viewer_dir, html=True, check_dir=False)
+
+    async def viewer(scope: Scope, receive: Receive, send: Send) -> None:
+        if (viewer_dir / "index.html").is_file():
+            await static(scope, receive, send)
+            return
+        response = HTMLResponse(_viewer_missing_page(viewer_dir), status_code=503)
+        await response(scope, receive, send)
+
+    app.mount("/lichtblick", viewer, name="lichtblick")
 
 
 def mount_spa(app: FastAPI, web_dir: Path | None) -> None:

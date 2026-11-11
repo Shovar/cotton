@@ -66,12 +66,21 @@ export interface LogLine {
 
 export type PluginState = "discovered" | "active" | "stopped" | "error";
 
+export type PluginPanelType = "iframe" | "stream" | "native";
+
+export interface PluginPanelSpec {
+  id: string;
+  title: string;
+  type: PluginPanelType;
+  url: string | null;
+}
+
 export interface PluginManifest {
   name: string;
   version: string;
   description: string;
   processes: ProcessSpec[];
-  panels: unknown[];
+  panels: PluginPanelSpec[];
   permissions: string[];
 }
 

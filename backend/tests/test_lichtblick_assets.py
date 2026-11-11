@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import tarfile
 from pathlib import Path
 
@@ -55,3 +56,16 @@ async def test_single_top_level_directory_is_stripped(tmp_path: Path) -> None:
     root = await assets.ensure()
 
     assert (root / "index.html").is_file()
+
+
+async def test_ensure_copies_the_default_layout(tmp_path: Path) -> None:
+    archive = tmp_path / "lichtblick-web.tar.gz"
+    digest = make_archive(archive, {"index.html": "viewer"})
+    assets = LichtblickAssets(tmp_path / "cache", url=archive.as_uri(), sha256=digest)
+
+    root = await assets.ensure()
+
+    layout = json.loads((root / "layout.json").read_text(encoding="utf-8"))
+    assert layout["configById"]["3D!rosstudio"]["topics"]["/tf"]["visible"] is True
+    plot_paths = [path["value"] for path in layout["configById"]["Plot!rosstudio"]["paths"]]
+    assert "/turtle1/pose.x" in plot_paths

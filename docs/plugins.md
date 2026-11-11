@@ -27,7 +27,7 @@ panels:
   - id: viewer
     title: Foxglove
     type: iframe              # iframe, stream or native
-    url: "http://{hostname}:8000/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765"
+    url: "http://{hostname}:8000/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765&layoutUrl=http://{hostname}:8000/lichtblick/layout.json"
 ```
 
 Validation runs at load time: ids must be unique per manifest, `argv` cannot be
@@ -46,9 +46,17 @@ list so they return on the next start.
 
 The viewer is downloaded, not vendored: `LichtblickAssets` fetches the pinned
 `v1.30.0` release, verifies its SHA-256, extracts it into the platform cache
-directory (`~/.cache/ros-studio/lichtblick/` on Linux) and writes `.complete`.
+directory (`~/.cache/ros-studio/lichtblick/` on Linux), copies the packaged
+`layout.json` next to it and writes `.complete`.
 For offline installs, copy the verified `lichtblick-web.tar.gz` next to that
 directory before the first start.
 
+The backend serves the cache at `/lichtblick` (before the SPA catch-all). If the
+assets are not there yet, it answers with a page that explains how to pre-seed
+the cache instead of a broken viewer. The viewer URL uses the `layoutUrl` query
+parameter, because Lichtblick `v1.30.0` does not accept inline `?layout=` JSON.
+The packaged layout opens a 3D panel on `/tf` and a Plot on `/turtle1/pose`.
+
 The panel URL in the manifest uses `{hostname}`; the frontend replaces it with
-`location.hostname` before rendering the iframe.
+`location.hostname` before rendering the iframe and checks that same-origin
+assets exist before showing the viewer.

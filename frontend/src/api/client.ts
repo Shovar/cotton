@@ -64,3 +64,12 @@ export function apiGet<T>(path: string): Promise<T> {
 export function apiSend<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
   return request<T>(method, path, body);
 }
+
+export async function apiExists(path: string): Promise<boolean> {
+  try {
+    const response = await fetch(path, { method: "HEAD" });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}

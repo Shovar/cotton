@@ -85,6 +85,7 @@ def build_services(
     services.routers.append(routes_plugins.create_router(plugins))
     routes_plugins.register_plugin_channel(services.channels, plugins)
     viewer_assets = LichtblickAssets(Path(user_cache_dir("ros-studio")) / "lichtblick")
+    services.viewer_dir = viewer_assets.path
 
     async def recover() -> None:
         await manager.recover()

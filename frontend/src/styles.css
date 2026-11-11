@@ -240,3 +240,108 @@ button:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.plugins-view {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  height: 100%;
+  overflow: auto;
+  align-content: start;
+}
+
+.plugins-view h2 {
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.plugins-view ul {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.plugin-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface);
+}
+
+.plugin-row p {
+  margin: 0.25rem 0 0;
+}
+
+.plugin-version,
+.plugin-state,
+.plugin-permissions {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.plugin-error {
+  color: var(--off);
+}
+
+.plugin-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.plugin-actions button,
+.plugin-panel-header button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.plugin-actions button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.plugin-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--surface);
+}
+
+.plugin-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.plugin-panel-header h2 {
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.plugin-panel-header button {
+  margin-left: auto;
+}
+
+.plugin-panel iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.plugin-panel p {
+  padding: 1rem;
+  margin: 0;
+  color: var(--muted);
+}

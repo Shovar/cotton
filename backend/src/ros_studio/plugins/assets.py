@@ -15,6 +15,8 @@ LICHTBLICK_URL = (
 )
 LICHTBLICK_SHA256 = "f73b6bd0b4d2857b7311eb780279494334690e203de43440b54bc75994fd16c6"
 ARCHIVE_NAME = "lichtblick-web.tar.gz"
+LAYOUT_NAME = "layout.json"
+LAYOUT_PATH = Path(__file__).with_name(LAYOUT_NAME)
 
 _log = logging.getLogger(__name__)
 
@@ -43,14 +45,21 @@ class LichtblickAssets:
     async def ensure(self) -> Path:
         async with self._lock:
             if self.is_ready():
+                self._copy_layout()
                 return self.path
             archive = self.path.parent / ARCHIVE_NAME
             if not archive.is_file():
                 await self._download(archive)
             await self._verify(archive)
             await asyncio.to_thread(_extract, archive, self.path)
+            self._copy_layout()
             (self.path / ".complete").write_text(LICHTBLICK_VERSION, encoding="utf-8")
             return self.path
+
+    def _copy_layout(self) -> None:
+        destination = self.path / LAYOUT_NAME
+        if not destination.is_file():
+            shutil.copyfile(LAYOUT_PATH, destination)
 
     async def _download(self, archive: Path) -> None:
         _log.info("downloading Lichtblick %s", LICHTBLICK_VERSION)
