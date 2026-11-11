@@ -56,6 +56,12 @@ export interface ProcessRecord {
   recovered: boolean;
 }
 
+export interface Profile {
+  id: string;
+  name: string;
+  processes: ProcessSpec[];
+}
+
 export interface LogLine {
   id: string;
   stream: "stdout" | "stderr";

@@ -6,7 +6,8 @@ import {
 } from "dockview-react";
 
 import { loadPreferences, savePreferences } from "../state/preferences";
-import { getPanels, type PanelDefinition } from "./panelRegistry";
+import { CommandPalette } from "./CommandPalette";
+import { getPanel, getPanels, type PanelDefinition } from "./panelRegistry";
 
 type LayoutState = ReturnType<DockviewApi["toJSON"]>;
 
@@ -79,6 +80,13 @@ export function Workbench() {
     api.addPanel({ id: panel.id, component: panel.id, title: panel.title });
   };
 
+  const runAction = (action: string) => {
+    const panel = getPanel(action.replace(/^open-/, ""));
+    if (panel) {
+      openPanel(panel);
+    }
+  };
+
   return (
     <div className="workbench">
       <nav className="activity-bar" aria-label="Secciones">
@@ -97,6 +105,7 @@ export function Workbench() {
       <div className="dock-host">
         <DockviewReact components={components} onReady={onReady} />
       </div>
+      <CommandPalette onAction={runAction} />
     </div>
   );
 }

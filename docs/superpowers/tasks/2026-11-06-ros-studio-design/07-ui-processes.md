@@ -15,26 +15,26 @@
 
 ## Bloque P1 — Lista y control de procesos
 
-- [ ] **T154 · 10 min** — Escribir el test de `ProcessesView` con un proceso fallido y su código de salida. **Hecho:** falla por componente ausente.
-- [ ] **T155 · 15 min** — Implementar la lista, el formulario de arranque y los botones parar/reiniciar. **Hecho:** T154 en verde.
+- [x] **T154 · 10 min** — Escribir el test de `ProcessesView` con un proceso fallido y su código de salida. **Hecho:** falla por componente ausente.
+- [x] **T155 · 15 min** — Implementar la lista, el formulario de arranque y los botones parar/reiniciar. **Hecho:** T154 en verde.
 
 ## Bloque P2 — Logs
 
-- [ ] **T156 · 10 min** — Escribir el test de `LogsPanel` con filtro por nivel y búsqueda. **Hecho:** falla por componente ausente.
-- [ ] **T157 · 15 min** — Implementar el panel de logs con buffer de 2000 líneas. **Hecho:** T156 en verde.
-- [ ] **T158 · 10 min** — Implementar el filtro combinado de nivel y texto. **Hecho:** el test de filtrado pasa.
-- [ ] **T159 · 10 min** — Añadir la descarga de las líneas visibles como blob. **Hecho:** se genera el fichero.
+- [x] **T156 · 10 min** — Escribir el test de `LogsPanel` con filtro por nivel y búsqueda. **Hecho:** falla por componente ausente.
+- [x] **T157 · 15 min** — Implementar el panel de logs con buffer de 2000 líneas. **Hecho:** T156 en verde.
+- [x] **T158 · 10 min** — Implementar el filtro combinado de nivel y texto. **Hecho:** el test de filtrado pasa.
+- [x] **T159 · 10 min** — Añadir la descarga de las líneas visibles como blob. **Hecho:** se genera el fichero.
 
 ## Bloque P3 — Perfiles
 
-- [ ] **T160 · 15 min** — Implementar `ProfilesPanel` con listar, iniciar y guardar. **Hecho:** los botones llaman a la API.
-- [ ] **T161 · 10 min** — Escribir el test de «Guardar como perfil» y conectarlo a `POST /api/profiles`. **Hecho:** el test pasa.
+- [x] **T160 · 15 min** — Implementar `ProfilesPanel` con listar, iniciar y guardar. **Hecho:** los botones llaman a la API.
+- [x] **T161 · 10 min** — Escribir el test de «Guardar como perfil» y conectarlo a `POST /api/profiles`. **Hecho:** el test pasa.
 
 ## Bloque P4 — Paleta y eventos
 
-- [ ] **T162 · 15 min** — Escribir el test de `CommandPalette` y implementar `Ctrl+Shift+P` con acciones. **Hecho:** ejecuta `open-graph`.
-- [ ] **T163 · 10 min** — Conectar `process.state` y `process.log` al store y a las vistas. **Hecho:** la UI se actualiza en vivo.
-- [ ] **T164 · 10 min** — Tests, `tsc`, build y commit `feat: add processes, logs and profiles ui`. **Hecho:** commit creado.
+- [x] **T162 · 15 min** — Escribir el test de `CommandPalette` y implementar `Ctrl+Shift+P` con acciones. **Hecho:** ejecuta `open-graph`.
+- [x] **T163 · 10 min** — Conectar `process.state` y `process.log` al store y a las vistas. **Hecho:** la UI se actualiza en vivo.
+- [x] **T164 · 10 min** — Tests, `tsc`, build y commit `feat: add processes, logs and profiles ui`. **Hecho:** commit creado.
 
 ## Verificación
 

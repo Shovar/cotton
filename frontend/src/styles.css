@@ -345,3 +345,207 @@ button:focus-visible {
   margin: 0;
   color: var(--muted);
 }
+
+.processes-view {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  height: 100%;
+  overflow: auto;
+  align-content: start;
+}
+
+.processes-view h2,
+.logs-panel h2,
+.profiles-panel h2 {
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.process-form,
+.profile-save,
+.logs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.process-form label,
+.profile-save label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.process-form input,
+.profile-save input,
+.logs-toolbar input,
+.logs-toolbar select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+
+.process-form button,
+.profile-save button,
+.logs-toolbar button,
+.process-actions button,
+.profile-list button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.process-list,
+.profile-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.process-list > li {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface);
+}
+
+.process-list p {
+  margin: 0.25rem 0 0;
+}
+
+.process-argv,
+.process-state {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.process-exit {
+  margin-left: 0.5rem;
+  color: var(--off);
+  font-size: 0.8125rem;
+}
+
+.process-error {
+  color: var(--off);
+}
+
+.process-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.process-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.logs-panel,
+.profiles-panel {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface);
+}
+
+.logs-panel h2,
+.profiles-panel h2 {
+  margin: 0 0 0.5rem;
+}
+
+.log-lines {
+  max-height: 20rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0.5rem;
+  background: var(--bg);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.8125rem;
+  list-style: none;
+}
+
+.log-line {
+  white-space: pre-wrap;
+}
+
+.log-warn {
+  color: #b45309;
+}
+
+.log-error {
+  color: var(--off);
+}
+
+.profile-list {
+  margin-top: 0.5rem;
+}
+
+.profile-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.command-palette {
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  z-index: 60;
+  display: grid;
+  gap: 0.5rem;
+  width: min(32rem, calc(100% - 2rem));
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+  transform: translateX(-50%);
+}
+
+.command-palette input {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+}
+
+.command-palette ul {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 16rem;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.command-palette button {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-palette button:hover {
+  background: var(--bg);
+}

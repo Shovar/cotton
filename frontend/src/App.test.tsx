@@ -70,7 +70,7 @@ describe("App", () => {
 
     await waitFor(() => expect(useStore.getState().env).toEqual(ENV));
     expect(apiGetMock).toHaveBeenCalledWith("/api/env");
-    expect(wsMock.subscribe).toHaveBeenCalledWith(["graph", "plugins"]);
+    expect(wsMock.subscribe).toHaveBeenCalledWith(["graph", "plugins", "processes"]);
     expect(wsMock.connect).toHaveBeenCalled();
 
     unmount();

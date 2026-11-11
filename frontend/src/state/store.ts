@@ -3,17 +3,26 @@ import { create } from "zustand";
 import type {
   EnvironmentInfo,
   GraphSnapshot,
+  LogLine,
   PluginRecord,
   ProcessRecord,
   ServerEvent,
 } from "../api/types";
 import type { ConnectionStatus } from "../api/ws";
 
+const LOG_LIMIT = 2000;
+
+function appendToLogs(state: StoreState, line: LogLine): Partial<StoreState> {
+  const lines = [...(state.logs[line.id] ?? []), line].slice(-LOG_LIMIT);
+  return { logs: { ...state.logs, [line.id]: lines } };
+}
+
 export interface StoreState {
   env: EnvironmentInfo | null;
   graph: GraphSnapshot | null;
   processes: Record<string, ProcessRecord>;
   plugins: Record<string, PluginRecord>;
+  logs: Record<string, LogLine[]>;
   rosConnected: boolean;
   connection: ConnectionStatus;
   setEnv: (env: EnvironmentInfo) => void;
@@ -30,6 +39,7 @@ export const useStore = create<StoreState>()((set) => ({
   graph: null,
   processes: {},
   plugins: {},
+  logs: {},
   rosConnected: false,
   connection: "closed",
   setEnv: (env) => set({ env }),
@@ -53,13 +63,16 @@ export const useStore = create<StoreState>()((set) => ({
           processes: { ...state.processes, [event.data.id]: event.data },
         }));
         break;
+      case "process.log":
+        set((state) => appendToLogs(state, event.data));
+        break;
       case "plugin.state":
         set((state) => ({
           plugins: { ...state.plugins, [event.data.name]: event.data },
         }));
         break;
       default:
-        // Log and error events belong to feature slices registered with addStoreSlice().
+        // Error events are shown by the feature that owns the failed action.
         break;
     }
   },

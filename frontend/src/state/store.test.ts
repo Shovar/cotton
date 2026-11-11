@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { EnvironmentInfo, GraphSnapshot, PluginRecord, ProcessRecord } from "../api/types";
+import type {
+  EnvironmentInfo,
+  GraphSnapshot,
+  LogLine,
+  PluginRecord,
+  ProcessRecord,
+} from "../api/types";
 import { addStoreSlice, useStore } from "./store";
 
 const ENV: EnvironmentInfo = {
@@ -34,6 +40,10 @@ function processRecord(id: string): ProcessRecord {
   };
 }
 
+function logLine(text: string): LogLine {
+  return { id: "p1", stream: "stdout", level: null, ts: "2026-11-06T12:00:00Z", text };
+}
+
 function pluginRecord(name: string): PluginRecord {
   return {
     name,
@@ -56,6 +66,7 @@ beforeEach(() => {
     graph: null,
     processes: {},
     plugins: {},
+    logs: {},
     rosConnected: false,
     connection: "closed",
   });
@@ -69,6 +80,7 @@ describe("store", () => {
     expect(state.graph).toBeNull();
     expect(state.processes).toEqual({});
     expect(state.plugins).toEqual({});
+    expect(state.logs).toEqual({});
     expect(state.rosConnected).toBe(false);
     expect(state.connection).toBe("closed");
   });
@@ -115,21 +127,22 @@ describe("store", () => {
 
   it("ignores events owned by feature slices", () => {
     useStore.getState().applyServerEvent({
-      type: "process.log",
-      data: {
-        id: "p1",
-        stream: "stdout",
-        level: null,
-        ts: "2026-11-06T12:00:00Z",
-        text: "hello",
-      },
-    });
-    useStore.getState().applyServerEvent({
       type: "error",
       data: { code: "unknown_channel", message: "nope" },
     });
 
-    expect(useStore.getState().processes).toEqual({});
+    expect(useStore.getState().logs).toEqual({});
+  });
+
+  it("appends process logs and caps the buffer at 2000 lines", () => {
+    for (let index = 0; index < 2005; index += 1) {
+      useStore.getState().applyServerEvent({ type: "process.log", data: logLine(`line ${index}`) });
+    }
+
+    const logs = useStore.getState().logs.p1;
+    expect(logs).toHaveLength(2000);
+    expect(logs[0].text).toBe("line 5");
+    expect(logs[1999].text).toBe("line 2004");
   });
 
   it("exposes setters for the shell slices", () => {
