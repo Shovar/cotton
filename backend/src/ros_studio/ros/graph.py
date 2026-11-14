@@ -35,6 +35,7 @@ class RclpyGraphSource:
     def __init__(self, node: NodeLike, self_node_name: str) -> None:
         self._node = node
         self._self_node_name = self_node_name
+        self._cache: dict[str, tuple[tuple[str, ...], list[str], list[str]]] = {}
 
     def snapshot(self) -> GraphSnapshot:
         services = {
@@ -47,15 +48,17 @@ class RclpyGraphSource:
             for name, types in _typed_names(_action_names(self._node)).items()
             if not _owned_by_app(name, self._self_node_name)
         }
-        raw_topics = [
-            TopicInfo(
-                name=name,
-                types=sorted(types),
-                publishers=_endpoints(self._node.get_publishers_info_by_topic(name)),
-                subscribers=_endpoints(self._node.get_subscriptions_info_by_topic(name)),
+        raw_topics = []
+        for name, types in self._node.get_topic_names_and_types():
+            publishers, subscribers = self._topic_endpoints(name, types)
+            raw_topics.append(
+                TopicInfo(
+                    name=name,
+                    types=sorted(types),
+                    publishers=publishers,
+                    subscribers=subscribers,
+                )
             )
-            for name, types in self._node.get_topic_names_and_types()
-        ]
         topics = [
             replace(
                 topic,
@@ -93,6 +96,18 @@ class RclpyGraphSource:
             actions=actions,
         )
 
+    def _topic_endpoints(self, name: str, types: list[str]) -> tuple[list[str], list[str]]:
+        key = tuple(sorted(types))
+        cached = self._cache.get(name)
+        if cached is not None and cached[0] == key:
+            return cached[1], cached[2]
+        # shortcut: endpoints refresh only when a topic's types change; upgrade to a
+        # periodic full refresh if a publisher appears without a type change.
+        publishers = _endpoints(self._node.get_publishers_info_by_topic(name))
+        subscribers = _endpoints(self._node.get_subscriptions_info_by_topic(name))
+        self._cache[name] = (key, publishers, subscribers)
+        return publishers, subscribers
+
     def _node_info(
         self,
         name: str,
@@ -119,12 +134,17 @@ class ThreadGraphSource:
 
     def __init__(self, ros: RosThread) -> None:
         self._ros = ros
+        self._source: RclpyGraphSource | None = None
+        self._node: object | None = None
 
     def snapshot(self) -> GraphSnapshot:
         node = self._ros.node
         if node is None:
             raise RosCallError("the ROS thread is not running")
-        return RclpyGraphSource(node, f"/{self._ros.node_name}").snapshot()
+        if self._source is None or self._node is not node:
+            self._source = RclpyGraphSource(node, f"/{self._ros.node_name}")
+            self._node = node
+        return self._source.snapshot()
 
 
 def _full_name(name: str, namespace: str) -> str:

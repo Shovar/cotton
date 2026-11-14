@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import SimpleNamespace
 
-from ros_studio.ros.graph import RclpyGraphSource
+from ros_studio.ros.graph import RclpyGraphSource, ThreadGraphSource
 from ros_studio.ros.models import GraphSnapshot, NodeInfo, TopicInfo
 
 
@@ -199,3 +200,43 @@ def test_models_serialize_to_contract_shape() -> None:
         "actions": {},
         "revision": 3,
     }
+
+
+class CountingNode(FakeNode):
+    def __init__(self) -> None:
+        self.calls = 0
+        self.types: dict[str, list[str]] = {"/chatter": ["std_msgs/msg/String"]}
+
+    def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]:
+        return list(self.types.items())
+
+    def get_publishers_info_by_topic(self, topic: str) -> list[Endpoint]:
+        self.calls += 1
+        return super().get_publishers_info_by_topic(topic)
+
+
+def test_endpoints_are_cached_until_the_topic_types_change() -> None:
+    node = CountingNode()
+    source = RclpyGraphSource(node, self_node_name="/ros_studio_1")
+
+    source.snapshot()
+    source.snapshot()
+    assert node.calls == 1
+
+    node.types["/chatter"] = ["std_msgs/msg/String", "std_msgs/msg/Header"]
+    source.snapshot()
+    assert node.calls == 2
+
+
+def test_thread_source_reuses_the_cache_until_the_node_changes() -> None:
+    node = CountingNode()
+    ros = SimpleNamespace(node=node, node_name="ros_studio_1")
+    source = ThreadGraphSource(ros)  # type: ignore[arg-type]
+
+    source.snapshot()
+    source.snapshot()
+    assert node.calls == 1
+
+    ros.node = CountingNode()
+    source.snapshot()
+    assert node.calls == 1
