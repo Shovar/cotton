@@ -1,0 +1,21 @@
+services:
+  ros-studio:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ros-studio:local
+    init: true
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8765:8765"
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+    volumes:
+      - ${ROS_WORKSPACE:-./workspace}:/ws:ro
+    command:
+      - ros-studio
+      - --host
+      - 0.0.0.0
+      - --no-browser
+      - --token
+      - ${ROS_STUDIO_TOKEN:-test-token}

@@ -32,6 +32,11 @@ dev = [
 [project.scripts]
 ros-studio = "ros_studio.cli:main"
 
+[tool.hatch.build]
+# The Dockerfile and the release recipe copy the compiled frontend here before
+# building the wheel; `artifacts` keeps it despite the .gitignore entry.
+artifacts = ["backend/src/ros_studio/web/"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["backend/src/ros_studio"]
 

@@ -7,6 +7,7 @@ requires a session token instead of accounts or cloud services.
 
 ## Documentation
 
+- [Installation](docs/install.md)
 - [Product spec](docs/Spec%20IDE%20local%20para%20ROS%202.md)
 - [Design](docs/superpowers/specs/2026-11-06-ros-studio-design.md)
 - [Implementation plan](docs/superpowers/plans/2026-11-06-ros-studio-mvp.md)
@@ -44,5 +45,13 @@ The Vite dev server proxies `/api` and `/ws` to `http://127.0.0.1:8000`. Open
 the printed URL with the session token in the fragment (`/#token=<token>`); the
 frontend stores it in `sessionStorage` and removes it from the address bar.
 
-The backend serves the compiled SPA from `frontend/dist` after `npm run build`
-and a frontend package build copies it to `backend/src/ros_studio/web`.
+The backend serves the compiled SPA from `backend/src/ros_studio/web`. After
+`npm run build`, copy `frontend/dist` there (the Dockerfile, the CI workflows
+and the release recipe do it before packaging) and install the package:
+
+```bash
+rm -rf backend/src/ros_studio/web
+cp -R frontend/dist backend/src/ros_studio/web
+```
+
+See [docs/install.md](docs/install.md) for pixi, apt, Docker and WSL2.

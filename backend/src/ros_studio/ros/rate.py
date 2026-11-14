@@ -27,6 +27,14 @@ def compute_hz(count: int, window_s: float) -> float:
     return round(count / window_s, 1) if window_s > 0 else 0.0
 
 
+_BEST_EFFORT_RELIABILITY = 2
+
+
+def is_best_effort(publisher_qos: object) -> bool:
+    """Mirror the publisher reliability so a probe can count best-effort topics."""
+    return getattr(publisher_qos, "reliability", None) == _BEST_EFFORT_RELIABILITY
+
+
 def measure_rate(node: NodeLike, topic: str, window_s: float = 2.0) -> RateResult:
     """Count the messages published on a topic during a short window."""
     types = dict(node.get_topic_names_and_types()).get(topic)
@@ -38,8 +46,8 @@ def measure_rate(node: NodeLike, topic: str, window_s: float = 2.0) -> RateResul
     message_type = _message_type(types[0])
     if message_type is None:
         return RateResult(available=False, hz=None, window_s=window_s, reason="type_unavailable")
-    qos_profile = getattr(publishers[0], "qos_profile", 10)
-    count = _count_messages(topic, message_type, qos_profile, window_s)
+    publisher_qos = getattr(publishers[0], "qos_profile", 10)
+    count = _count_messages(topic, message_type, publisher_qos, window_s)
     return RateResult(available=True, hz=compute_hz(count, window_s), window_s=window_s)
 
 
@@ -65,9 +73,16 @@ def _message_type(type_name: str) -> type | None:
         return None
 
 
-def _count_messages(topic: str, message_type: type, qos_profile: Any, window_s: float) -> int:
+def _count_messages(topic: str, message_type: type, publisher_qos: Any, window_s: float) -> int:
     import rclpy
+    from rclpy.qos import QoSProfile, ReliabilityPolicy
 
+    reliability = (
+        ReliabilityPolicy.BEST_EFFORT
+        if is_best_effort(publisher_qos)
+        else ReliabilityPolicy.RELIABLE
+    )
+    qos = QoSProfile(depth=10, reliability=reliability)
     count = 0
 
     def on_message(_message: Any) -> None:
@@ -76,7 +91,7 @@ def _count_messages(topic: str, message_type: type, qos_profile: Any, window_s: 
 
     probe = rclpy.create_node("ros_studio_rate")
     try:
-        probe.create_subscription(message_type, topic, on_message, qos_profile)
+        probe.create_subscription(message_type, topic, on_message, qos)
         deadline = time.monotonic() + window_s
         while time.monotonic() < deadline:
             rclpy.spin_once(probe, timeout_sec=0.05)

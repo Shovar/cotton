@@ -67,6 +67,19 @@ endpoints que ya prevé el diseño (solo topics cambiados). RNF-1 se re-medirá 
 Linux, que es la plataforma de soporte; en macOS el objetivo se cumple con
 Cyclone DDS y se incumple por poco con Fast DDS.
 
+### Re-medición final (T212)
+
+Repetición del sondeo contra la versión final, el 2026-11-11 dentro del
+contenedor Linux oficial (`ros:jazzy-ros-base`, aarch64, Python 3.12,
+`rmw_fastrtps_cpp` por defecto), con `--topics 100 --duration 20`:
+
+| RMW | Topics vistos | Muestras | p50 (ms) | p95 (ms) | max (ms) | CPU proceso | CPU sondeo |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `rmw_fastrtps_cpp` | 102 | 22 | 5.725 | 6.495 | 6.569 | 1.21 % | 0.63 % |
+
+Sigue por debajo de los umbrales del gate (`poll_ms_p95 < 200 ms` y
+`cpu_percent < 5 %`). En Linux la CPU del proceso completo también cumple.
+
 ## S2 — Señales y huérfanos
 
 `spikes/signals_probe.py` usa solo la biblioteca estándar. Los tres escenarios

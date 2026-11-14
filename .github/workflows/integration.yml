@@ -1,0 +1,72 @@
+name: integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ros: [humble, jazzy]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integration tests in ROS ${{ matrix.ros }}
+        run: |
+          docker run --rm \
+            --volume "$PWD:/src" --workdir /src \
+            "ros:${{ matrix.ros }}-ros-base" \
+            bash -lc "
+              apt-get update &&
+              apt-get install -y --no-install-recommends \
+                python3-venv python3-pip xvfb \
+                ros-${{ matrix.ros }}-turtlesim \
+                ros-${{ matrix.ros }}-demo-nodes-cpp &&
+              source /opt/ros/${{ matrix.ros }}/setup.bash &&
+              python3 -m venv --system-site-packages .venv &&
+              .venv/bin/pip install -e '.[dev]' &&
+              xvfb-run -a .venv/bin/pytest -m integration -v
+            "
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -f docker/Dockerfile -t ros-studio:e2e .
+      - name: Start the stack
+        run: |
+          docker run --detach --name ros-studio-e2e \
+            -p 127.0.0.1:8000:8000 -p 127.0.0.1:8765:8765 \
+            ros-studio:e2e
+      - name: Wait for the API
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs ros-studio-e2e
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install the frontend and the browser
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend exec playwright install --with-deps chromium
+      - name: Run the E2E flow
+        run: npm --prefix frontend run e2e
+      - name: Show the container logs on failure
+        if: failure()
+        run: docker logs ros-studio-e2e
+      - name: Stop the stack
+        if: always()
+        run: docker rm -f ros-studio-e2e
