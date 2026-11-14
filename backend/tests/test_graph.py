@@ -56,6 +56,34 @@ def test_snapshot_excludes_self_and_inverts_endpoints() -> None:
     assert graph.services["/talker/get_parameters"] == ["rcl_interfaces/srv/GetParameters"]
 
 
+def test_self_node_is_removed_from_endpoints_services_and_actions() -> None:
+    class OwnNode(FakeNode):
+        def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]:
+            return [("/rosout", ["rcl_interfaces/msg/Log"])]
+
+        def get_service_names_and_types(self) -> list[tuple[str, list[str]]]:
+            return [
+                ("/ros_studio_1/get_parameters", ["rcl_interfaces/srv/GetParameters"]),
+                ("/talker/get_parameters", ["rcl_interfaces/srv/GetParameters"]),
+            ]
+
+        def get_publishers_info_by_topic(self, _topic: str) -> list[Endpoint]:
+            return [
+                Endpoint("ros_studio_1", "/", "rcl_interfaces/msg/Log"),
+                Endpoint("talker", "/", "rcl_interfaces/msg/Log"),
+            ]
+
+        def get_subscriptions_info_by_topic(self, _topic: str) -> list[Endpoint]:
+            return [Endpoint("ros_studio_1_rate", "/", "rcl_interfaces/msg/Log")]
+
+    graph = RclpyGraphSource(OwnNode(), self_node_name="/ros_studio_1").snapshot()
+
+    assert graph.topics[0].publishers == ["/talker"]
+    assert graph.topics[0].subscribers == []
+    assert "/ros_studio_1/get_parameters" not in graph.services
+    assert "/talker/get_parameters" in graph.services
+
+
 def test_topic_without_endpoints_is_listed() -> None:
     class EmptyNode(FakeNode):
         def get_publishers_info_by_topic(self, _topic: str) -> list[Endpoint]:

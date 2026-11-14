@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Protocol
 
 from ros_studio.ros.models import GraphSnapshot, NodeInfo, TopicInfo
@@ -36,9 +37,17 @@ class RclpyGraphSource:
         self._self_node_name = self_node_name
 
     def snapshot(self) -> GraphSnapshot:
-        services = _typed_names(self._node.get_service_names_and_types())
-        actions = _typed_names(_action_names(self._node))
-        topics = [
+        services = {
+            name: types
+            for name, types in _typed_names(self._node.get_service_names_and_types()).items()
+            if not _owned_by_app(name, self._self_node_name)
+        }
+        actions = {
+            name: types
+            for name, types in _typed_names(_action_names(self._node)).items()
+            if not _owned_by_app(name, self._self_node_name)
+        }
+        raw_topics = [
             TopicInfo(
                 name=name,
                 types=sorted(types),
@@ -46,6 +55,22 @@ class RclpyGraphSource:
                 subscribers=_endpoints(self._node.get_subscriptions_info_by_topic(name)),
             )
             for name, types in self._node.get_topic_names_and_types()
+        ]
+        topics = [
+            replace(
+                topic,
+                publishers=[
+                    name
+                    for name in topic.publishers
+                    if not _owned_by_app(name, self._self_node_name)
+                ],
+                subscribers=[
+                    name
+                    for name in topic.subscribers
+                    if not _owned_by_app(name, self._self_node_name)
+                ],
+            )
+            for topic in raw_topics
         ]
         published = _topics_by_endpoint(topics, "publishers")
         subscribed = _topics_by_endpoint(topics, "subscribers")
@@ -59,7 +84,7 @@ class RclpyGraphSource:
                 subscribed.get(full_name, []),
             )
             for name, namespace in self._node.get_node_names_and_namespaces()
-            if (full_name := _full_name(name, namespace)) != self._self_node_name
+            if not _owned_by_app(full_name := _full_name(name, namespace), self._self_node_name)
         ]
         return GraphSnapshot(
             nodes=sorted(nodes, key=lambda node: node.name),
@@ -104,6 +129,14 @@ class ThreadGraphSource:
 
 def _full_name(name: str, namespace: str) -> str:
     return f"{namespace.rstrip('/')}/{name}"
+
+
+def _owned_by_app(name: str, self_node_name: str) -> bool:
+    return (
+        name == self_node_name
+        or name.startswith(f"{self_node_name}_")
+        or name.startswith(f"{self_node_name}/")
+    )
 
 
 def _typed_names(
