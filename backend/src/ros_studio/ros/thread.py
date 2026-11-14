@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import os
 import queue
 import threading
 from collections.abc import Callable
@@ -27,8 +28,8 @@ class RosCallTimeout(RosCallError):
 class RosThread:
     """Single owner of the rclpy node and every rclpy call."""
 
-    def __init__(self, node_name: str = "ros_studio", poll_interval: float = 0.05) -> None:
-        self.node_name = node_name
+    def __init__(self, node_name: str | None = None, poll_interval: float = 0.05) -> None:
+        self.node_name = node_name or f"ros_studio_{os.getpid()}"
         self.poll_interval = poll_interval
         self.node: Any = None
         self._jobs: queue.Queue[Job] = queue.Queue()

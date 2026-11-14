@@ -35,7 +35,9 @@ def is_best_effort(publisher_qos: object) -> bool:
     return getattr(publisher_qos, "reliability", None) == _BEST_EFFORT_RELIABILITY
 
 
-def measure_rate(node: NodeLike, topic: str, window_s: float = 2.0) -> RateResult:
+def measure_rate(
+    node: NodeLike, topic: str, window_s: float = 2.0, probe_name: str = "ros_studio_rate"
+) -> RateResult:
     """Count the messages published on a topic during a short window."""
     types = dict(node.get_topic_names_and_types()).get(topic)
     if types is None:
@@ -47,7 +49,7 @@ def measure_rate(node: NodeLike, topic: str, window_s: float = 2.0) -> RateResul
     if message_type is None:
         return RateResult(available=False, hz=None, window_s=window_s, reason="type_unavailable")
     publisher_qos = getattr(publishers[0], "qos_profile", 10)
-    count = _count_messages(topic, message_type, publisher_qos, window_s)
+    count = _count_messages(topic, message_type, publisher_qos, window_s, probe_name)
     return RateResult(available=True, hz=compute_hz(count, window_s), window_s=window_s)
 
 
@@ -61,7 +63,7 @@ class ThreadRateSource:
         node = self._ros.node
         if node is None:
             raise RosCallError("the ROS thread is not running")
-        return measure_rate(node, topic, window_s)
+        return measure_rate(node, topic, window_s, probe_name=f"{self._ros.node_name}_rate")
 
 
 def _message_type(type_name: str) -> type | None:
@@ -73,7 +75,9 @@ def _message_type(type_name: str) -> type | None:
         return None
 
 
-def _count_messages(topic: str, message_type: type, publisher_qos: Any, window_s: float) -> int:
+def _count_messages(
+    topic: str, message_type: type, publisher_qos: Any, window_s: float, probe_name: str
+) -> int:
     import rclpy
     from rclpy.qos import QoSProfile, ReliabilityPolicy
 
@@ -89,7 +93,7 @@ def _count_messages(topic: str, message_type: type, publisher_qos: Any, window_s
         nonlocal count
         count += 1
 
-    probe = rclpy.create_node("ros_studio_rate")
+    probe = rclpy.create_node(probe_name)
     try:
         probe.create_subscription(message_type, topic, on_message, qos)
         deadline = time.monotonic() + window_s

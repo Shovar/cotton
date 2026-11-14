@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
-from ros_studio.ros.rate import RateResult, compute_hz, is_best_effort, measure_rate
+from ros_studio.ros.rate import (
+    RateResult,
+    ThreadRateSource,
+    compute_hz,
+    is_best_effort,
+    measure_rate,
+)
 from ros_studio.ros.thread import RosCallError
 
 
@@ -59,3 +67,21 @@ def test_best_effort_publishers_use_a_best_effort_probe() -> None:
     assert is_best_effort(FakeQos(2)) is True
     assert is_best_effort(FakeQos(1)) is False
     assert is_best_effort(object()) is False
+
+
+def test_thread_rate_source_names_the_probe_after_the_app_node(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: dict[str, str] = {}
+
+    def fake_measure(
+        _node: object, _topic: str, window_s: float = 2.0, probe_name: str = "ros_studio_rate"
+    ) -> RateResult:
+        seen["probe_name"] = probe_name
+        return RateResult(available=True, hz=1.0, window_s=window_s)
+
+    monkeypatch.setattr("ros_studio.ros.rate.measure_rate", fake_measure)
+    ros = SimpleNamespace(node=object(), node_name="ros_studio_42")
+
+    assert ThreadRateSource(ros).measure("/chatter").hz == 1.0
+    assert seen["probe_name"] == "ros_studio_42_rate"

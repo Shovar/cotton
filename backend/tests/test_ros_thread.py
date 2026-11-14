@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 import time
 
@@ -73,3 +74,11 @@ def test_stop_leaves_no_threads() -> None:
     thread.stop()
     asyncio.run(asyncio.sleep(0))
     assert len(threading.enumerate()) == before
+
+
+def test_default_node_name_includes_the_pid() -> None:
+    assert RosThread().node_name == f"ros_studio_{os.getpid()}"
+
+
+def test_explicit_node_name_is_kept() -> None:
+    assert RosThread(node_name="ros_studio_7").node_name == "ros_studio_7"
