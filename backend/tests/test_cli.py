@@ -51,7 +51,7 @@ def test_main_reports_missing_environment(
 def test_main_runs_uvicorn_with_parsed_options(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: dict[str, object] = {}
 
-    def run(app: object, host: str, port: int) -> None:
+    def run(app: object, host: str, port: int, **_kwargs: object) -> None:
         calls.update(app=app, host=host, port=port)
 
     monkeypatch.setattr(cli, "ensure_ros_environment", environment)
@@ -82,3 +82,16 @@ def test_main_opens_browser_with_fixed_token(monkeypatch: pytest.MonkeyPatch) ->
 
     assert cli.main(["--port", "9000", "--token", "fixed"]) == 0
     assert opened["url"] == "http://127.0.0.1:9000/#token=fixed"
+
+
+def test_main_disables_uvicorn_access_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    options: dict[str, object] = {}
+
+    def run(*_args: object, **kwargs: object) -> None:
+        options.update(kwargs)
+
+    monkeypatch.setattr(cli, "ensure_ros_environment", environment)
+    monkeypatch.setattr(cli.uvicorn, "run", run)
+
+    assert cli.main(["--no-browser"]) == 0
+    assert options["access_log"] is False

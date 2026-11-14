@@ -144,5 +144,5 @@ def main(argv: list[str] | None = None) -> int:
         timer = threading.Timer(1.0, webbrowser.open, args=(url,))
         timer.daemon = True
         timer.start()
-    uvicorn.run(create_app(services), host=args.host, port=args.port)
+    uvicorn.run(create_app(services), host=args.host, port=args.port, access_log=False)
     return 0
