@@ -13,7 +13,8 @@ Requirements:
 - ROS 2 Humble or Jazzy, with `ros2`, `rclpy`, `ROS_DISTRO` and
   `AMENT_PREFIX_PATH` reachable from the shell that starts ROS Studio.
 - Python 3.10+.
-- Node 20+ and npm only when building the frontend from source.
+- Node 24+ (`24.15+` for the test suite) and npm only when building or testing
+  the frontend from source.
 - `foxglove_bridge` and `turtlesim` for the viewer plugin and the E2E flow
   (`ros-<distro>-foxglove-bridge`, `ros-<distro>-turtlesim`).
 
