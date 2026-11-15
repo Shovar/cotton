@@ -67,8 +67,9 @@ Arquitectura hexagonal flexible: no se crean capas vacías ni un esqueleto `doma
 
 ## Gates
 
-Evidencia local (2026-11-15): `pytest` 203 passed + 2 skipped con cobertura ≥ 80 %;
-`vitest` 107 passed con 94 % de sentencias; `ruff`, `mypy`, ESLint y `tsc` en verde.
+Evidencia local (2026-11-15): `pytest -m "not integration"` 205 passed + 2 deselected
+con cobertura 88.5 %; `vitest` 107 passed con 94.5 % de sentencias; `ruff`, `mypy`,
+ESLint y `tsc` en verde.
 Los gates se marcan solo cuando la comprobación se ejecuta en un entorno ROS real.
 
 - [ ] **Etapa 0:** mediciones en `docs/etapa-0-mediciones.md`, decisión de Lichtblick y las dos instalaciones validadas.

@@ -27,7 +27,7 @@ panels:
   - id: viewer
     title: Foxglove
     type: iframe              # iframe, stream or native
-    url: "http://{hostname}:8000/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765&layoutUrl=http://{hostname}:8000/lichtblick/layout.json"
+    url: "http://{host}/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765&layoutUrl=http://{host}/lichtblick/layout.json"
 ```
 
 Validation runs at load time: ids must be unique per manifest, `argv` cannot be
@@ -57,6 +57,8 @@ the cache instead of a broken viewer. The viewer URL uses the `layoutUrl` query
 parameter, because Lichtblick `v1.30.0` does not accept inline `?layout=` JSON.
 The packaged layout opens a 3D panel on `/tf` and a Plot on `/turtle1/pose`.
 
-The panel URL in the manifest uses `{hostname}`; the frontend replaces it with
-`location.hostname` before rendering the iframe and checks that same-origin
+The panel URL supports two placeholders: `{host}` is replaced with
+`location.host` (host and port, so a custom `--port` works) and `{hostname}` with
+`location.hostname` (host only, used for the Foxglove bridge on `8765`). The
+frontend replaces them before rendering the iframe and checks that same-origin
 assets exist before showing the viewer.

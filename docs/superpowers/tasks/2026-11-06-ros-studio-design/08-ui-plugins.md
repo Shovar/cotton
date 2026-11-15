@@ -9,7 +9,7 @@
 ## Reglas de este fichero
 
 - No crea store ni layout: usa el de 05-ui-shell y añade su slice.
-- El iframe sustituye `{hostname}` por `location.hostname`; nunca fija `127.0.0.1`.
+- El iframe sustituye `{host}` por `location.host` (host y puerto) y `{hostname}` por `location.hostname`; nunca fija `127.0.0.1`.
 - El panel se registra con `registerPanel()` y muestra el estado `error` del plugin.
 - Sin assets de Lichtblick se muestra el fallback con instrucciones, no un iframe roto.
 
