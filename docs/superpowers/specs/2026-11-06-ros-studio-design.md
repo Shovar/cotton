@@ -2,7 +2,7 @@
 
 Nov 6, 2026 · @toni · estado: aprobado
 
-Spec de referencia: [`Spec IDE local para ROS 2.md`](../../../Spec%20IDE%20local%20para%20ROS%202.md)
+Spec de referencia: [`Spec IDE local para ROS 2.md`](../../Spec%20IDE%20local%20para%20ROS%202.md)
 
 ## 1. Intención
 
@@ -70,7 +70,7 @@ Si el usuario cambia `ROS_DOMAIN_ID`, reinicia la app. El README lo dice explíc
 Interfaz única, implementada solo con `rclpy` en la v1:
 
 - `snapshot()`: nodos con namespace, topics con tipo, servicios, acciones.
-- `changes()`: sondeo cada segundo de nombres y tipos; solo se consultan editores y suscriptores (`get_publishers_info_by_topic`) de los topics que han cambiado, y se cachea el resto. El grafo se emite como delta por WebSocket.
+- `changes()`: sondeo cada segundo; nombres y tipos se leen siempre, y editores y suscriptores (`get_publishers_info_by_topic`) se cachean por topic hasta que cambian sus tipos. La v1 emite el snapshot completo por WebSocket; los deltas quedan para la etapa 4 (el sondeo completo cuesta 0.6 % de CPU con 100 topics, medido en la etapa 0).
 - `get_params(node)` / `set_param(node, name, value)`: `AsyncParameterClient` contra el nodo remoto.
 
 La etapa 0 mide el coste real de este sondeo con 100 topics. Si no cabe en el 5 % de CPU de RNF-1, se ajusta la estrategia (intervalo, consultas perezosas), no el stack. Las acciones se exponen si la distro ofrece `get_action_names_and_types`; si no, se degrada y se documenta.

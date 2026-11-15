@@ -62,8 +62,12 @@ Notas:
   `rmw_fastrtps_cpp` (los paga cualquier proceso ROS, sondee o no). Con
   `rmw_cyclonedds_cpp` el proceso completo baja a 1.1 %.
 
-Acción: se mantiene el sondeo de 1 s con la caché y las consultas perezosas de
-endpoints que ya prevé el diseño (solo topics cambiados). RNF-1 se re-medirá en
+Acción: se mantiene el sondeo de 1 s con la caché de endpoints por topic
+implementada en `ros/graph.py`: editores y suscriptores se vuelven a consultar
+solo cuando cambian los tipos del topic. Límite conocido: un publisher nuevo en
+un topic cuyos tipos no cambian no aparece hasta el siguiente cambio de tipos.
+El grafo se emite como snapshot completo; los deltas quedan para la etapa 4.
+RNF-1 se re-medirá en
 Linux, que es la plataforma de soporte; en macOS el objetivo se cumple con
 Cyclone DDS y se incumple por poco con Fast DDS.
 

@@ -1,6 +1,6 @@
 # ROS Studio — Índice de tareas
 
-Desglose ejecutable del plan [`docs/superpowers/plans/2026-11-06-ros-studio-mvp.md`](docs/superpowers/plans/2026-11-06-ros-studio-mvp.md), que implementa el diseño [`docs/superpowers/specs/2026-11-06-ros-studio-design.md`](docs/superpowers/specs/2026-11-06-ros-studio-design.md) y la spec [`Spec IDE local para ROS 2.md`](Spec%20IDE%20local%20para%20ROS%202.md).
+Desglose ejecutable del plan [`docs/superpowers/plans/2026-11-06-ros-studio-mvp.md`](../plans/2026-11-06-ros-studio-mvp.md), que implementa el diseño [`docs/superpowers/specs/2026-11-06-ros-studio-design.md`](../specs/2026-11-06-ros-studio-design.md) y la spec [`Spec IDE local para ROS 2.md`](../../Spec%20IDE%20local%20para%20ROS%202.md).
 
 El trabajo está partido en diez ficheros independientes. Este documento es el índice: reglas comunes, dependencias, contratos compartidos y estado de los gates.
 
@@ -20,16 +20,16 @@ Estados: `[ ]` pendiente · `[x]` hecha · `[!]` bloqueada (anotar por qué al l
 
 | Fichero | Tareas | Nº | Depende de | Desbloquea |
 | --- | --- | --- | --- | --- |
-| [`tasks/00-foundation.md`](tasks/00-foundation.md) | T001–T011, T036–T049, T057, T063–T066, T089–T090, T104–T112, T130–T131, T214 | 44 | — | todos |
-| [`tasks/01-spikes.md`](tasks/01-spikes.md) | T012–T035 | 24 | foundation (repo) | discovery, processes, delivery |
-| [`tasks/02-ros-discovery.md`](tasks/02-ros-discovery.md) | T050–T056, T058–T062, T067–T079, T216 | 26 | foundation | ui-graph |
-| [`tasks/03-processes.md`](tasks/03-processes.md) | T113–T129, T132–T153 | 39 | foundation | ui-processes, plugins, delivery |
-| [`tasks/04-plugins.md`](tasks/04-plugins.md) | T165–T186, T192–T195, T200–T201 | 28 | foundation + `ProcessPort` | ui-plugins, delivery |
-| [`tasks/05-ui-shell.md`](tasks/05-ui-shell.md) | T080–T088, T091–T092, T215 | 12 | foundation (contrato) | el resto de UI |
-| [`tasks/06-ui-graph.md`](tasks/06-ui-graph.md) | T093–T103 | 11 | ui-shell + discovery | delivery |
-| [`tasks/07-ui-processes.md`](tasks/07-ui-processes.md) | T154–T164 | 11 | ui-shell + processes | delivery |
-| [`tasks/08-ui-plugins.md`](tasks/08-ui-plugins.md) | T187–T191, T196–T199 | 9 | ui-shell + plugins | delivery |
-| [`tasks/09-delivery.md`](tasks/09-delivery.md) | T202–T213 | 12 | todos | — |
+| [`tasks/00-foundation.md`](2026-11-06-ros-studio-design/00-foundation.md) | T001–T011, T036–T049, T057, T063–T066, T089–T090, T104–T112, T130–T131, T214 | 44 | — | todos |
+| [`tasks/01-spikes.md`](2026-11-06-ros-studio-design/01-spikes.md) | T012–T035 | 24 | foundation (repo) | discovery, processes, delivery |
+| [`tasks/02-ros-discovery.md`](2026-11-06-ros-studio-design/02-ros-discovery.md) | T050–T056, T058–T062, T067–T079, T216 | 26 | foundation | ui-graph |
+| [`tasks/03-processes.md`](2026-11-06-ros-studio-design/03-processes.md) | T113–T129, T132–T153 | 39 | foundation | ui-processes, plugins, delivery |
+| [`tasks/04-plugins.md`](2026-11-06-ros-studio-design/04-plugins.md) | T165–T186, T192–T195, T200–T201 | 28 | foundation + `ProcessPort` | ui-plugins, delivery |
+| [`tasks/05-ui-shell.md`](2026-11-06-ros-studio-design/05-ui-shell.md) | T080–T088, T091–T092, T215 | 12 | foundation (contrato) | el resto de UI |
+| [`tasks/06-ui-graph.md`](2026-11-06-ros-studio-design/06-ui-graph.md) | T093–T103 | 11 | ui-shell + discovery | delivery |
+| [`tasks/07-ui-processes.md`](2026-11-06-ros-studio-design/07-ui-processes.md) | T154–T164 | 11 | ui-shell + processes | delivery |
+| [`tasks/08-ui-plugins.md`](2026-11-06-ros-studio-design/08-ui-plugins.md) | T187–T191, T196–T199 | 9 | ui-shell + plugins | delivery |
+| [`tasks/09-delivery.md`](2026-11-06-ros-studio-design/09-delivery.md) | T202–T213 | 12 | todos | — |
 
 Total: **216 tareas**, ninguna de más de 15 minutos. Las 213 originales conservan su ID; T214 (contrato REST/WS), T215 (registro de paneles) y T216 (canal WS del grafo) son las tres tareas nuevas que hacen posible el trabajo separado.
 
@@ -66,10 +66,18 @@ Arquitectura hexagonal flexible: no se crean capas vacías ni un esqueleto `doma
 
 ## Gates
 
+Evidencia local (2026-11-15): `pytest` 203 passed + 2 skipped con cobertura ≥ 80 %;
+`vitest` 107 passed con 94 % de sentencias; `ruff`, `mypy`, ESLint y `tsc` en verde.
+Los gates se marcan solo cuando la comprobación se ejecuta en un entorno ROS real.
+
 - [ ] **Etapa 0:** mediciones en `docs/etapa-0-mediciones.md`, decisión de Lichtblick y las dos instalaciones validadas.
-- [ ] **Etapa 1:** `/api/env`, grafo por REST/WS y UI de nodos/topics/parámetros; coincide con `ros2` y refresca en menos de 2 s.
+  Falta la instalación Ubuntu por apt (T034); el resto está medido.
+- [ ] **Etapa 1:** `/api/env`, grafo por REST/WS y UI de nodos/topics/servicios/acciones/parámetros; coincide con `ros2` y refresca en menos de 2 s.
+  Falta ejecutar `docs/verification-ros.md` y comparar con `ros2 node/topic list`.
 - [ ] **Etapa 2:** procesos sin huérfanos, logs en vivo con nivel, perfiles, token y `Origin` obligatorios.
+  Falta la prueba con procesos reales; los tests con procesos simulados pasan.
 - [ ] **Etapa 3:** plugin de Foxglove activo, Lichtblick con layout, Docker y E2E en verde.
+  Falta `T200`, el E2E y la ejecución en Docker (`docs/verification-ros.md`).
 
 ## Después del MVP
 
