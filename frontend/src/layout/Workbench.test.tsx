@@ -97,12 +97,12 @@ beforeEach(() => {
 });
 
 describe("Workbench", () => {
-  it("opens the four shell sections in the dock", () => {
+  it("opens the three shell sections in the dock", () => {
     registerShellPanels();
 
     render(<Workbench />);
 
-    expect(fake.api.addPanel).toHaveBeenCalledTimes(4);
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(3);
     expect(fake.api.addPanel).toHaveBeenNthCalledWith(1, {
       id: "graph",
       component: "graph",
@@ -111,9 +111,9 @@ describe("Workbench", () => {
     });
     expect(screen.getByTestId("dockview")).toHaveAttribute(
       "data-components",
-      "graph,processes,plugins,settings",
+      "graph,processes,plugins",
     );
-    for (const name of ["Grafo", "Procesos", "Plugins", "Ajustes"]) {
+    for (const name of ["Grafo", "Procesos", "Plugins"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
   });
@@ -151,7 +151,7 @@ describe("Workbench", () => {
 
     render(<Workbench />);
 
-    expect(fake.api.addPanel).toHaveBeenCalledTimes(4);
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(3);
   });
 
   it("activates an open panel from the activity bar", () => {

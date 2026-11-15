@@ -5,7 +5,6 @@ const SHELL_PANELS = [
   { id: "graph", title: "Grafo" },
   { id: "processes", title: "Procesos" },
   { id: "plugins", title: "Plugins" },
-  { id: "settings", title: "Ajustes" },
 ] as const;
 
 export function registerShellPanels(): void {
