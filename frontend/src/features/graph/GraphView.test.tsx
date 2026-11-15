@@ -37,13 +37,13 @@ const SNAPSHOT: GraphSnapshot = {
       subscribers: ["/sim/controller"],
     },
   ],
-  services: {},
-  actions: {},
+  services: { "/talker/get_parameters": ["rcl_interfaces/srv/GetParameters"] },
+  actions: { "/talker/fibonacci": ["action_tutorials_interfaces/action/Fibonacci"] },
   revision: 3,
 };
 
 function search(value: string) {
-  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar nodos y topics" }), {
+  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar en el grafo" }), {
     target: { value },
   });
 }
@@ -93,5 +93,28 @@ describe("GraphView", () => {
     expect(screen.getByRole("region", { name: "Topic /chatter" })).toBeInTheDocument();
     expect(screen.getByText(/std_msgs\/msg\/String/)).toBeInTheDocument();
     expect(screen.getByText("Sin suscriptores")).toBeInTheDocument();
+  });
+
+  it("lists services and actions with their types", () => {
+    render(<GraphView snapshot={SNAPSHOT} />);
+
+    expect(screen.getByRole("heading", { name: "Servicios" })).toBeInTheDocument();
+    expect(screen.getByText("/talker/get_parameters")).toBeInTheDocument();
+    expect(screen.getByText("rcl_interfaces/srv/GetParameters")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Acciones" })).toBeInTheDocument();
+    expect(screen.getByText("/talker/fibonacci")).toBeInTheDocument();
+    expect(screen.getByText("action_tutorials_interfaces/action/Fibonacci")).toBeInTheDocument();
+  });
+
+  it("filters services and actions with the same search box", () => {
+    render(<GraphView snapshot={SNAPSHOT} />);
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar en el grafo" }), {
+      target: { value: "fibonacci" },
+    });
+
+    expect(screen.getByText("/talker/fibonacci")).toBeInTheDocument();
+    expect(screen.queryByText("/talker/get_parameters")).not.toBeInTheDocument();
+    expect(screen.getByText("Sin servicios")).toBeInTheDocument();
   });
 });

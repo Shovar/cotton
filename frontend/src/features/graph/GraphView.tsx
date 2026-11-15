@@ -11,6 +11,12 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
   const needle = search.trim().toLowerCase();
   const nodes = snapshot.nodes.filter((node) => node.name.toLowerCase().includes(needle));
   const topics = snapshot.topics.filter((topic) => topic.name.toLowerCase().includes(needle));
+  const services = Object.entries(snapshot.services).filter(([name]) =>
+    name.toLowerCase().includes(needle),
+  );
+  const actions = Object.entries(snapshot.actions).filter(([name]) =>
+    name.toLowerCase().includes(needle),
+  );
   const topic = snapshot.topics.find((candidate) => candidate.name === selectedTopic);
 
   return (
@@ -18,7 +24,7 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
       <input
         className="graph-search"
         type="search"
-        aria-label="Buscar nodos y topics"
+        aria-label="Buscar en el grafo"
         placeholder="Buscar"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
@@ -64,6 +70,36 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
                   >
                     {candidate.name}
                   </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+      <div className="graph-columns">
+        <div className="graph-column">
+          <h2>Servicios</h2>
+          {services.length === 0 ? (
+            <p>Sin servicios</p>
+          ) : (
+            <ul>
+              {services.map(([name, types]) => (
+                <li key={name}>
+                  <code>{name}</code> <span>{types.join(", ")}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="graph-column">
+          <h2>Acciones</h2>
+          {actions.length === 0 ? (
+            <p>Sin acciones</p>
+          ) : (
+            <ul>
+              {actions.map(([name, types]) => (
+                <li key={name}>
+                  <code>{name}</code> <span>{types.join(", ")}</span>
                 </li>
               ))}
             </ul>
