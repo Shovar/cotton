@@ -63,6 +63,7 @@ Arquitectura hexagonal flexible: no se crean capas vacías ni un esqueleto `doma
 - Backend: `python -m venv .venv --system-site-packages`, `pip install -e ".[dev]"`, `ruff`, `mypy`, `pytest`.
 - Frontend: `npm install`, `npm run lint`, `npm run typecheck`, `npm test -- --coverage`.
 - Código y commits en inglés; documentación de tareas en español.
+- Verificaciones con ROS: [`docs/verification-ros.md`](../../verification-ros.md).
 
 ## Gates
 
