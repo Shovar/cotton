@@ -48,6 +48,26 @@ describe("PluginPanel", () => {
     );
   });
 
+  it("replaces {host} with host and port for a custom port", () => {
+    render(
+      <PluginPanel
+        plugin={PLUGIN}
+        panel={{
+          id: "viewer",
+          title: "Foxglove",
+          type: "iframe",
+          url: "http://{host}/lichtblick/index.html",
+        }}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByTitle("Foxglove")).toHaveAttribute(
+      "src",
+      `http://${location.host}/lichtblick/index.html`,
+    );
+  });
+
   it("shows the fallback when the viewer assets are missing", async () => {
     apiExists.mockResolvedValue(false);
 

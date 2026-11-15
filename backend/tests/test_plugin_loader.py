@@ -78,3 +78,17 @@ def test_builtin_foxglove_manifest_is_discovered() -> None:
     assert plugin.manifest.healthcheck is not None
     assert plugin.manifest.healthcheck.url == "tcp://127.0.0.1:8765"
     assert any(panel.type == "iframe" for panel in plugin.manifest.panels)
+
+
+def test_builtin_foxglove_panel_uses_the_runtime_port() -> None:
+    plugin = next(
+        plugin
+        for plugin in PluginLoader(BUILTIN_PLUGINS_DIR).discover()
+        if plugin.name == "foxglove"
+    )
+
+    url = plugin.manifest.panels[0].url
+    assert url is not None
+    assert ":8000" not in url
+    assert "http://{host}/" in url
+    assert "ws://{hostname}:8765" in url

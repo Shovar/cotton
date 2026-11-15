@@ -10,7 +10,10 @@ interface PluginPanelProps {
 }
 
 export function PluginPanel({ plugin, panel, onClose }: PluginPanelProps) {
-  const src = panel.url?.replaceAll("{hostname}", location.hostname) ?? null;
+  const src =
+    panel.url
+      ?.replaceAll("{hostname}", location.hostname)
+      .replaceAll("{host}", location.host) ?? null;
   const embeddable = panel.type !== "native" && src !== null;
   const [available, setAvailable] = useState(true);
 
