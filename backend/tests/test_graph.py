@@ -205,14 +205,31 @@ def test_models_serialize_to_contract_shape() -> None:
 class CountingNode(FakeNode):
     def __init__(self) -> None:
         self.calls = 0
+        self.publisher = "talker"
         self.types: dict[str, list[str]] = {"/chatter": ["std_msgs/msg/String"]}
 
     def get_topic_names_and_types(self) -> list[tuple[str, list[str]]]:
         return list(self.types.items())
 
-    def get_publishers_info_by_topic(self, topic: str) -> list[Endpoint]:
+    def get_publishers_info_by_topic(self, _topic: str) -> list[Endpoint]:
         self.calls += 1
-        return super().get_publishers_info_by_topic(topic)
+        return [Endpoint(self.publisher, "/", "std_msgs/msg/String")]
+
+    def get_subscriptions_info_by_topic(self, _topic: str) -> list[Endpoint]:
+        return []
+
+
+def test_cache_is_pruned_when_a_topic_disappears() -> None:
+    node = CountingNode()
+    source = RclpyGraphSource(node, self_node_name="/ros_studio_1")
+    assert source.snapshot().topics[0].publishers == ["/talker"]
+
+    node.types = {}
+    source.snapshot()
+
+    node.types = {"/chatter": ["std_msgs/msg/String"]}
+    node.publisher = "talker2"
+    assert source.snapshot().topics[0].publishers == ["/talker2"]
 
 
 def test_endpoints_are_cached_until_the_topic_types_change() -> None:

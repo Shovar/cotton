@@ -49,7 +49,9 @@ class RclpyGraphSource:
             if not _owned_by_app(name, self._self_node_name)
         }
         raw_topics = []
+        seen: set[str] = set()
         for name, types in self._node.get_topic_names_and_types():
+            seen.add(name)
             publishers, subscribers = self._topic_endpoints(name, types)
             raw_topics.append(
                 TopicInfo(
@@ -59,6 +61,7 @@ class RclpyGraphSource:
                     subscribers=subscribers,
                 )
             )
+        self._cache = {name: entry for name, entry in self._cache.items() if name in seen}
         topics = [
             replace(
                 topic,
