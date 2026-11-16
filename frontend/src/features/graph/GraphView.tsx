@@ -20,20 +20,20 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
   const topic = snapshot.topics.find((candidate) => candidate.name === selectedTopic);
 
   return (
-    <section className="graph-view" aria-label="Grafo ROS">
+    <section className="graph-view" aria-label="ROS graph">
       <input
         className="graph-search"
         type="search"
-        aria-label="Buscar en el grafo"
-        placeholder="Buscar"
+        aria-label="Search the graph"
+        placeholder="Search"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />
       <div className="graph-columns">
         <div className="graph-column">
-          <h2>Nodos</h2>
+          <h2>Nodes</h2>
           {nodes.length === 0 ? (
-            <p>Sin nodos</p>
+            <p>No nodes</p>
           ) : (
             namespaces(nodes).map(([namespace, group]) => (
               <section key={namespace}>
@@ -58,7 +58,7 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
         <div className="graph-column">
           <h2>Topics</h2>
           {topics.length === 0 ? (
-            <p>Sin topics</p>
+            <p>No topics</p>
           ) : (
             <ul>
               {topics.map((candidate) => (
@@ -78,9 +78,9 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
       </div>
       <div className="graph-columns">
         <div className="graph-column">
-          <h2>Servicios</h2>
+          <h2>Services</h2>
           {services.length === 0 ? (
-            <p>Sin servicios</p>
+            <p>No services</p>
           ) : (
             <ul>
               {services.map(([name, types]) => (
@@ -92,9 +92,9 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
           )}
         </div>
         <div className="graph-column">
-          <h2>Acciones</h2>
+          <h2>Actions</h2>
           {actions.length === 0 ? (
-            <p>Sin acciones</p>
+            <p>No actions</p>
           ) : (
             <ul>
               {actions.map(([name, types]) => (

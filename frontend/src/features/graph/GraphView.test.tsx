@@ -43,7 +43,7 @@ const SNAPSHOT: GraphSnapshot = {
 };
 
 function search(value: string) {
-  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar en el grafo" }), {
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search the graph" }), {
     target: { value },
   });
 }
@@ -73,7 +73,7 @@ describe("GraphView", () => {
 
     expect(screen.getByRole("button", { name: "/cmd_vel" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "/sim/controller" })).not.toBeInTheDocument();
-    expect(screen.getByText("Sin nodos")).toBeInTheDocument();
+    expect(screen.getByText("No nodes")).toBeInTheDocument();
   });
 
   it("shows explicit empty states when nothing matches", () => {
@@ -81,8 +81,8 @@ describe("GraphView", () => {
 
     search("zzz");
 
-    expect(screen.getByText("Sin nodos")).toBeInTheDocument();
-    expect(screen.getByText("Sin topics")).toBeInTheDocument();
+    expect(screen.getByText("No nodes")).toBeInTheDocument();
+    expect(screen.getByText("No topics")).toBeInTheDocument();
   });
 
   it("opens the detail of a topic with no subscribers", () => {
@@ -92,16 +92,16 @@ describe("GraphView", () => {
 
     expect(screen.getByRole("region", { name: "Topic /chatter" })).toBeInTheDocument();
     expect(screen.getByText(/std_msgs\/msg\/String/)).toBeInTheDocument();
-    expect(screen.getByText("Sin suscriptores")).toBeInTheDocument();
+    expect(screen.getByText("No subscribers")).toBeInTheDocument();
   });
 
   it("lists services and actions with their types", () => {
     render(<GraphView snapshot={SNAPSHOT} />);
 
-    expect(screen.getByRole("heading", { name: "Servicios" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Services" })).toBeInTheDocument();
     expect(screen.getByText("/talker/get_parameters")).toBeInTheDocument();
     expect(screen.getByText("rcl_interfaces/srv/GetParameters")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Acciones" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Actions" })).toBeInTheDocument();
     expect(screen.getByText("/talker/fibonacci")).toBeInTheDocument();
     expect(screen.getByText("action_tutorials_interfaces/action/Fibonacci")).toBeInTheDocument();
   });
@@ -109,12 +109,12 @@ describe("GraphView", () => {
   it("filters services and actions with the same search box", () => {
     render(<GraphView snapshot={SNAPSHOT} />);
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar en el grafo" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search the graph" }), {
       target: { value: "fibonacci" },
     });
 
     expect(screen.getByText("/talker/fibonacci")).toBeInTheDocument();
     expect(screen.queryByText("/talker/get_parameters")).not.toBeInTheDocument();
-    expect(screen.getByText("Sin servicios")).toBeInTheDocument();
+    expect(screen.getByText("No services")).toBeInTheDocument();
   });
 });
