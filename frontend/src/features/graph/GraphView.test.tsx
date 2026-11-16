@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { GraphSnapshot } from "../../api/types";
@@ -43,46 +43,47 @@ const SNAPSHOT: GraphSnapshot = {
 };
 
 function search(value: string) {
-  fireEvent.change(screen.getByRole("searchbox", { name: "Search the graph" }), {
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search graph" }), {
     target: { value },
   });
 }
 
 describe("GraphView", () => {
-  it("lists nodes grouped by namespace and every topic", () => {
+  it("draws nodes and topics as connected points", () => {
     render(<GraphView snapshot={SNAPSHOT} />);
 
-    expect(screen.getByRole("heading", { name: "/", level: 3 })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "/sim", level: 3 })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "/talker" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "/sim/controller" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "/chatter" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "/cmd_vel" })).toBeInTheDocument();
+    const graph = screen.getByRole("group", { name: "Nodes and topics graph" });
+    expect(within(graph).getByRole("button", { name: "/talker" })).toBeInTheDocument();
+    expect(within(graph).getByRole("button", { name: "/sim/controller" })).toBeInTheDocument();
+    expect(within(graph).getByRole("button", { name: "/chatter" })).toBeInTheDocument();
+    expect(within(graph).getByRole("button", { name: "/cmd_vel" })).toBeInTheDocument();
+    expect(screen.getByText("Node")).toBeInTheDocument();
+    expect(screen.getByText("Topic")).toBeInTheDocument();
   });
 
-  it("filters nodes and topics by search", () => {
+  it("filters the graph by search and keeps the neighbours of a match", () => {
     render(<GraphView snapshot={SNAPSHOT} />);
 
     search("sim");
 
     expect(screen.getByRole("button", { name: "/sim/controller" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "/cmd_vel" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "/talker" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "/chatter" })).not.toBeInTheDocument();
 
-    search("cmd");
+    search("chatter");
 
-    expect(screen.getByRole("button", { name: "/cmd_vel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "/talker" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "/sim/controller" })).not.toBeInTheDocument();
-    expect(screen.getByText("No nodes")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "/cmd_vel" })).not.toBeInTheDocument();
   });
 
-  it("shows explicit empty states when nothing matches", () => {
+  it("shows an explicit empty state when nothing matches", () => {
     render(<GraphView snapshot={SNAPSHOT} />);
 
     search("zzz");
 
-    expect(screen.getByText("No nodes")).toBeInTheDocument();
-    expect(screen.getByText("No topics")).toBeInTheDocument();
+    expect(screen.getByText("No nodes or topics")).toBeInTheDocument();
   });
 
   it("opens the detail of a topic with no subscribers", () => {
@@ -109,7 +110,7 @@ describe("GraphView", () => {
   it("filters services and actions with the same search box", () => {
     render(<GraphView snapshot={SNAPSHOT} />);
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search the graph" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search graph" }), {
       target: { value: "fibonacci" },
     });
 

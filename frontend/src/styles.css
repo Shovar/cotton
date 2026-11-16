@@ -108,6 +108,8 @@ button:focus-visible {
   height: 100%;
   overflow: auto;
   align-content: start;
+  background: var(--bg);
+  container-type: inline-size;
 }
 
 .graph-search {
@@ -149,9 +151,10 @@ button:focus-visible {
 }
 
 .topic-graph {
+  display: block;
   width: 100%;
-  height: auto;
-  max-height: 34rem;
+  /* Definite height so the grid row is sized before the SVG paints. */
+  height: min(34rem, 62.5cqw);
   border: 1px solid var(--border);
   border-radius: 0.375rem;
   background: var(--surface);

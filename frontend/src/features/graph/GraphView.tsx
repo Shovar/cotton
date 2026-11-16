@@ -1,16 +1,15 @@
 import { useState } from "react";
 
-import type { GraphSnapshot, NodeInfo } from "../../api/types";
+import type { GraphSnapshot } from "../../api/types";
 import { NodeParams } from "./NodeParams";
 import { TopicDetail } from "./TopicDetail";
+import { TopicGraph } from "./TopicGraph";
 
 export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
   const [search, setSearch] = useState("");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const needle = search.trim().toLowerCase();
-  const nodes = snapshot.nodes.filter((node) => node.name.toLowerCase().includes(needle));
-  const topics = snapshot.topics.filter((topic) => topic.name.toLowerCase().includes(needle));
   const services = Object.entries(snapshot.services).filter(([name]) =>
     name.toLowerCase().includes(needle),
   );
@@ -24,58 +23,23 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
       <input
         className="graph-search"
         type="search"
-        aria-label="Search the graph"
+        aria-label="Search graph"
         placeholder="Search"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />
-      <div className="graph-columns">
-        <div className="graph-column">
-          <h2>Nodes</h2>
-          {nodes.length === 0 ? (
-            <p>No nodes</p>
-          ) : (
-            namespaces(nodes).map(([namespace, group]) => (
-              <section key={namespace}>
-                <h3>{namespace}</h3>
-                <ul>
-                  {group.map((node) => (
-                    <li key={node.name}>
-                      <button
-                        type="button"
-                        aria-pressed={selectedNode === node.name}
-                        onClick={() => setSelectedNode(node.name)}
-                      >
-                        {node.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))
-          )}
-        </div>
-        <div className="graph-column">
-          <h2>Topics</h2>
-          {topics.length === 0 ? (
-            <p>No topics</p>
-          ) : (
-            <ul>
-              {topics.map((candidate) => (
-                <li key={candidate.name}>
-                  <button
-                    type="button"
-                    aria-pressed={selectedTopic === candidate.name}
-                    onClick={() => setSelectedTopic(candidate.name)}
-                  >
-                    {candidate.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      <p className="graph-legend">
+        <span className="graph-legend-node">Node</span>
+        <span className="graph-legend-topic">Topic</span>
+      </p>
+      <TopicGraph
+        snapshot={snapshot}
+        search={search}
+        selectedNode={selectedNode}
+        selectedTopic={selectedTopic}
+        onSelectNode={setSelectedNode}
+        onSelectTopic={setSelectedTopic}
+      />
       <div className="graph-columns">
         <div className="graph-column">
           <h2>Services</h2>
@@ -110,13 +74,4 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
       {selectedNode && <NodeParams key={selectedNode} nodeName={selectedNode} />}
     </section>
   );
-}
-
-function namespaces(nodes: NodeInfo[]): [string, NodeInfo[]][] {
-  const groups = new Map<string, NodeInfo[]>();
-  for (const node of nodes) {
-    const namespace = node.namespace || "/";
-    groups.set(namespace, [...(groups.get(namespace) ?? []), node]);
-  }
-  return [...groups.entries()];
 }

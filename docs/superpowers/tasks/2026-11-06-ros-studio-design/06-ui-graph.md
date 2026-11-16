@@ -36,6 +36,10 @@
 - [x] **T102 · 10 min** — Conectar carga inicial por REST y actualizaciones por WS. **Hecho:** un `graph.update` se refleja sin recargar.
 - [x] **T103 · 10 min** — Tests, `tsc`, build y commit `feat: add graph, topic detail and parameter editor views`. **Hecho:** commit creado.
 
+## Bloque G5 — Grafo de nodos y topics
+
+- [x] **T217 · 15 min** — Dibujar nodos y topics como puntos unidos por flechas publicador → topic → suscriptor. La búsqueda filtra el dibujo y mantiene visibles los vecinos de cada coincidencia. **Hecho:** `TopicGraph.test.tsx` y `layout.test.ts` en verde y `npx vitest run --coverage` con umbrales cumplidos.
+
 ## Verificación
 
 ```bash
@@ -47,7 +51,7 @@ npm test -- --coverage
 
 ## Gate de cierre
 
-- [ ] La lista de nodos y topics coincide con `/api/graph`.
+- [ ] El grafo de nodos y topics coincide con `/api/graph`.
 - [ ] Un `graph.update` se refleja sin recargar.
 - [ ] Editar un parámetro booleano, numérico y de texto funciona y muestra el error de la API.
 - [ ] La medición de frecuencia muestra Hz o el motivo.

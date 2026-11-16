@@ -29,8 +29,9 @@ provided by the active ROS 2 installation. Run `ros-studio --help` after
 activating a ROS 2 environment; without one, the CLI reports how to activate it.
 
 `scripts/dev.sh` does all of it for you: it keeps the ROS 2 environment that is
-already active or sources the one in `ROS_SETUP`, activates `.venv`, and
-forwards every argument to `ros-studio`.
+already active or sources the one in `ROS_SETUP`, activates `.venv`, rebuilds
+`frontend/dist` when the frontend sources changed, copies it to
+`backend/src/ros_studio/web`, and forwards every argument to `ros-studio`.
 
 ```bash
 scripts/dev.sh                       # already-sourced ROS 2 shell
@@ -54,9 +55,10 @@ The Vite dev server proxies `/api` and `/ws` to `http://127.0.0.1:8000`. Open
 the printed URL with the session token in the fragment (`/#token=<token>`); the
 frontend stores it in `sessionStorage` and removes it from the address bar.
 
-The backend serves the compiled SPA from `backend/src/ros_studio/web`. After
-`npm run build`, copy `frontend/dist` there (the Dockerfile, the CI workflows
-and the release recipe do it before packaging) and install the package:
+The backend serves the compiled SPA from `backend/src/ros_studio/web`. For a
+packaged install, copy `frontend/dist` there after `npm run build` (the
+Dockerfile, the CI workflows and the release recipe do it before packaging);
+`scripts/dev.sh` does it for local runs. Then install the package:
 
 ```bash
 rm -rf backend/src/ros_studio/web
