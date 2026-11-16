@@ -106,6 +106,11 @@ export function Workbench() {
         aria-label="Sections"
         className="flex flex-col items-center gap-1 border-r border-border bg-card p-1.5"
       >
+        <img
+          src="/ros-studio-logo.png"
+          alt="ROS Studio"
+          className="mb-1 size-10 object-contain"
+        />
         <TooltipProvider delayDuration={300}>
           {panels.map((panel) => {
             const Icon = PANEL_ICONS[panel.id] ?? Boxes;

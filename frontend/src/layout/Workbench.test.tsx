@@ -97,6 +97,12 @@ beforeEach(() => {
 });
 
 describe("Workbench", () => {
+  it("shows the ROS Studio logo in the activity bar", () => {
+    render(<Workbench />);
+
+    expect(screen.getByRole("img", { name: "ROS Studio" })).toBeVisible();
+  });
+
   it("opens the three shell sections in the dock", () => {
     registerShellPanels();
 
