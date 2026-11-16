@@ -37,12 +37,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build the image
-        run: docker build -f docker/Dockerfile -t ros-studio:e2e .
+        run: docker build -f docker/Dockerfile -t cotton:e2e .
       - name: Start the stack
         run: |
-          docker run --detach --name ros-studio-e2e \
+          docker run --detach --name cotton-e2e \
             -p 127.0.0.1:8000:8000 -p 127.0.0.1:8765:8765 \
-            ros-studio:e2e
+            cotton:e2e
       - name: Wait for the API
         run: |
           for _ in $(seq 1 60); do
@@ -51,7 +51,7 @@ jobs:
             fi
             sleep 2
           done
-          docker logs ros-studio-e2e
+          docker logs cotton-e2e
           exit 1
       - uses: actions/setup-node@v4
         with:
@@ -66,7 +66,7 @@ jobs:
         run: npm --prefix frontend run e2e
       - name: Show the container logs on failure
         if: failure()
-        run: docker logs ros-studio-e2e
+        run: docker logs cotton-e2e
       - name: Stop the stack
         if: always()
-        run: docker rm -f ros-studio-e2e
+        run: docker rm -f cotton-e2e

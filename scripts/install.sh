@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Install ROS Studio for the current user and expose `ros-studio` on PATH.
+# Install Cotton for the current user and expose `cotton` on PATH.
 #
 #   scripts/install.sh
-#   scripts/install.sh dist/ros_studio-0.1.0-py3-none-any.whl
-#   scripts/install.sh --prefix ~/.local/share/ros-studio --bin-dir ~/.local/bin
+#   scripts/install.sh dist/cotton-0.1.0-py3-none-any.whl
+#   scripts/install.sh --prefix ~/.local/share/cotton --bin-dir ~/.local/bin
 set -euo pipefail
 
 usage() {
@@ -14,8 +14,8 @@ Without WHEEL, installs this checkout. The frontend is built when the compiled
 bundle is missing or older than its sources.
 
 Options:
-  --prefix DIR   installation prefix (default: ~/.local/share/ros-studio)
-  --bin-dir DIR  directory for the ros-studio command (default: ~/.local/bin)
+  --prefix DIR   installation prefix (default: ~/.local/share/cotton)
+  --bin-dir DIR  directory for the cotton command (default: ~/.local/bin)
   -h, --help     show this help
 
 The command is a small wrapper that sources ROS_SETUP when set, or the system
@@ -24,7 +24,7 @@ EOF
 }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-prefix="${XDG_DATA_HOME:-$HOME/.local/share}/ros-studio"
+prefix="${XDG_DATA_HOME:-$HOME/.local/share}/cotton"
 bin_dir="$HOME/.local/bin"
 wheel=""
 
@@ -81,7 +81,7 @@ if [[ -n "$wheel" ]]; then
   install_target="$wheel"
 else
   install_target="$repo_root"
-  spa="$repo_root/backend/src/ros_studio/web"
+  spa="$repo_root/backend/src/cotton/web"
   frontend_sources=(
     "$repo_root/frontend/src"
     "$repo_root/frontend/index.html"
@@ -125,7 +125,7 @@ fi
 echo "install: installing $install_target"
 "$venv/bin/python" -m pip install --upgrade "$install_target"
 
-bin_src="$prefix/bin/ros-studio"
+bin_src="$prefix/bin/cotton"
 mkdir -p "$prefix/bin"
 cat > "$bin_src" <<'EOF'
 #!/usr/bin/env bash
@@ -137,8 +137,8 @@ script="${target:-${BASH_SOURCE[0]}}"
 prefix="$(cd "$(dirname "$script")/.." && pwd)"
 venv="$prefix/venv"
 
-if [[ ! -x "$venv/bin/ros-studio" ]]; then
-  echo "ros-studio: broken installation at $prefix; re-run the installer." >&2
+if [[ ! -x "$venv/bin/cotton" ]]; then
+  echo "cotton: broken installation at $prefix; re-run the installer." >&2
   exit 2
 fi
 
@@ -147,7 +147,7 @@ fi
 setup="${ROS_SETUP:-}"
 if [[ -n "$setup" ]]; then
   if [[ ! -f "$setup" ]]; then
-    echo "ros-studio: ROS_SETUP does not exist: $setup" >&2
+    echo "cotton: ROS_SETUP does not exist: $setup" >&2
     exit 2
   fi
 elif ! command -v ros2 >/dev/null 2>&1; then
@@ -174,11 +174,11 @@ fi
 venv_site="$("$venv/bin/python" -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
 export PYTHONPATH="${venv_site}${PYTHONPATH:+:${PYTHONPATH}}"
 
-exec "$venv/bin/ros-studio" "$@"
+exec "$venv/bin/cotton" "$@"
 EOF
 chmod +x "$bin_src"
 
-link="$bin_dir/ros-studio"
+link="$bin_dir/cotton"
 if [[ -e "$link" || -L "$link" ]]; then
   existing="$(readlink "$link" 2>/dev/null || true)"
   if [[ "$existing" != "$bin_src" ]]; then
@@ -191,11 +191,11 @@ if [[ "$link" != "$bin_src" ]]; then
   ln -sfn "$bin_src" "$link"
 fi
 
-version="$("$venv/bin/python" -c 'import ros_studio; print(ros_studio.__version__)' 2>/dev/null || echo unknown)"
-echo "install: ROS Studio $version installed"
+version="$("$venv/bin/python" -c 'import cotton; print(cotton.__version__)' 2>/dev/null || echo unknown)"
+echo "install: Cotton $version installed"
 echo "install: command: $link"
 case ":$PATH:" in
   *":$bin_dir:"*) ;;
-  *) echo "install: add $bin_dir to PATH to call ros-studio from any terminal." ;;
+  *) echo "install: add $bin_dir to PATH to call cotton from any terminal." ;;
 esac
-echo "install: run: ros-studio"
+echo "install: run: cotton"
