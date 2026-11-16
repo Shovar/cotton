@@ -87,6 +87,7 @@ describe("PluginPanel", () => {
     expect(
       await screen.findByText(/the viewer assets are not available/i),
     ).toBeInTheDocument();
+    expect(await screen.findByText(/restart Cotton/i)).toBeInTheDocument();
     expect(apiExists).toHaveBeenCalledWith("/lichtblick/index.html");
     expect(screen.queryByTitle("Foxglove")).not.toBeInTheDocument();
   });

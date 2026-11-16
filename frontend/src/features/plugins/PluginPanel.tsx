@@ -66,7 +66,7 @@ export function PluginPanel({ plugin, panel, onClose }: PluginPanelProps) {
         </p>
       ) : !available ? (
         <p className="p-4 text-sm text-muted-foreground">
-          The viewer assets are not available. Check the connection and restart ROS Studio, or
+          The viewer assets are not available. Check the connection and restart Cotton, or
           copy <code className="rounded bg-muted px-1 py-0.5">lichtblick-web.tar.gz</code> into the
           local cache before starting.
         </p>
