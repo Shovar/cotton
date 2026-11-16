@@ -135,6 +135,42 @@ def test_logs_return_the_newest_lines(
     assert [line["text"] for line in response.json()] == ["dos"]
 
 
+def test_close_removes_the_terminal(
+    services: Services, manager: ProcessManager, auth_headers: dict[str, str]
+) -> None:
+    with client_for(services) as client:
+        client.post(
+            "/api/processes", json={"id": "bye", "command": sleeper()}, headers=auth_headers
+        )
+        closed = client.post("/api/processes/bye/close", headers=auth_headers)
+        listed = client.get("/api/processes", headers=auth_headers)
+        again = client.post("/api/processes/bye/close", headers=auth_headers)
+
+    assert closed.status_code == 200
+    assert closed.json()["state"] == "exited"
+    assert listed.json() == []
+    assert again.status_code == 404
+    assert again.json()["code"] == "process_not_found"
+
+
+def test_websocket_forwards_process_removal(
+    services: Services, manager: ProcessManager, auth_headers: dict[str, str]
+) -> None:
+    with client_for(services) as client:
+        client.portal.call(manager.start, ProcessSpec(id="removable", argv=sleeper()))
+        with client.websocket_connect(
+            f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
+        ) as websocket:
+            websocket.send_json({"type": "subscribe", "channels": ["processes"]})
+            initial = websocket.receive_json()
+            client.portal.call(manager.close, "removable")
+            messages = [websocket.receive_json() for _ in range(3)]
+
+    assert initial["type"] == "process.state"
+    assert initial["data"]["id"] == "removable"
+    assert messages[-1] == {"type": "process.removed", "data": {"id": "removable"}}
+
+
 def test_websocket_backfills_processes_and_logs(
     services: Services, manager: ProcessManager, auth_headers: dict[str, str]
 ) -> None:
