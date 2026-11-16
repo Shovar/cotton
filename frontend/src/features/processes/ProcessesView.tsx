@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { apiGet, apiSend } from "../../api/client";
-import type { ProcessRecord } from "../../api/types";
+import type { ProcessRecord, ProcessState } from "../../api/types";
 import { useStore } from "../../state/store";
 import { LogsPanel } from "./LogsPanel";
 import { ProfilesPanel } from "./ProfilesPanel";
@@ -10,6 +10,13 @@ import { ProfilesPanel } from "./ProfilesPanel";
 const CAN_STOP = new Set(["starting", "running"]);
 const CAN_RESTART = new Set(["running", "exited", "failed"]);
 const INACTIVE = new Set(["exited", "failed"]);
+const STATE_LABELS: Record<ProcessState, string> = {
+  starting: "Starting",
+  running: "Running",
+  stopping: "Stopping",
+  exited: "Exited",
+  failed: "Failed",
+};
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Could not complete the action";
@@ -168,16 +175,19 @@ export function ProcessesView() {
       ) : (
         <ul className="process-list">
           {records.map((record) => (
-            <li key={record.id}>
-              <div>
-                <strong>{record.id}</strong>{" "}
-                <span className="process-argv">{record.spec.argv.join(" ")}</span>
-                <p>
-                  <span className="process-state">{record.state}</span>
+            <li key={record.id} className="process-card" data-state={record.state}>
+              <div className="process-info">
+                <div className="process-heading">
+                  <strong>{record.id}</strong>
+                  <span className="process-state" data-state={record.state}>
+                    {STATE_LABELS[record.state]}
+                  </span>
                   {record.exit_code !== null && (
                     <span className="process-exit">exit {record.exit_code}</span>
                   )}
-                </p>
+                </div>
+                <code className="process-argv">{record.spec.argv.join(" ")}</code>
+                {record.spec.cwd && <p className="process-cwd">cwd {record.spec.cwd}</p>}
                 {record.error && <p className="process-error">{record.error}</p>}
               </div>
               <div className="process-actions">

@@ -46,15 +46,23 @@ beforeEach(() => {
 });
 
 describe("ProcessesView", () => {
-  it("shows the state and exit code of a failed process", async () => {
-    useStore.setState({
-      processes: { p1: record("p1", { state: "failed", exit_code: 3 }) },
-    });
+  it("labels a failed process and marks its card", async () => {
+    useStore.setState({ processes: { p1: record("p1", { state: "failed", exit_code: 3 }) } });
 
     renderView();
 
-    expect(await screen.findByText("failed")).toBeInTheDocument();
+    expect(await screen.findByText("Failed")).toBeInTheDocument();
     expect(screen.getByText("exit 3")).toBeInTheDocument();
+    expect(screen.getByText("p1").closest("li")).toHaveAttribute("data-state", "failed");
+  });
+
+  it("labels a running process and marks its card", async () => {
+    useStore.setState({ processes: { p1: record("p1") } });
+
+    renderView();
+
+    expect(await screen.findByText("Running")).toBeInTheDocument();
+    expect(screen.getByText("p1").closest("li")).toHaveAttribute("data-state", "running");
   });
 
   it("starts a process from the prompt", async () => {
