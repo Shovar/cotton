@@ -25,6 +25,15 @@ describe("rememberCommand", () => {
 });
 
 describe("loadCommandHistory", () => {
+  it("ignores the ROS Studio history key", () => {
+    const getItem = vi.fn((key: string) =>
+      key === "ros-studio-command-history" ? JSON.stringify(["old command"]) : null,
+    );
+
+    expect(loadCommandHistory({ getItem })).toEqual([]);
+    expect(getItem).toHaveBeenCalledWith("cotton-command-history");
+  });
+
   it("reads stored commands and drops invalid entries", () => {
     const storage = {
       getItem: vi.fn(() =>
@@ -59,7 +68,7 @@ describe("saveCommandHistory", () => {
     saveCommandHistory(history, { setItem });
 
     expect(setItem).toHaveBeenCalledWith(
-      "ros-studio-command-history",
+      "cotton-command-history",
       JSON.stringify(history.slice(1)),
     );
   });

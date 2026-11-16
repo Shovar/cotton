@@ -1,5 +1,5 @@
-import darkFaviconUrl from "../assets/ros-studio-favicon-dark.png";
-import lightFaviconUrl from "../assets/ros-studio-favicon-light.png";
+import darkFaviconUrl from "../assets/cotton-favicon-dark.png";
+import lightFaviconUrl from "../assets/cotton-favicon-light.png";
 
 export type Theme = "light" | "dark";
 
@@ -8,7 +8,7 @@ export interface Preferences {
   layout: unknown | null;
 }
 
-export const PREFERENCES_STORAGE_KEY = "ros-studio-preferences";
+export const PREFERENCES_STORAGE_KEY = "cotton-preferences";
 
 const DEFAULT_PREFERENCES: Preferences = { theme: "light", layout: null };
 

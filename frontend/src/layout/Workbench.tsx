@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip";
-import logoUrl from "../assets/ros-studio-logo.png";
+import logoUrl from "../assets/cotton-logo.png";
 import { loadPreferences, savePreferences } from "../state/preferences";
 import { CommandPalette } from "./CommandPalette";
 import { getPanel, getPanels, type PanelDefinition } from "./panelRegistry";
@@ -109,7 +109,7 @@ export function Workbench() {
       >
         <img
           src={logoUrl}
-          alt="ROS Studio"
+          alt="Cotton"
           className="mb-1 size-10 object-contain brightness-0 dark:invert"
         />
         <TooltipProvider delayDuration={300}>

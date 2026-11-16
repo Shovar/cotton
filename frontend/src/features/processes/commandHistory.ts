@@ -1,4 +1,4 @@
-const STORAGE_KEY = "ros-studio-command-history";
+const STORAGE_KEY = "cotton-command-history";
 const LIMIT = 100;
 
 export function loadCommandHistory(storage: Pick<Storage, "getItem"> = localStorage): string[] {

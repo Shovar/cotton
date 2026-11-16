@@ -46,6 +46,12 @@ describe("getToken", () => {
   it("returns null when nothing is stored", () => {
     expect(getToken()).toBeNull();
   });
+
+  it("does not read the ROS Studio token key", () => {
+    sessionStorage.setItem("ros-studio-token", "old-token");
+
+    expect(getToken()).toBeNull();
+  });
 });
 
 describe("storage failures", () => {

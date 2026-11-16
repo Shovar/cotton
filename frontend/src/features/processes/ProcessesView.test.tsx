@@ -120,7 +120,7 @@ describe("ProcessesView", () => {
 
   it("searches the persisted history with Ctrl+R", async () => {
     localStorage.setItem(
-      "ros-studio-command-history",
+      "cotton-command-history",
       JSON.stringify(["ros2 topic list", "ros2 launch bringup demo.launch.py"]),
     );
     renderView();
