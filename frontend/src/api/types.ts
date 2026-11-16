@@ -115,6 +115,7 @@ export type ServerEvent =
   | { type: "graph.update"; data: GraphSnapshot }
   | { type: "ros.status"; data: { connected: boolean; error: string | null } }
   | { type: "process.state"; data: ProcessRecord }
+  | { type: "process.removed"; data: { id: string } }
   | { type: "process.log"; data: LogLine }
   | { type: "plugin.state"; data: PluginRecord }
   | { type: "error"; data: ErrorData };

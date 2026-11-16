@@ -17,6 +17,12 @@ function appendToLogs(state: StoreState, line: LogLine): Partial<StoreState> {
   return { logs: { ...state.logs, [line.id]: lines } };
 }
 
+function without<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
 export interface StoreState {
   env: EnvironmentInfo | null;
   graph: GraphSnapshot | null;
@@ -31,6 +37,8 @@ export interface StoreState {
   setConnection: (connection: ConnectionStatus) => void;
   upsertProcess: (process: ProcessRecord) => void;
   upsertPlugin: (plugin: PluginRecord) => void;
+  clearLogs: (processId: string) => void;
+  removeProcess: (processId: string) => void;
   applyServerEvent: (event: ServerEvent) => void;
 }
 
@@ -50,6 +58,12 @@ export const useStore = create<StoreState>()((set) => ({
     set((state) => ({ processes: { ...state.processes, [process.id]: process } })),
   upsertPlugin: (plugin) =>
     set((state) => ({ plugins: { ...state.plugins, [plugin.name]: plugin } })),
+  clearLogs: (processId) => set((state) => ({ logs: without(state.logs, processId) })),
+  removeProcess: (processId) =>
+    set((state) => ({
+      processes: without(state.processes, processId),
+      logs: without(state.logs, processId),
+    })),
   applyServerEvent: (event) => {
     switch (event.type) {
       case "graph.update":
@@ -61,6 +75,12 @@ export const useStore = create<StoreState>()((set) => ({
       case "process.state":
         set((state) => ({
           processes: { ...state.processes, [event.data.id]: event.data },
+        }));
+        break;
+      case "process.removed":
+        set((state) => ({
+          processes: without(state.processes, event.data.id),
+          logs: without(state.logs, event.data.id),
         }));
         break;
       case "process.log":
