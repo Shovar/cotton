@@ -7,6 +7,7 @@ import { useStore } from "../../state/store";
 import { LogsPanel } from "./LogsPanel";
 import { ProfilesPanel } from "./ProfilesPanel";
 
+const ACTIVE = new Set(["starting", "running", "stopping"]);
 const CAN_STOP = new Set(["starting", "running"]);
 const CAN_RESTART = new Set(["running", "exited", "failed"]);
 const INACTIVE = new Set(["exited", "failed"]);
@@ -24,7 +25,7 @@ function errorMessage(error: unknown): string {
 
 export function ProcessesView() {
   const processes = useStore((state) => state.processes);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [openConsoles, setOpenConsoles] = useState<string[]>([]);
   const [command, setCommand] = useState("");
   const [cwd, setCwd] = useState("");
   const [terminal, setTerminal] = useState("");
@@ -99,17 +100,43 @@ export function ProcessesView() {
     setCommand(next >= history.length ? "" : history[next]);
   };
 
+  const toggleConsole = (id: string) =>
+    setOpenConsoles((current) =>
+      current.includes(id)
+        ? current.filter((candidate) => candidate !== id)
+        : [...current, id],
+    );
+
   const stop = async (id: string) => {
-    if (!window.confirm(`¿Parar el proceso ${id}?`)) {
+    if (!window.confirm(`Stop ${id}?`)) {
       return;
     }
     await run(() => apiSend<ProcessRecord>("DELETE", `/api/processes/${encodeURIComponent(id)}`));
   };
 
-  const restart = (id: string) =>
-    run(() =>
+  const restart = (id: string) => {
+    useStore.getState().clearLogs(id);
+    return run(() =>
       apiSend<ProcessRecord>("POST", `/api/processes/${encodeURIComponent(id)}/restart`),
     );
+  };
+
+  const closeTerminal = async (record: ProcessRecord) => {
+    if (
+      ACTIVE.has(record.state) &&
+      !window.confirm(`Closing this terminal stops ${record.id}. Continue?`)
+    ) {
+      return;
+    }
+    try {
+      await apiSend("POST", `/api/processes/${encodeURIComponent(record.id)}/close`);
+      useStore.getState().removeProcess(record.id);
+      setOpenConsoles((current) => current.filter((candidate) => candidate !== record.id));
+      setError(null);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  };
 
   const records = Object.values(processes);
   const finished = records.filter((record) => INACTIVE.has(record.state));
@@ -193,31 +220,39 @@ export function ProcessesView() {
               <div className="process-actions">
                 <button
                   type="button"
-                  aria-pressed={selected === record.id}
-                  onClick={() => setSelected(record.id)}
+                  aria-pressed={openConsoles.includes(record.id)}
+                  onClick={() => toggleConsole(record.id)}
                 >
-                  Logs
+                  Terminal
                 </button>
                 <button
                   type="button"
                   disabled={!CAN_RESTART.has(record.state)}
                   onClick={() => restart(record.id)}
                 >
-                  Reiniciar
+                  Restart
                 </button>
                 <button
                   type="button"
                   disabled={!CAN_STOP.has(record.state)}
                   onClick={() => stop(record.id)}
                 >
-                  Parar
+                  Stop
+                </button>
+                <button type="button" onClick={() => closeTerminal(record)}>
+                  Close terminal
                 </button>
               </div>
+              {openConsoles.includes(record.id) && (
+                <LogsPanel
+                  processId={record.id}
+                  onClose={() => toggleConsole(record.id)}
+                />
+              )}
             </li>
           ))}
         </ul>
       )}
-      {selected && <LogsPanel key={selected} processId={selected} />}
       <ProfilesPanel processes={records} />
     </section>
   );

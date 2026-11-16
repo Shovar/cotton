@@ -4,12 +4,18 @@ import type { LogLine } from "../../api/types";
 import { ws } from "../../api/ws";
 import { useStore } from "../../state/store";
 
-const LEVELS = ["todos", "debug", "info", "warn", "error"] as const;
+const LEVELS = ["all", "debug", "info", "warn", "error"] as const;
 const EMPTY_LOGS: LogLine[] = [];
 
-export function LogsPanel({ processId }: { processId: string }) {
+export function LogsPanel({
+  processId,
+  onClose,
+}: {
+  processId: string;
+  onClose?: () => void;
+}) {
   const lines = useStore((state) => state.logs[processId] ?? EMPTY_LOGS);
-  const [level, setLevel] = useState<(typeof LEVELS)[number]>("todos");
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>("all");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -19,7 +25,7 @@ export function LogsPanel({ processId }: { processId: string }) {
   const needle = search.trim().toLowerCase();
   const visible = lines.filter(
     (line) =>
-      (level === "todos" || line.level === level) &&
+      (level === "all" || line.level === level) &&
       line.text.toLowerCase().includes(needle),
   );
 
@@ -34,32 +40,39 @@ export function LogsPanel({ processId }: { processId: string }) {
   };
 
   return (
-    <section className="logs-panel" aria-label={`Logs de ${processId}`}>
-      <h2>Logs de {processId}</h2>
+    <section className="logs-panel" aria-label={`Logs for ${processId}`}>
+      <div className="logs-header">
+        <h2>Logs · {processId}</h2>
+        {onClose && (
+          <button type="button" aria-label="Close logs" onClick={onClose}>
+            Close
+          </button>
+        )}
+      </div>
       <div className="logs-toolbar">
         <select
-          aria-label="Nivel"
+          aria-label="Level"
           value={level}
           onChange={(event) => setLevel(event.target.value as (typeof LEVELS)[number])}
         >
           {LEVELS.map((candidate) => (
             <option key={candidate} value={candidate}>
-              {candidate === "todos" ? "Todos" : candidate}
+              {candidate === "all" ? "All" : candidate}
             </option>
           ))}
         </select>
         <input
           type="search"
-          placeholder="Buscar en logs"
+          placeholder="Search logs"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
         <button type="button" onClick={download}>
-          Descargar
+          Download
         </button>
       </div>
       {visible.length === 0 ? (
-        <p>Sin logs</p>
+        <p>No logs</p>
       ) : (
         <ol className="log-lines">
           {visible.map((line, index) => (

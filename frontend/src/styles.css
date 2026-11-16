@@ -431,6 +431,7 @@ button:focus-visible {
 .process-form button,
 .profile-save button,
 .logs-toolbar button,
+.logs-header button,
 .process-actions button,
 .profile-list button {
   padding: 0.25rem 0.5rem;
@@ -541,6 +542,17 @@ button:focus-visible {
 .logs-panel h2,
 .profiles-panel h2 {
   margin: 0 0 0.5rem;
+}
+
+.process-card .logs-panel {
+  flex-basis: 100%;
+}
+
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .log-lines {

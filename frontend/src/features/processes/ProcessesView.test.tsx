@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ProcessRecord } from "../../api/types";
@@ -185,7 +185,7 @@ describe("ProcessesView", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     renderView();
-    fireEvent.click(screen.getByRole("button", { name: "Parar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
 
     await waitFor(() =>
       expect(apiSend).toHaveBeenCalledWith("DELETE", "/api/processes/p1"),
@@ -193,12 +193,69 @@ describe("ProcessesView", () => {
     expect(confirm).toHaveBeenCalled();
   });
 
-  it("opens the logs of the selected process", async () => {
+  it("opens and closes the console of a process", async () => {
     useStore.setState({ processes: { p1: record("p1") } });
+    renderView();
+
+    fireEvent.click(screen.getByRole("button", { name: "Terminal" }));
+    expect(screen.getByRole("region", { name: "Logs for p1" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close logs" }));
+    expect(screen.queryByRole("region", { name: "Logs for p1" })).not.toBeInTheDocument();
+    expect(apiSend).not.toHaveBeenCalled();
+  });
+
+  it("closes a running terminal after confirmation", async () => {
+    useStore.setState({
+      processes: { p1: record("p1") },
+      logs: {
+        p1: [{ id: "p1", stream: "stdout", level: null, ts: "now", text: "old" }],
+      },
+    });
+    apiSend.mockResolvedValue(record("p1", { state: "exited", exit_code: 0 }));
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     renderView();
-    fireEvent.click(screen.getByRole("button", { name: "Logs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close terminal" }));
 
-    expect(screen.getByRole("region", { name: "Logs de p1" })).toBeInTheDocument();
+    await waitFor(() => expect(apiSend).toHaveBeenCalledWith("POST", "/api/processes/p1/close"));
+    expect(confirm).toHaveBeenCalled();
+    expect(useStore.getState().processes.p1).toBeUndefined();
+    expect(useStore.getState().logs.p1).toBeUndefined();
+  });
+
+  it("does not close a running terminal when the user cancels", () => {
+    useStore.setState({ processes: { p1: record("p1") } });
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Close terminal" }));
+
+    expect(confirm).toHaveBeenCalled();
+    expect(apiSend).not.toHaveBeenCalled();
+    expect(useStore.getState().processes.p1).toBeDefined();
+  });
+
+  it("closes a finished terminal without confirmation", async () => {
+    useStore.setState({ processes: { p1: record("p1", { state: "exited", exit_code: 0 }) } });
+    apiSend.mockResolvedValue(record("p1", { state: "exited", exit_code: 0 }));
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Close terminal" }));
+
+    await waitFor(() => expect(apiSend).toHaveBeenCalledWith("POST", "/api/processes/p1/close"));
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("drops the card when the server removes the process", () => {
+    useStore.setState({ processes: { p1: record("p1") } });
+    renderView();
+
+    act(() => {
+      useStore.getState().applyServerEvent({ type: "process.removed", data: { id: "p1" } });
+    });
+
+    expect(screen.queryByText("p1")).not.toBeInTheDocument();
   });
 });

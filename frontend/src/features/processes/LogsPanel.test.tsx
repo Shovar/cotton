@@ -27,11 +27,11 @@ describe("LogsPanel", () => {
     render(<LogsPanel processId="p1" />);
     expect(subscribe).toHaveBeenCalledWith(["logs:p1"]);
 
-    fireEvent.change(screen.getByLabelText("Nivel"), { target: { value: "error" } });
+    fireEvent.change(screen.getByLabelText("Level"), { target: { value: "error" } });
     expect(screen.queryByText("hola")).not.toBeInTheDocument();
     expect(screen.getByText("fallo")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByPlaceholderText("Buscar en logs"), {
+    fireEvent.change(screen.getByPlaceholderText("Search logs"), {
       target: { value: "nada" },
     });
     expect(screen.queryByText("fallo")).not.toBeInTheDocument();
@@ -46,12 +46,21 @@ describe("LogsPanel", () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
     render(<LogsPanel processId="p1" />);
-    fireEvent.change(screen.getByLabelText("Nivel"), { target: { value: "error" } });
-    fireEvent.click(screen.getByRole("button", { name: "Descargar" }));
+    fireEvent.change(screen.getByLabelText("Level"), { target: { value: "error" } });
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
 
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalled();
 
     vi.unstubAllGlobals();
+  });
+
+  it("closes the console without touching the process", () => {
+    const onClose = vi.fn();
+
+    render(<LogsPanel processId="p1" onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Close logs" }));
+
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });
