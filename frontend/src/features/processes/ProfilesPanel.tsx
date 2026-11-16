@@ -4,7 +4,7 @@ import { apiGet, apiSend } from "../../api/client";
 import type { ProcessRecord, Profile } from "../../api/types";
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "No se pudo completar la acción";
+  return error instanceof Error ? error.message : "Could not complete the action";
 }
 
 function profileId(name: string): string {
@@ -12,12 +12,12 @@ function profileId(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9_.-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return slug || "perfil";
+  return slug || "profile";
 }
 
 export function ProfilesPanel({ processes }: { processes: ProcessRecord[] }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [name, setName] = useState("Perfil");
+  const [name, setName] = useState("Profile");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function ProfilesPanel({ processes }: { processes: ProcessRecord[] }) {
   }, []);
 
   const save = async () => {
-    const trimmed = name.trim() || "Perfil";
+    const trimmed = name.trim() || "Profile";
     try {
       await apiSend<Profile>("POST", "/api/profiles", {
         id: profileId(trimmed),
@@ -63,11 +63,11 @@ export function ProfilesPanel({ processes }: { processes: ProcessRecord[] }) {
   };
 
   return (
-    <section className="profiles-panel" aria-label="Perfiles">
-      <h2>Perfiles</h2>
+    <section className="profiles-panel" aria-label="Profiles">
+      <h2>Profiles</h2>
       <div className="profile-save">
         <label>
-          Nombre del perfil
+          Profile name
           <input
             type="text"
             value={name}
@@ -75,20 +75,34 @@ export function ProfilesPanel({ processes }: { processes: ProcessRecord[] }) {
           />
         </label>
         <button type="button" disabled={processes.length === 0} onClick={save}>
-          Guardar como perfil
+          Save as profile
         </button>
       </div>
       {error && <p className="process-error">{error}</p>}
       {profiles.length === 0 ? (
-        <p>Sin perfiles</p>
+        <p>No profiles</p>
       ) : (
         <ul className="profile-list">
           {profiles.map((profile) => (
             <li key={profile.id}>
-              <span>{profile.name || profile.id}</span>
-              <button type="button" onClick={() => start(profile.id)}>
-                Iniciar
-              </button>
+              <div className="profile-heading">
+                <span>{profile.name || profile.id}</span>
+                <button type="button" onClick={() => start(profile.id)}>
+                  Start
+                </button>
+              </div>
+              {profile.processes.length === 0 ? (
+                <p>No processes in this profile</p>
+              ) : (
+                <ul className="profile-commands">
+                  {profile.processes.map((spec) => (
+                    <li key={spec.id}>
+                      <code>{spec.argv.join(" ")}</code>
+                      {spec.cwd && <span className="profile-cwd">cwd {spec.cwd}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
