@@ -10,6 +10,7 @@ const apiSend = vi.hoisted(() => vi.fn());
 vi.mock("../../api/client", () => ({ apiGet, apiSend }));
 vi.mock("../../api/ws", () => ({ ws: { subscribe: vi.fn() } }));
 
+import { loadCommandHistory } from "./commandHistory";
 import { ProcessesView } from "./ProcessesView";
 
 function record(id: string, overrides: Partial<ProcessRecord> = {}): ProcessRecord {
@@ -42,7 +43,7 @@ beforeEach(() => {
   apiGet.mockReset();
   apiSend.mockReset();
   apiGet.mockResolvedValue([]);
-  useStore.setState({ processes: {}, logs: {} });
+  useStore.setState({ processes: {}, logs: {}, graph: null });
 });
 
 describe("ProcessesView", () => {
@@ -77,6 +78,101 @@ describe("ProcessesView", () => {
     );
     expect(useStore.getState().processes.p2).toBeDefined();
     expect(screen.getByLabelText("Command")).toHaveValue("");
+  });
+
+  it("completes a graph name with Tab and Enter", async () => {
+    useStore.setState({
+      graph: {
+        nodes: [],
+        topics: [{ name: "/chatter", types: [], publishers: [], subscribers: [] }],
+        services: {},
+        actions: {},
+        revision: 1,
+      },
+    });
+    renderView();
+    const input = screen.getByLabelText("Command");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "ros2 topic echo /chat" } });
+    const option = await screen.findByRole("option", { name: /chatter/ });
+
+    fireEvent.keyDown(input, { key: "Tab" });
+    expect(option).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(input).toHaveValue("ros2 topic echo /chatter ");
+  });
+
+  it("completes a command from PATH", async () => {
+    apiGet.mockImplementation((path: string) =>
+      Promise.resolve(path === "/api/commands" ? ["rviz2"] : []),
+    );
+    renderView();
+    const input = screen.getByLabelText("Command");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "rvi" } });
+    fireEvent.click(await screen.findByRole("option", { name: /rviz2/ }));
+
+    expect(input).toHaveValue("rviz2 ");
+  });
+
+  it("searches the persisted history with Ctrl+R", async () => {
+    localStorage.setItem(
+      "ros-studio-command-history",
+      JSON.stringify(["ros2 topic list", "ros2 launch bringup demo.launch.py"]),
+    );
+    renderView();
+    const input = screen.getByLabelText("Command");
+
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "r", ctrlKey: true });
+    const search = await screen.findByLabelText("Search history");
+    fireEvent.change(search, { target: { value: "bringup" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+
+    expect(input).toHaveValue("ros2 launch bringup demo.launch.py");
+    expect(screen.queryByRole("dialog", { name: "History search" })).not.toBeInTheDocument();
+  });
+
+  it("closes the history search with Escape", async () => {
+    renderView();
+    const input = screen.getByLabelText("Command");
+
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "r", ctrlKey: true });
+    const search = await screen.findByLabelText("Search history");
+    fireEvent.change(search, { target: { value: "missing" } });
+    expect(screen.getByText("No matching commands")).toBeInTheDocument();
+
+    fireEvent.keyDown(search, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: "History search" })).not.toBeInTheDocument();
+  });
+
+  it("closes the suggestions with Escape", async () => {
+    renderView();
+    const input = screen.getByLabelText("Command");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "ros2 t" } });
+    expect(await screen.findByRole("listbox", { name: "Suggestions" })).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(screen.queryByRole("listbox", { name: "Suggestions" })).not.toBeInTheDocument();
+  });
+
+  it("persists launched commands", async () => {
+    apiSend.mockResolvedValue(record("p2"));
+    renderView();
+
+    fireEvent.change(screen.getByLabelText("Command"), { target: { value: "sleep 5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    await waitFor(() => expect(apiSend).toHaveBeenCalled());
+    expect(loadCommandHistory()).toEqual(["sleep 5"]);
   });
 
   it("runs in the selected terminal and clears its logs", async () => {

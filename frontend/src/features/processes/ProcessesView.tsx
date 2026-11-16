@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { apiGet, apiSend } from "../../api/client";
 import type { ProcessRecord, ProcessState } from "../../api/types";
 import { useStore } from "../../state/store";
+import { CommandPrompt } from "./CommandPrompt";
+import { loadCommandHistory, rememberCommand, saveCommandHistory } from "./commandHistory";
 import { LogsPanel } from "./LogsPanel";
 import { ProfilesPanel } from "./ProfilesPanel";
 
@@ -30,7 +32,7 @@ export function ProcessesView() {
   const [command, setCommand] = useState("");
   const [cwd, setCwd] = useState("");
   const [terminal, setTerminal] = useState("");
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>(loadCommandHistory);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,16 +80,19 @@ export function ProcessesView() {
     }
     setCommand("");
     setTerminal("");
-    setHistory((current) => [...current, trimmed]);
+    setHistory((current) => {
+      const next = rememberCommand(current, trimmed);
+      saveCommandHistory(next);
+      return next;
+    });
     setHistoryIndex(null);
   };
 
-  const recall = (event: KeyboardEvent<HTMLInputElement>) => {
-    if ((event.key !== "ArrowUp" && event.key !== "ArrowDown") || history.length === 0) {
+  const recall = (direction: "up" | "down") => {
+    if (history.length === 0) {
       return;
     }
-    event.preventDefault();
-    if (event.key === "ArrowUp") {
+    if (direction === "up") {
       const next = historyIndex === null ? history.length - 1 : Math.max(historyIndex - 1, 0);
       setHistoryIndex(next);
       setCommand(history[next]);
@@ -146,25 +151,15 @@ export function ProcessesView() {
     <section className="processes-view" aria-label="Processes">
       <h2>Processes</h2>
       <form className="process-form terminal-prompt" onSubmit={start}>
-        <label className="terminal-line">
-          <span className="terminal-marker" aria-hidden="true">
-            $
-          </span>
-          <input
-            className="terminal-input"
-            type="text"
-            aria-label="Command"
-            placeholder="ros2 run demo_nodes_cpp talker"
-            autoComplete="off"
-            spellCheck={false}
-            value={command}
-            onChange={(event) => {
-              setCommand(event.target.value);
-              setHistoryIndex(null);
-            }}
-            onKeyDown={recall}
-          />
-        </label>
+        <CommandPrompt
+          value={command}
+          onChange={(next) => {
+            setCommand(next);
+            setHistoryIndex(null);
+          }}
+          history={history}
+          onHistoryStep={recall}
+        />
         <label className="terminal-target">
           Terminal
           <select

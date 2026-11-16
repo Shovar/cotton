@@ -166,3 +166,14 @@ Vitest + Testing Library and pytest, red before green:
 - Exact spacing and breakpoints of the card layout.
 - Whether the prompt marker shows the `cwd`; the proposal does not.
 - Wording of the advanced help text beyond the meaning above.
+
+## Addendum 2026-11-16 — command completion
+
+The prompt now completes commands from the backend `PATH`, ROS 2 verbs and
+subcommands, and node, topic, service and action names from the graph. `Tab`
+and the arrow keys move through the suggestions; `Enter` accepts the selected
+one. `Ctrl+R` opens a reverse search over the last 100 launched commands, which
+are persisted in `localStorage`.
+
+This supersedes the non-goals for persisted command history and autocompletion.
+Interactive stdin, a PTY and `xterm.js` remain out of scope.

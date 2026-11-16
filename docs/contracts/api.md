@@ -207,6 +207,7 @@ otherwise.
 | --- | --- | --- | --- |
 | GET | `/api/health` | 200 | No auth. `{"status":"ok"}` |
 | GET | `/api/env` | 200 | `EnvironmentInfo` |
+| GET | `/api/commands` | 200 | Sorted executable names reachable through the backend `PATH`; used by the command prompt |
 | GET | `/api/graph` | 200 | Current `GraphSnapshot`; empty snapshot before the first poll |
 | GET | `/api/nodes/{node_name:path}/params` | 200 | `{ "<param>": <value> }`; 404 `node_not_found` |
 | PUT | `/api/nodes/{node_name:path}/params/{param}` | 204 | Body `{"value": <value>}`; 404 `node_not_found`; 409 `param_not_settable`; 422 `validation_error` |
