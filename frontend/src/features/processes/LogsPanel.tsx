@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+
 import type { LogLine } from "../../api/types";
 import { ws } from "../../api/ws";
 import { useStore } from "../../state/store";
@@ -44,9 +46,9 @@ export function LogsPanel({
       <div className="logs-header">
         <h2>Logs · {processId}</h2>
         {onClose && (
-          <button type="button" aria-label="Close logs" onClick={onClose}>
+          <Button type="button" variant="ghost" size="sm" aria-label="Close logs" onClick={onClose}>
             Close
-          </button>
+          </Button>
         )}
       </div>
       <div className="logs-toolbar">
@@ -67,9 +69,9 @@ export function LogsPanel({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <button type="button" onClick={download}>
+        <Button type="button" size="sm" variant="outline" onClick={download}>
           Download
-        </button>
+        </Button>
       </div>
       {visible.length === 0 ? (
         <p>No logs</p>

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 
+import { Button } from "@/components/ui/button";
 import { apiGet, apiSend } from "../../api/client";
 import type { ProcessRecord, ProcessState } from "../../api/types";
 import { useStore } from "../../state/store";
@@ -179,7 +180,9 @@ export function ProcessesView() {
             ))}
           </select>
         </label>
-        <button type="submit">Run</button>
+        <Button type="submit" size="sm">
+          Run
+        </Button>
         <details className="process-advanced">
           <summary>Advanced options</summary>
           <label>
@@ -218,30 +221,41 @@ export function ProcessesView() {
                 {record.error && <p className="process-error">{record.error}</p>}
               </div>
               <div className="process-actions">
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  variant={openConsoles.includes(record.id) ? "secondary" : "outline"}
                   aria-pressed={openConsoles.includes(record.id)}
                   onClick={() => toggleConsole(record.id)}
                 >
                   Terminal
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
+                  variant="outline"
                   disabled={!CAN_RESTART.has(record.state)}
                   onClick={() => restart(record.id)}
                 >
                   Restart
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
+                  variant="outline"
                   disabled={!CAN_STOP.has(record.state)}
                   onClick={() => stop(record.id)}
                 >
                   Stop
-                </button>
-                <button type="button" onClick={() => closeTerminal(record)}>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => closeTerminal(record)}
+                >
                   Close terminal
-                </button>
+                </Button>
               </div>
               {openConsoles.includes(record.id) && (
                 <LogsPanel

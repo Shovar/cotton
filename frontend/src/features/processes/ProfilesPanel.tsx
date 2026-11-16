@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+
 import { apiGet, apiSend } from "../../api/client";
 import type { ProcessRecord, Profile } from "../../api/types";
 
@@ -74,9 +76,9 @@ export function ProfilesPanel({ processes }: { processes: ProcessRecord[] }) {
             onChange={(event) => setName(event.target.value)}
           />
         </label>
-        <button type="button" disabled={processes.length === 0} onClick={save}>
+        <Button type="button" size="sm" disabled={processes.length === 0} onClick={save}>
           Save as profile
-        </button>
+        </Button>
       </div>
       {error && <p className="process-error">{error}</p>}
       {profiles.length === 0 ? (
@@ -87,9 +89,9 @@ export function ProfilesPanel({ processes }: { processes: ProcessRecord[] }) {
             <li key={profile.id}>
               <div className="profile-heading">
                 <span>{profile.name || profile.id}</span>
-                <button type="button" onClick={() => start(profile.id)}>
+                <Button type="button" size="sm" variant="outline" onClick={() => start(profile.id)}>
                   Start
-                </button>
+                </Button>
               </div>
               {profile.processes.length === 0 ? (
                 <p>No processes in this profile</p>

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { apiGet, apiSend } from "../../api/client";
 import type { PluginPanelSpec, PluginRecord, PluginState } from "../../api/types";
 import { useStore } from "../../state/store";
@@ -85,57 +86,74 @@ export function PluginsView() {
   const records = Object.values(plugins);
 
   return (
-    <section className="plugins-view" aria-label="Plugins">
-      <h2>Plugins</h2>
+    <section aria-label="Plugins" className="h-full overflow-auto p-4">
+      <h2 className="mb-3 text-sm font-semibold">Plugins</h2>
       {records.length === 0 ? (
-        <p>No plugins</p>
+        <p className="text-sm text-muted-foreground">No plugins</p>
       ) : (
-        <ul>
+        <ul className="grid gap-2">
           {records.map((plugin) => {
             const manifest = plugin.manifest;
             const panel = panelFor(plugin);
             return (
-              <li key={plugin.name} className="plugin-row">
-                <div>
-                  <strong>{plugin.name}</strong>{" "}
-                  <span className="plugin-version">{manifest?.version}</span>
-                  {manifest?.description && <p>{manifest.description}</p>}
-                  <p className="plugin-state">State: {STATE_LABELS[plugin.state]}</p>
-                  <p className="plugin-permissions">
+              <li
+                key={plugin.name}
+                className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-border bg-card p-3"
+              >
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <strong className="text-sm">{plugin.name}</strong>
+                    <span className="text-xs text-muted-foreground">{manifest?.version}</span>
+                  </div>
+                  {manifest?.description && (
+                    <p className="text-xs text-muted-foreground">{manifest.description}</p>
+                  )}
+                  <p
+                    className={
+                      plugin.state === "error"
+                        ? "text-xs text-destructive"
+                        : "text-xs text-muted-foreground"
+                    }
+                  >
+                    State: {STATE_LABELS[plugin.state]}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
                     Permissions: {manifest?.permissions.join(", ") || "none"}
                   </p>
-                  {plugin.error && <p className="plugin-error">{plugin.error}</p>}
+                  {plugin.error && <p className="text-xs text-destructive">{plugin.error}</p>}
                   {errors[plugin.name] && (
-                    <p className="plugin-error">{errors[plugin.name]}</p>
+                    <p className="text-xs text-destructive">{errors[plugin.name]}</p>
                   )}
                 </div>
-                <div className="plugin-actions">
+                <div className="flex flex-wrap items-start gap-1.5">
                   {plugin.state === "active" ? (
                     <>
                       {panel && (
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setViewer({ plugin, panel })}
                         >
                           Open panel
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        type="button"
+                      <Button
+                        size="sm"
+                        variant="ghost"
                         disabled={busy === plugin.name}
                         onClick={() => deactivate(plugin)}
                       >
                         Deactivate
-                      </button>
+                      </Button>
                     </>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      size="sm"
                       disabled={busy === plugin.name}
                       onClick={() => activate(plugin)}
                     >
                       Activate
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>

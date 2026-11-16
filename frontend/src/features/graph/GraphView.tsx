@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Input } from "@/components/ui/input";
 import type { GraphSnapshot } from "../../api/types";
 import { NodeParams } from "./NodeParams";
 import { TopicDetail } from "./TopicDetail";
@@ -20,8 +21,7 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
 
   return (
     <section className="graph-view" aria-label="ROS graph">
-      <input
-        className="graph-search"
+      <Input
         type="search"
         aria-label="Search graph"
         placeholder="Search"

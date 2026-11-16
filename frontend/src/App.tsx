@@ -38,7 +38,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className="grid h-full grid-rows-[1fr_auto]">
       <Workbench />
       <StatusBar />
     </div>

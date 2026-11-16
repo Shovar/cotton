@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { apiGet, apiSend } from "../../api/client";
 import type { ParamValue } from "../../api/types";
 
@@ -101,14 +102,16 @@ function ParamRow({
           onChange={(event) => setDraft(event.target.value)}
         />
       )}
-      <button
+      <Button
         type="button"
+        size="sm"
+        variant="outline"
         disabled={saving}
         aria-label={`Save ${name}`}
         onClick={() => void save()}
       >
         Save
-      </button>
+      </Button>
       {error && <p role="alert">{error}</p>}
     </li>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { apiGet } from "../../api/client";
 import type { RateResult, TopicInfo } from "../../api/types";
 
@@ -48,9 +49,9 @@ export function TopicDetail({ topic }: { topic: TopicInfo }) {
           ))}
         </ul>
       )}
-      <button type="button" disabled={measuring} onClick={() => void measure()}>
+      <Button type="button" size="sm" disabled={measuring} onClick={() => void measure()}>
         {measuring ? "Measuring…" : "Measure rate"}
-      </button>
+      </Button>
       {rate && <p>{rateLabel(rate)}</p>}
       {error && <p role="alert">{error}</p>}
     </section>
