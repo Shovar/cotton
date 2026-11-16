@@ -28,6 +28,15 @@ Use `--system-site-packages` so the virtual environment can import the `rclpy`
 provided by the active ROS 2 installation. Run `ros-studio --help` after
 activating a ROS 2 environment; without one, the CLI reports how to activate it.
 
+`scripts/dev.sh` does all of it for you: it keeps the ROS 2 environment that is
+already active or sources the one in `ROS_SETUP`, activates `.venv`, and
+forwards every argument to `ros-studio`.
+
+```bash
+scripts/dev.sh                       # already-sourced ROS 2 shell
+ROS_SETUP=/path/to/setup.bash scripts/dev.sh --port 8111
+```
+
 ## Frontend development
 
 The commands below run from the repository root and delegate to `frontend/`:

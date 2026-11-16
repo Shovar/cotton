@@ -45,6 +45,25 @@ Flags: `--host`, `--port`, `--token`, `--no-browser`, and repeatable
 `--allow-origin` for extra WebSocket/CORS origins. Use `--token` only for
 automation, never for an interactive session.
 
+## Running a checkout
+
+`scripts/dev.sh` starts ROS Studio from a source checkout on any of the paths
+in this document. It uses the ROS 2 environment that is already active, or
+sources the one given in `ROS_SETUP` (a pixi/RoboStack `setup.sh`, an apt
+`setup.bash` or a colcon workspace `install/setup.bash`), then activates
+`.venv` and forwards every argument to `ros-studio`:
+
+```bash
+scripts/dev.sh
+ROS_SETUP=/path/to/ros/setup.sh scripts/dev.sh --port 8111
+```
+
+Some setup scripts (pixi/RoboStack in particular) prepend their own
+`site-packages` to `PYTHONPATH`, which shadows the packages installed in
+`.venv` and breaks the imports. The script puts the `.venv` packages back in
+front, so no manual `PYTHONPATH` handling is needed. macOS still has the DDS
+discovery limits noted below.
+
 ## pixi / RoboStack (macOS and Linux)
 
 ```bash
