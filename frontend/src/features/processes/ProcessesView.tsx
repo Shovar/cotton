@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { apiGet, apiSend } from "../../api/client";
 import type { ProcessRecord } from "../../api/types";
@@ -9,9 +9,10 @@ import { ProfilesPanel } from "./ProfilesPanel";
 
 const CAN_STOP = new Set(["starting", "running"]);
 const CAN_RESTART = new Set(["running", "exited", "failed"]);
+const INACTIVE = new Set(["exited", "failed"]);
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "No se pudo completar la acción";
+  return error instanceof Error ? error.message : "Could not complete the action";
 }
 
 export function ProcessesView() {
@@ -19,6 +20,9 @@ export function ProcessesView() {
   const [selected, setSelected] = useState<string | null>(null);
   const [command, setCommand] = useState("");
   const [cwd, setCwd] = useState("");
+  const [terminal, setTerminal] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useQuery({
@@ -32,12 +36,14 @@ export function ProcessesView() {
     },
   });
 
-  const run = async (action: () => Promise<ProcessRecord>) => {
+  const run = async (action: () => Promise<ProcessRecord>): Promise<boolean> => {
     try {
       useStore.getState().upsertProcess(await action());
       setError(null);
+      return true;
     } catch (caught) {
       setError(errorMessage(caught));
+      return false;
     }
   };
 
@@ -47,13 +53,43 @@ export function ProcessesView() {
     if (!trimmed) {
       return;
     }
-    await run(() =>
+    const target = terminal || null;
+    if (target) {
+      useStore.getState().clearLogs(target);
+    }
+    const started = await run(() =>
       apiSend<ProcessRecord>("POST", "/api/processes", {
         command: trimmed,
         ...(cwd.trim() ? { cwd: cwd.trim() } : {}),
+        ...(target ? { id: target } : {}),
       }),
     );
+    if (!started) {
+      return;
+    }
     setCommand("");
+    setTerminal("");
+    setHistory((current) => [...current, trimmed]);
+    setHistoryIndex(null);
+  };
+
+  const recall = (event: KeyboardEvent<HTMLInputElement>) => {
+    if ((event.key !== "ArrowUp" && event.key !== "ArrowDown") || history.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    if (event.key === "ArrowUp") {
+      const next = historyIndex === null ? history.length - 1 : Math.max(historyIndex - 1, 0);
+      setHistoryIndex(next);
+      setCommand(history[next]);
+      return;
+    }
+    if (historyIndex === null) {
+      return;
+    }
+    const next = historyIndex + 1;
+    setHistoryIndex(next >= history.length ? null : next);
+    setCommand(next >= history.length ? "" : history[next]);
   };
 
   const stop = async (id: string) => {
@@ -69,28 +105,66 @@ export function ProcessesView() {
     );
 
   const records = Object.values(processes);
+  const finished = records.filter((record) => INACTIVE.has(record.state));
 
   return (
-    <section className="processes-view" aria-label="Procesos">
-      <h2>Procesos</h2>
-      <form className="process-form" onSubmit={start}>
-        <label>
-          Comando
+    <section className="processes-view" aria-label="Processes">
+      <h2>Processes</h2>
+      <form className="process-form terminal-prompt" onSubmit={start}>
+        <label className="terminal-line">
+          <span className="terminal-marker" aria-hidden="true">
+            $
+          </span>
           <input
+            className="terminal-input"
             type="text"
+            aria-label="Command"
+            placeholder="ros2 run demo_nodes_cpp talker"
+            autoComplete="off"
+            spellCheck={false}
             value={command}
-            onChange={(event) => setCommand(event.target.value)}
+            onChange={(event) => {
+              setCommand(event.target.value);
+              setHistoryIndex(null);
+            }}
+            onKeyDown={recall}
           />
         </label>
-        <label>
-          Trabajo (cwd)
-          <input type="text" value={cwd} onChange={(event) => setCwd(event.target.value)} />
+        <label className="terminal-target">
+          Terminal
+          <select
+            aria-label="Terminal"
+            value={terminal}
+            onChange={(event) => setTerminal(event.target.value)}
+          >
+            <option value="">New terminal</option>
+            {finished.map((record) => (
+              <option key={record.id} value={record.id}>
+                {`${record.id} · ${record.spec.argv.join(" ")}`}
+              </option>
+            ))}
+          </select>
         </label>
-        <button type="submit">Arrancar</button>
+        <button type="submit">Run</button>
+        <details className="process-advanced">
+          <summary>Advanced options</summary>
+          <label>
+            Working directory
+            <input
+              type="text"
+              value={cwd}
+              onChange={(event) => setCwd(event.target.value)}
+              placeholder="~/ros2_ws"
+            />
+          </label>
+          <p className="process-hint">
+            Where the command runs. Empty uses the directory that started ROS Studio.
+          </p>
+        </details>
       </form>
       {error && <p className="process-error">{error}</p>}
       {records.length === 0 ? (
-        <p>Sin procesos</p>
+        <p>No processes</p>
       ) : (
         <ul className="process-list">
           {records.map((record) => (
