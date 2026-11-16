@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip";
+import logoUrl from "../assets/ros-studio-logo.png";
 import { loadPreferences, savePreferences } from "../state/preferences";
 import { CommandPalette } from "./CommandPalette";
 import { getPanel, getPanels, type PanelDefinition } from "./panelRegistry";
@@ -107,7 +108,7 @@ export function Workbench() {
         className="flex flex-col items-center gap-1 border-r border-border bg-card p-1.5"
       >
         <img
-          src="/ros-studio-logo.png"
+          src={logoUrl}
           alt="ROS Studio"
           className="mb-1 size-10 object-contain"
         />

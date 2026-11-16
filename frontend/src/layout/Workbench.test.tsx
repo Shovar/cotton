@@ -100,7 +100,9 @@ describe("Workbench", () => {
   it("shows the ROS Studio logo in the activity bar", () => {
     render(<Workbench />);
 
-    expect(screen.getByRole("img", { name: "ROS Studio" })).toBeVisible();
+    const logo = screen.getByRole("img", { name: "ROS Studio" });
+    expect(logo).toBeVisible();
+    expect(logo).toHaveAttribute("src", "/src/assets/ros-studio-logo.png");
   });
 
   it("opens the three shell sections in the dock", () => {
