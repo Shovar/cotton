@@ -207,6 +207,7 @@ otherwise.
 | --- | --- | --- | --- |
 | GET | `/api/health` | 200 | No auth. `{"status":"ok"}` |
 | GET | `/api/env` | 200 | `EnvironmentInfo` |
+| GET | `/api/commands` | 200 | Sorted executable names reachable through the backend `PATH`; used by the command prompt |
 | GET | `/api/graph` | 200 | Current `GraphSnapshot`; empty snapshot before the first poll |
 | GET | `/api/nodes/{node_name:path}/params` | 200 | `{ "<param>": <value> }`; 404 `node_not_found` |
 | PUT | `/api/nodes/{node_name:path}/params/{param}` | 204 | Body `{"value": <value>}`; 404 `node_not_found`; 409 `param_not_settable`; 422 `validation_error` |
@@ -214,6 +215,7 @@ otherwise.
 | GET | `/api/processes` | 200 | `ProcessRecord[]` |
 | POST | `/api/processes` | 201 | Body `{"id"?: string, "command": string \| string[], "args"?: string[], "cwd"?: string, "env"?: object}`; string command is `shlex.split`; 409 `process_conflict` |
 | DELETE | `/api/processes/{id}` | 200 | Stopped `ProcessRecord`; 404 `process_not_found` |
+| POST | `/api/processes/{id}/close` | 200 | Stopped `ProcessRecord`, forgotten from the registry; 404 `process_not_found` |
 | POST | `/api/processes/{id}/restart` | 200 | Restarted `ProcessRecord`; 404 `process_not_found`; 409 `process_conflict` |
 | GET | `/api/processes/{id}/logs?lines=200` | 200 | `LogLine[]`, newest last; `lines` clamped to `[1, 2000]`; 404 `process_not_found` |
 | GET | `/api/profiles` | 200 | `Profile[]` |
@@ -270,6 +272,7 @@ Every server message has `{ "type": string, "data": object }`.
 | `graph.update` | `graph` | `GraphSnapshot` |
 | `ros.status` | `graph` | `{"connected": bool, "error": string \| null}` |
 | `process.state` | `processes` | `ProcessRecord` |
+| `process.removed` | `processes` | `{"id": string}` |
 | `process.log` | `logs:<id>` | `LogLine` |
 | `plugin.state` | `plugins` | `PluginRecord` |
 | `error` | any | `{"code": string, "message": string}` |
@@ -279,7 +282,7 @@ Every server message has `{ "type": string, "data": object }`.
 | Channel | Forwards | Initial messages on subscribe |
 | --- | --- | --- |
 | `graph` | `graph.update`, `ros.status` | Current snapshot (if any) and current ROS status |
-| `processes` | `process.state` | One `process.state` per known process |
+| `processes` | `process.state`, `process.removed` | One `process.state` per known process |
 | `logs:<id>` | `process.log` events whose `data.id` equals `<id>` | Last 200 log lines for that process |
 | `plugins` | `plugin.state` | One `plugin.state` per known plugin |
 | `test` | test channel only | Registered by tests, never in production |

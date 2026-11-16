@@ -11,6 +11,7 @@ import uvicorn
 from platformdirs import user_cache_dir, user_config_dir
 
 from ros_studio.api import (
+    routes_commands,
     routes_graph,
     routes_params,
     routes_plugins,
@@ -67,6 +68,7 @@ def build_services(
         spa_dir=web_dir if web_dir.is_dir() else None,
     )
     watcher = GraphWatcher(ros, ThreadGraphSource(ros), bus)
+    services.routers.append(routes_commands.router)
     services.routers.append(routes_graph.create_router(watcher))
     services.channels.register(routes_graph.graph_channel(watcher))
     services.routers.append(routes_params.create_router(ros, ThreadParamsSource(ros)))

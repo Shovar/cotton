@@ -50,6 +50,14 @@ def create_router(manager: ProcessManager) -> APIRouter:
             raise ApiError(404, "process_not_found", str(exc)) from exc
         return record.to_dict()
 
+    @router.post("/processes/{process_id}/close")
+    async def close_process(process_id: str) -> dict[str, Any]:
+        try:
+            record = await manager.close(process_id)
+        except ProcessNotFound as exc:
+            raise ApiError(404, "process_not_found", str(exc)) from exc
+        return record.to_dict()
+
     @router.post("/processes/{process_id}/restart")
     async def restart_process(process_id: str) -> dict[str, Any]:
         try:
@@ -78,7 +86,7 @@ def register_process_channels(registry: ChannelRegistry, manager: ProcessManager
     registry.register(
         Channel(
             "processes",
-            matches=lambda event: event.type == "process.state",
+            matches=lambda event: event.type in {"process.state", "process.removed"},
             initial=initial,
         )
     )

@@ -1,3 +1,6 @@
+import darkFaviconUrl from "../assets/ros-studio-favicon-dark.png";
+import lightFaviconUrl from "../assets/ros-studio-favicon-light.png";
+
 export type Theme = "light" | "dark";
 
 export interface Preferences {
@@ -47,4 +50,10 @@ export function applyTheme(
   root: HTMLElement = document.documentElement,
 ): void {
   root.dataset.theme = theme;
+  if (root === document.documentElement) {
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (favicon) {
+      favicon.href = theme === "dark" ? darkFaviconUrl : lightFaviconUrl;
+    }
+  }
 }

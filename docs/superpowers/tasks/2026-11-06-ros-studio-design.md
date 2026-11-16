@@ -25,13 +25,13 @@ Estados: `[ ]` pendiente · `[x]` hecha · `[!]` bloqueada (anotar por qué al l
 | [`tasks/02-ros-discovery.md`](2026-11-06-ros-studio-design/02-ros-discovery.md) | T050–T056, T058–T062, T067–T079, T216 | 26 | foundation | ui-graph |
 | [`tasks/03-processes.md`](2026-11-06-ros-studio-design/03-processes.md) | T113–T129, T132–T153 | 39 | foundation | ui-processes, plugins, delivery |
 | [`tasks/04-plugins.md`](2026-11-06-ros-studio-design/04-plugins.md) | T165–T186, T192–T195, T200–T201 | 28 | foundation + `ProcessPort` | ui-plugins, delivery |
-| [`tasks/05-ui-shell.md`](2026-11-06-ros-studio-design/05-ui-shell.md) | T080–T088, T091–T092, T215 | 12 | foundation (contrato) | el resto de UI |
-| [`tasks/06-ui-graph.md`](2026-11-06-ros-studio-design/06-ui-graph.md) | T093–T103 | 11 | ui-shell + discovery | delivery |
+| [`tasks/05-ui-shell.md`](2026-11-06-ros-studio-design/05-ui-shell.md) | T080–T088, T091–T092, T215, T218–T219 | 14 | foundation (contrato) | el resto de UI |
+| [`tasks/06-ui-graph.md`](2026-11-06-ros-studio-design/06-ui-graph.md) | T093–T103, T217 | 12 | ui-shell + discovery | delivery |
 | [`tasks/07-ui-processes.md`](2026-11-06-ros-studio-design/07-ui-processes.md) | T154–T164 | 11 | ui-shell + processes | delivery |
 | [`tasks/08-ui-plugins.md`](2026-11-06-ros-studio-design/08-ui-plugins.md) | T187–T191, T196–T199 | 9 | ui-shell + plugins | delivery |
 | [`tasks/09-delivery.md`](2026-11-06-ros-studio-design/09-delivery.md) | T202–T213 | 12 | todos | — |
 
-Total: **216 tareas**, ninguna de más de 15 minutos. Las 213 originales conservan su ID; T214 (contrato REST/WS), T215 (registro de paneles) y T216 (canal WS del grafo) son las tres tareas nuevas que hacen posible el trabajo separado.
+Total: **219 tareas**, ninguna de más de 15 minutos. Las 213 originales conservan su ID; T214 (contrato REST/WS), T215 (registro de paneles), T216 (canal WS del grafo), T217 (grafo de nodos y topics) y T218–T219 (identidad visual) son tareas nuevas.
 
 ## Olas de trabajo
 

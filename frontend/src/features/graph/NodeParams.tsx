@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { apiGet, apiSend } from "../../api/client";
 import type { ParamValue } from "../../api/types";
 
@@ -14,11 +15,11 @@ export function NodeParams({ nodeName }: { nodeName: string }) {
   });
 
   return (
-    <section className="node-params" aria-label={`Parámetros de ${nodeName}`}>
-      <h2>Parámetros de {nodeName}</h2>
-      {params.isLoading && <p>Cargando parámetros…</p>}
+    <section className="node-params" aria-label={`Parameters of ${nodeName}`}>
+      <h2>Parameters of {nodeName}</h2>
+      {params.isLoading && <p>Loading parameters…</p>}
       {params.error && <p role="alert">{params.error.message}</p>}
-      {params.data && Object.keys(params.data).length === 0 && <p>Sin parámetros</p>}
+      {params.data && Object.keys(params.data).length === 0 && <p>No parameters</p>}
       {params.data && (
         <ul>
           {Object.entries(params.data).map(([name, value]) => (
@@ -57,7 +58,7 @@ function ParamRow({
     return (
       <li className="param-row">
         <span className="param-name">{name}</span>
-        <span>No editable</span>
+        <span>Not editable</span>
       </li>
     );
   }
@@ -73,10 +74,10 @@ function ParamRow({
     } catch (caught) {
       setError(
         caught instanceof SyntaxError
-          ? "Valor no válido"
+          ? "Invalid value"
           : caught instanceof Error
             ? caught.message
-            : "No se pudo guardar",
+            : "Could not save",
       );
     } finally {
       setSaving(false);
@@ -101,14 +102,16 @@ function ParamRow({
           onChange={(event) => setDraft(event.target.value)}
         />
       )}
-      <button
+      <Button
         type="button"
+        size="sm"
+        variant="outline"
         disabled={saving}
-        aria-label={`Guardar ${name}`}
+        aria-label={`Save ${name}`}
         onClick={() => void save()}
       >
-        Guardar
-      </button>
+        Save
+      </Button>
       {error && <p role="alert">{error}</p>}
     </li>
   );

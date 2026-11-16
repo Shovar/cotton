@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
 from ros_studio.api import routes_env, ws
@@ -82,6 +83,15 @@ def mount_viewer(app: FastAPI, viewer_dir: Path | None) -> None:
     app.mount("/lichtblick", viewer, name="lichtblick")
 
 
+class ImmutableStaticFiles(StaticFiles):
+    """Serves hashed bundles that never change once built."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers.setdefault("Cache-Control", "public, max-age=31536000, immutable")
+        return response
+
+
 def mount_spa(app: FastAPI, web_dir: Path | None) -> None:
     if web_dir is None or not (web_dir / "index.html").is_file():
 
@@ -96,7 +106,7 @@ def mount_spa(app: FastAPI, web_dir: Path | None) -> None:
 
     assets = web_dir / "assets"
     if assets.is_dir():
-        app.mount("/assets", StaticFiles(directory=assets), name="assets")
+        app.mount("/assets", ImmutableStaticFiles(directory=assets), name="assets")
 
     @app.get("/{path:path}", include_in_schema=False)
     async def spa(path: str) -> FileResponse:
@@ -105,4 +115,5 @@ def mount_spa(app: FastAPI, web_dir: Path | None) -> None:
         )
         if reserved:
             raise HTTPException(status_code=404)
-        return FileResponse(web_dir / "index.html")
+        # The entry HTML names hashed assets, so it must never be cached.
+        return FileResponse(web_dir / "index.html", headers={"Cache-Control": "no-store"})

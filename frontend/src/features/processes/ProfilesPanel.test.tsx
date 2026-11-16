@@ -32,10 +32,10 @@ describe("ProfilesPanel", () => {
     apiSend.mockResolvedValue({});
 
     render(<ProfilesPanel processes={[PROCESS]} />);
-    fireEvent.change(screen.getByLabelText("Nombre del perfil"), {
+    fireEvent.change(screen.getByLabelText("Profile name"), {
       target: { value: "Sim" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar como perfil" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save as profile" }));
 
     await waitFor(() =>
       expect(apiSend).toHaveBeenCalledWith("POST", "/api/profiles", {
@@ -51,10 +51,35 @@ describe("ProfilesPanel", () => {
     apiSend.mockResolvedValue([]);
 
     render(<ProfilesPanel processes={[]} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Iniciar" }));
+    expect(await screen.findByText("No processes in this profile")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Start" }));
 
     await waitFor(() =>
       expect(apiSend).toHaveBeenCalledWith("POST", "/api/profiles/sim/start"),
     );
+  });
+
+  it("shows the command and working directory stored in a profile", async () => {
+    apiGet.mockResolvedValue([
+      {
+        id: "sim",
+        name: "Sim",
+        processes: [
+          {
+            id: "a",
+            argv: ["ros2", "launch", "demo", "demo.launch.py"],
+            cwd: "/ws",
+            env: {},
+            plugin: null,
+            autostart: false,
+          },
+        ],
+      },
+    ]);
+
+    render(<ProfilesPanel processes={[]} />);
+
+    expect(await screen.findByText("ros2 launch demo demo.launch.py")).toBeInTheDocument();
+    expect(screen.getByText("cwd /ws")).toBeInTheDocument();
   });
 });

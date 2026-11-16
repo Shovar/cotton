@@ -85,7 +85,7 @@ describe("PluginPanel", () => {
     );
 
     expect(
-      await screen.findByText(/los assets del visor no están disponibles/i),
+      await screen.findByText(/the viewer assets are not available/i),
     ).toBeInTheDocument();
     expect(apiExists).toHaveBeenCalledWith("/lichtblick/index.html");
     expect(screen.queryByTitle("Foxglove")).not.toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("PluginPanel", () => {
       />,
     );
 
-    expect(screen.getByText(/no se puede incrustar/i)).toBeInTheDocument();
+    expect(screen.getByText(/cannot be embedded/i)).toBeInTheDocument();
   });
 
   it("closes from the dialog button", () => {
@@ -114,7 +114,7 @@ describe("PluginPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Cerrar panel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
 
     expect(onClose).toHaveBeenCalled();
   });

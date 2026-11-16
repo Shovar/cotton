@@ -72,7 +72,7 @@ describe("PluginsView", () => {
 
     expect(await screen.findByText("invalid manifest: missing argv")).toBeInTheDocument();
     expect(screen.getByText(/process, network/)).toBeInTheDocument();
-    expect(screen.getByText("Estado: Error")).toBeInTheDocument();
+    expect(screen.getByText("State: Error")).toBeInTheDocument();
   });
 
   it("activates a plugin and opens its panel", async () => {
@@ -82,7 +82,7 @@ describe("PluginsView", () => {
 
     renderView();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Activar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
 
     expect(await screen.findByTitle("Foxglove")).toBeInTheDocument();
     expect(apiSend).toHaveBeenCalledWith("POST", "/api/plugins/foxglove/activate");
@@ -95,7 +95,7 @@ describe("PluginsView", () => {
 
     renderView();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Activar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
 
     expect(await screen.findByText(/healthcheck failed/)).toBeInTheDocument();
   });
@@ -106,10 +106,10 @@ describe("PluginsView", () => {
 
     renderView();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir panel" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open panel" }));
     expect(screen.getByTitle("Foxglove")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Desactivar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
 
     await waitFor(() => expect(screen.queryByTitle("Foxglove")).not.toBeInTheDocument());
     expect(apiSend).toHaveBeenCalledWith("DELETE", "/api/plugins/foxglove/activate");

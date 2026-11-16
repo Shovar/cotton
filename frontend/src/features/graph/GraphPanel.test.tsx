@@ -73,7 +73,7 @@ describe("GraphPanel", () => {
   it("waits for the first snapshot", () => {
     renderPanel();
 
-    expect(screen.getByText("Esperando el grafo…")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for the graph…")).toBeInTheDocument();
   });
 
   it("loads the graph over REST and follows websocket updates", async () => {
@@ -108,8 +108,8 @@ describe("GraphPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: "/talker" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Parámetros de /talker" }),
+      await screen.findByRole("heading", { name: "Parameters of /talker" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Sin parámetros")).toBeInTheDocument();
+    expect(await screen.findByText("No parameters")).toBeInTheDocument();
   });
 });

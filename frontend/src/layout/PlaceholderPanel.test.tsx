@@ -9,13 +9,13 @@ describe("PlaceholderPanel", () => {
   it("labels the empty panel with its dock title", () => {
     render(
       <PlaceholderPanel
-        api={{ title: "Grafo" } as IDockviewPanelProps["api"]}
+        api={{ title: "Graph" } as IDockviewPanelProps["api"]}
         containerApi={{} as IDockviewPanelProps["containerApi"]}
         params={{}}
       />,
     );
 
-    expect(screen.getByRole("region", { name: "Grafo" })).toBeInTheDocument();
-    expect(screen.getByText("Grafo")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Graph" })).toBeInTheDocument();
+    expect(screen.getByText("Graph")).toBeInTheDocument();
   });
 });

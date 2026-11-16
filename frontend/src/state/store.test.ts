@@ -134,6 +134,38 @@ describe("store", () => {
     expect(useStore.getState().logs).toEqual({});
   });
 
+  it("clears the logs of one terminal only", () => {
+    useStore.setState({ logs: { p1: [logLine("old")], p2: [logLine("keep")] } });
+
+    useStore.getState().clearLogs("p1");
+
+    expect(useStore.getState().logs).toEqual({ p2: [logLine("keep")] });
+  });
+
+  it("removes a process together with its logs", () => {
+    useStore.setState({
+      processes: { p1: processRecord("p1"), p2: processRecord("p2") },
+      logs: { p1: [logLine("old")] },
+    });
+
+    useStore.getState().removeProcess("p1");
+
+    expect(Object.keys(useStore.getState().processes)).toEqual(["p2"]);
+    expect(useStore.getState().logs).toEqual({});
+  });
+
+  it("applies a process removal from the server", () => {
+    useStore.setState({
+      processes: { p1: processRecord("p1") },
+      logs: { p1: [logLine("old")] },
+    });
+
+    useStore.getState().applyServerEvent({ type: "process.removed", data: { id: "p1" } });
+
+    expect(useStore.getState().processes).toEqual({});
+    expect(useStore.getState().logs).toEqual({});
+  });
+
   it("appends process logs and caps the buffer at 2000 lines", () => {
     for (let index = 0; index < 2005; index += 1) {
       useStore.getState().applyServerEvent({ type: "process.log", data: logLine(`line ${index}`) });

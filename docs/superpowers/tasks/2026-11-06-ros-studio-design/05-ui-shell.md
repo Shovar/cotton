@@ -40,6 +40,11 @@
 - [x] **T091 · 5 min** — Configurar el proxy de Vite para `/api` y `/ws`. **Hecho:** el dev server habla con el backend.
 - [x] **T092 · 10 min** — Ejecutar tests, `tsc --noEmit`, build y commit `feat: scaffold react workbench with api and ws clients`. **Hecho:** commit creado.
 
+## Bloque U5 — Identidad visual
+
+- [x] **T218 · 10 min** — Mostrar el logo en la pestaña y la barra de actividad. **Hecho:** el test del Workbench pasa y `npm run build` incluye el favicon.
+- [x] **T219 · 10 min** — Reemplazar el logo por la versión transparente y adaptarlo al tema. **Hecho:** tests del Workbench/preferences, PNG con canal alfa y build verificados.
+
 ## Verificación
 
 ```bash
