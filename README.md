@@ -1,5 +1,9 @@
 # ROS Studio
 
+<p align="center">
+  <img src="frontend/src/assets/ros-studio-logo.png" alt="ROS Studio" width="140" />
+</p>
+
 ROS Studio is a local web control panel for an active ROS 2 environment: it shows
 the node graph, manages launch processes with live logs, and embeds a Foxglove
 viewer. It runs inside the environment you already have, binds to loopback, and
