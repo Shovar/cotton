@@ -148,6 +148,14 @@ class ProcessManager:
             await self.stop(process_id)
         return await self.start(record.spec)
 
+    async def close(self, process_id: str) -> ProcessRecord:
+        record = self.get(process_id)
+        if record.state in _ACTIVE:
+            record = await self.stop(process_id)
+        self._forget(process_id)
+        await self._bus.publish("process.removed", {"id": process_id})
+        return record
+
     async def shutdown(self) -> None:
         """Stop every active process in reverse start order."""
         for process_id in reversed(list(self._records)):
@@ -237,6 +245,19 @@ class ProcessManager:
     def _check_id(self, process_id: str) -> None:
         if not _SAFE_ID.fullmatch(process_id):
             raise ValueError(f"invalid process id: {process_id!r}")
+
+    def _forget(self, process_id: str) -> None:
+        for collection in (
+            self._records,
+            self._buffers,
+            self._writers,
+            self._processes,
+            self._readers,
+            self._waiters,
+        ):
+            collection.pop(process_id, None)
+        if self._registry is not None:
+            self._registry.delete(process_id)
 
     async def _publish_state(self, record: ProcessRecord) -> None:
         await self._bus.publish("process.state", record.to_dict())

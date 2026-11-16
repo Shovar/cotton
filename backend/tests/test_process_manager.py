@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ros_studio.events import EventBus
+from ros_studio.events import Event, EventBus
 from ros_studio.processes.manager import (
     ProcessConflict,
     ProcessManager,
@@ -168,6 +168,65 @@ async def test_missing_process_raises(manager: ProcessManager) -> None:
         await manager.stop("missing")
     with pytest.raises(ProcessNotFound):
         await manager.restart("missing")
+    with pytest.raises(ProcessNotFound):
+        await manager.close("missing")
+
+
+async def test_close_stops_forgets_and_announces(
+    manager: ProcessManager, bus: EventBus
+) -> None:
+    queue = bus.subscribe()
+    try:
+        record = await manager.start(
+            ProcessSpec(id="gone", argv=python_script("import time; time.sleep(30)"))
+        )
+
+        closed = await manager.close("gone")
+
+        assert closed.state == "exited"
+        assert not process_alive(record.pid)
+        assert not group_alive(record.pgid)
+        assert manager.list() == []
+        with pytest.raises(ProcessNotFound):
+            manager.logs("gone")
+
+        await asyncio.sleep(0.05)
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+        assert Event("process.removed", {"id": "gone"}) in events
+    finally:
+        bus.unsubscribe(queue)
+
+
+async def test_close_forgets_an_already_exited_process(manager: ProcessManager) -> None:
+    await manager.start(ProcessSpec(id="done", argv=python_script("pass")))
+    await eventually(lambda: manager.get("done").state == "exited")
+
+    closed = await manager.close("done")
+
+    assert closed.state == "exited"
+    assert manager.list() == []
+
+
+async def test_stop_keeps_the_record_and_does_not_announce_removal(
+    manager: ProcessManager, bus: EventBus
+) -> None:
+    queue = bus.subscribe()
+    try:
+        await manager.start(
+            ProcessSpec(id="kept", argv=python_script("import time; time.sleep(30)"))
+        )
+        await manager.stop("kept")
+        await asyncio.sleep(0.05)
+
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+        assert [record.id for record in manager.list()] == ["kept"]
+        assert all(event.type != "process.removed" for event in events)
+    finally:
+        bus.unsubscribe(queue)
 
 
 async def test_publishes_state_and_log_events(manager: ProcessManager, bus: EventBus) -> None:
