@@ -5,15 +5,15 @@ tarea que sigue abierta en el tracker. Anota el comando y su salida en la tarea
 correspondiente antes de marcarla `[x]`.
 
 Requisitos: un entorno ROS 2 (Humble o Jazzy) sourceado, el wheel instalado y
-`ros-studio` en el `PATH`.
+`cotton` en el `PATH`.
 
 ## T034 — Instalación en Ubuntu con venv `--system-site-packages`
 
 ```bash
 python3 -m venv --system-site-packages /tmp/rs
-/tmp/rs/bin/pip install dist/ros_studio-0.1.0-py3-none-any.whl
-/tmp/rs/bin/python -c "import rclpy, ros_studio; print('ok')"
-/tmp/rs/bin/ros-studio --help
+/tmp/rs/bin/pip install dist/cotton-0.1.0-py3-none-any.whl
+/tmp/rs/bin/python -c "import rclpy, cotton; print('ok')"
+/tmp/rs/bin/cotton --help
 ```
 
 Esperado: `ok`, `--help` con el uso y sin instalar otro `rclpy`.
@@ -22,7 +22,7 @@ Esperado: `ok`, `--help` con el uso y sin instalar otro `rclpy`.
 
 ```bash
 ros2 run demo_nodes_cpp parameter_blackboard &
-ros-studio --no-browser --token test-token &
+cotton --no-browser --token test-token &
 curl -s -H 'Authorization: Bearer test-token' \
   'http://127.0.0.1:8000/api/nodes//parameter_blackboard/params'
 curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
@@ -38,7 +38,7 @@ responde `204`. La doble barra es el nombre absoluto del nodo en el path.
 
 ```bash
 ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765 &
-ros-studio --no-browser --token test-token &
+cotton --no-browser --token test-token &
 curl -s -H 'Authorization: Bearer test-token' http://127.0.0.1:8000/api/plugins
 ```
 
@@ -69,5 +69,5 @@ ros2 action list
 ```
 
 Esperado: las listas de la UI coinciden con estas (el nodo propio
-`/ros_studio_<pid>` y su probe de frecuencia no aparecen). Un cambio en el grafo
+`/cotton_<pid>` y su probe de frecuencia no aparecen). Un cambio en el grafo
 se ve en menos de 2 s.

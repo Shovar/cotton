@@ -1,4 +1,4 @@
-# AGENTS.md — Working agreement for ROS Studio
+# AGENTS.md — Working agreement for Cotton
 
 This file defines how every agent works in this repository. It applies to the
 whole project: backend, frontend, plugins, tests, scripts and docs.
@@ -132,7 +132,7 @@ pip install -e ".[dev]"
 ruff check backend
 ruff format --check backend
 mypy backend/src
-pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
+pytest -m "not integration" --cov=cotton --cov-fail-under=80
 ```
 
 Frontend:
@@ -164,7 +164,7 @@ Before considering a task done:
 
 ## 9. Security guardrails (non-negotiable)
 
-ROS Studio can start processes and is therefore equivalent to a local shell:
+Cotton can start processes and is therefore equivalent to a local shell:
 
 - Bind to `127.0.0.1` by default. Docker is the only documented exception.
 - Keep the session token, `Authorization: Bearer` and WebSocket `Origin`

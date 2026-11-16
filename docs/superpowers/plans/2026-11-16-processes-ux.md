@@ -58,7 +58,7 @@ git commit -m "docs: specify the processes panel UX"
 ### Task 1: Close a terminal in the process manager
 
 **Files:**
-- Modify: `backend/src/ros_studio/processes/manager.py` (after `restart`, around line 145)
+- Modify: `backend/src/cotton/processes/manager.py` (after `restart`, around line 145)
 - Test: `backend/tests/test_process_manager.py`
 
 **Interfaces:**
@@ -67,7 +67,7 @@ git commit -m "docs: specify the processes panel UX"
 
 - [ ] **Step 1: Write the failing tests**
 
-Add to `backend/tests/test_process_manager.py` (import `Event` from `ros_studio.events`):
+Add to `backend/tests/test_process_manager.py` (import `Event` from `cotton.events`):
 
 ```python
 async def test_close_stops_forgets_and_announces(manager: ProcessManager, bus: EventBus) -> None:
@@ -172,7 +172,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/processes/manager.py backend/tests/test_process_manager.py
+git add backend/src/cotton/processes/manager.py backend/tests/test_process_manager.py
 git commit -m "feat: close and forget a process terminal"
 ```
 
@@ -181,7 +181,7 @@ git commit -m "feat: close and forget a process terminal"
 ### Task 2: Expose closing a terminal over HTTP and WebSocket
 
 **Files:**
-- Modify: `backend/src/ros_studio/api/routes_processes.py`
+- Modify: `backend/src/cotton/api/routes_processes.py`
 - Modify: `docs/contracts/api.md` (endpoint table around line 215, event table around line 270, channel table around line 282)
 - Test: `backend/tests/test_api_processes.py`
 
@@ -269,7 +269,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/api/routes_processes.py backend/tests/test_api_processes.py docs/contracts/api.md
+git add backend/src/cotton/api/routes_processes.py backend/tests/test_api_processes.py docs/contracts/api.md
 git commit -m "feat: expose closing a process terminal"
 ```
 
@@ -559,7 +559,7 @@ Markup:
       <input type="text" value={cwd} onChange={...} placeholder="~/ros2_ws" />
     </label>
     <p className="process-hint">
-      Where the command runs. Empty uses the directory that started ROS Studio.
+      Where the command runs. Empty uses the directory that started Cotton.
     </p>
   </details>
 </form>
@@ -916,7 +916,7 @@ Expected: PASS.
 | File | New copy |
 |---|---|
 | `PluginsView.tsx` | `Discovered`, `Active`, `Stopped`, `Error`; `Could not complete the action`; `No plugins`; `State: `; `Permissions: `; `none`; `Open panel`; `Deactivate`; `Activate` |
-| `PluginPanel.tsx` | `aria-label="Close panel"`, `Close`, `This panel type cannot be embedded.`, `The viewer assets are not available. Check the connection and restart ROS Studio, or copy lichtblick-web.tar.gz into the local cache before starting.` |
+| `PluginPanel.tsx` | `aria-label="Close panel"`, `Close`, `This panel type cannot be embedded.`, `The viewer assets are not available. Check the connection and restart Cotton, or copy lichtblick-web.tar.gz into the local cache before starting.` |
 | `CommandPalette.tsx` | `Open graph`, `Open processes`, `Open plugins`, `aria-label="Command palette"`, `aria-label="Search actions"`, placeholder `Search actions` |
 | `StatusBar.tsx` | `Domain`, `Processes`, `ROS connected`, `ROS disconnected`, `Errors`, `aria-label="Theme"`, `Light theme`, `Dark theme` |
 | `Workbench.tsx` | `aria-label="Sections"` |
@@ -944,7 +944,7 @@ git commit -m "refactor: translate the frontend UI to English"
 
 ## Final verification
 
-- [ ] Backend: `.venv/bin/ruff check backend && .venv/bin/ruff format --check backend && .venv/bin/mypy backend/src && .venv/bin/python -m pytest -m "not integration" --cov=ros_studio --cov-fail-under=80`
+- [ ] Backend: `.venv/bin/ruff check backend && .venv/bin/ruff format --check backend && .venv/bin/mypy backend/src && .venv/bin/python -m pytest -m "not integration" --cov=cotton --cov-fail-under=80`
 - [ ] Frontend: `cd frontend && npm run lint && npm run typecheck && npm test -- --coverage`
 - [ ] Manual: open the app, start two commands in two terminals, confirm both cards show a green border, the consoles open and close independently, closing a running terminal asks for confirmation, and the profile list shows the stored commands at a narrow dock width.
 - [ ] Update `docs/verification-ros.md` only if a check cannot run here; do not claim ROS, Docker or Playwright verification.

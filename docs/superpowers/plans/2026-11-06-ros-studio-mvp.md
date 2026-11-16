@@ -1,8 +1,8 @@
-# ROS Studio MVP — Plan de implementación
+# Cotton MVP — Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Construir el MVP de ROS Studio: una web local instalada dentro del entorno ROS 2 del usuario que muestra el grafo, gestiona procesos de launch con logs en vivo y embebe Lichtblick mediante un plugin.
+**Goal:** Construir el MVP de Cotton: una web local instalada dentro del entorno ROS 2 del usuario que muestra el grafo, gestiona procesos de launch con logs en vivo y embebe Lichtblick mediante un plugin.
 
 **Architecture:** Un único proceso Python con FastAPI/uvicorn y un hilo dueño de `rclpy`; la UI React se compila y se sirve desde el backend. Los procesos hijos se lanzan con `asyncio` y `setsid`, y los plugins se declaran con `plugin.yaml`.
 
@@ -21,7 +21,7 @@
 - Parada ordenada: `SIGINT` al grupo → `5 s` → `SIGTERM` → `3 s` → `SIGKILL`.
 - Token de sesión de 32 bytes; `Authorization: Bearer` en REST y `?token=` en `/ws`; validación de `Origin`.
 - REST bajo `/api`; WebSocket único en `/ws`; errores `{"code": string, "message": string}`.
-- Paquete `ros-studio`, licencia Apache-2.0. Frontend compilado dentro del wheel.
+- Paquete `cotton`, licencia Apache-2.0. Frontend compilado dentro del wheel.
 - Sin perfiles de entorno, sin prefijo de comando y sin agente de descubrimiento.
 - Commits convencionales (`feat:`, `test:`, `chore:`), uno por tarea como mínimo.
 
@@ -43,32 +43,32 @@ Estos son los cinco fallos que más probablemente sufrirá quien use el programa
 
 **Files:**
 - Create: `.gitignore`, `LICENSE`, `README.md`, `pyproject.toml`
-- Create: `backend/src/ros_studio/__init__.py`
+- Create: `backend/src/cotton/__init__.py`
 - Create: `backend/tests/test_package.py`
 - Create: `.github/workflows/ci.yml`
 
 **Interfaces:**
-- Produces: paquete importable `ros_studio` con `__version__ = "0.1.0"`; comandos `pytest`, `ruff`, `mypy` funcionando desde la raíz.
+- Produces: paquete importable `cotton` con `__version__ = "0.1.0"`; comandos `pytest`, `ruff`, `mypy` funcionando desde la raíz.
 
 - [ ] **Step 1: Inicializar el repositorio y el esqueleto**
 
 ```bash
 git init -b main
-mkdir -p backend/src/ros_studio backend/tests docs/superpowers .github/workflows
+mkdir -p backend/src/cotton backend/tests docs/superpowers .github/workflows
 ```
 
-Crear `pyproject.toml` con hatchling, `name = "ros-studio"`, `requires-python = ">=3.10"`, dependencias `fastapi>=0.115`, `uvicorn[standard]>=0.30`, `pydantic>=2.8`, `PyYAML>=6.0`, `platformdirs>=4.2`; extra `dev` con `pytest`, `pytest-asyncio`, `httpx`, `ruff`, `mypy`, `build`; `[tool.hatch.build.targets.wheel] packages = ["backend/src/ros_studio"]`; `testpaths = ["backend/tests"]`, `asyncio_mode = "auto"` y el marcador `integration`. En mypy, `ignore_missing_imports` para `rclpy.*`, `rcl_interfaces.*` y `rosidl_runtime_py.*`, que solo existen dentro del entorno ROS.
+Crear `pyproject.toml` con hatchling, `name = "cotton"`, `requires-python = ">=3.10"`, dependencias `fastapi>=0.115`, `uvicorn[standard]>=0.30`, `pydantic>=2.8`, `PyYAML>=6.0`, `platformdirs>=4.2`; extra `dev` con `pytest`, `pytest-asyncio`, `httpx`, `ruff`, `mypy`, `build`; `[tool.hatch.build.targets.wheel] packages = ["backend/src/cotton"]`; `testpaths = ["backend/tests"]`, `asyncio_mode = "auto"` y el marcador `integration`. En mypy, `ignore_missing_imports` para `rclpy.*`, `rcl_interfaces.*` y `rosidl_runtime_py.*`, que solo existen dentro del entorno ROS.
 
-`backend/src/ros_studio/__init__.py` solo contiene `__version__ = "0.1.0"`.
+`backend/src/cotton/__init__.py` solo contiene `__version__ = "0.1.0"`.
 
-`.gitignore`: `.venv/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `dist/`, `frontend/node_modules/`, `frontend/dist/`, `backend/src/ros_studio/web/`, `*.db`, `.env`.
+`.gitignore`: `.venv/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `dist/`, `frontend/node_modules/`, `frontend/dist/`, `backend/src/cotton/web/`, `*.db`, `.env`.
 
 `LICENSE`: texto Apache-2.0 completo.
 
 - [ ] **Step 2: Escribir el test del paquete**
 
 ```python
-from ros_studio import __version__
+from cotton import __version__
 
 
 def test_version() -> None:
@@ -91,7 +91,7 @@ Expected: todo PASS.
 
 ```bash
 git add pyproject.toml .gitignore LICENSE README.md backend .github
-git commit -m "chore: bootstrap ros-studio repository"
+git commit -m "chore: bootstrap cotton repository"
 ```
 
 ---
@@ -195,7 +195,7 @@ Escribir en `docs/etapa-0-mediciones.md` una de las dos decisiones: **vendorizar
 
 - [ ] **Step 4: Validar las instalaciones**
 
-- En un entorno pixi/RoboStack: `pixi add fastapi uvicorn` desde conda-forge, construir el wheel con `python -m build` e instalarlo con `pip install dist/ros_studio-0.1.0-py3-none-any.whl`; comprobar `import rclpy` y `ros-studio --help`.
+- En un entorno pixi/RoboStack: `pixi add fastapi uvicorn` desde conda-forge, construir el wheel con `python -m build` e instalarlo con `pip install dist/cotton-0.1.0-py3-none-any.whl`; comprobar `import rclpy` y `cotton --help`.
 - En un contenedor Ubuntu 24.04 con ROS por apt: `python3 -m venv --system-site-packages /tmp/rs && /tmp/rs/bin/pip install dist/*.whl`; comprobar `import rclpy`.
 
 Anotar en `docs/etapa-0-mediciones.md` los dos resultados y cualquier ajuste de resolvedor.
@@ -214,10 +214,10 @@ git commit -m "spike: measure lichtblick assets and install paths"
 ### Task 5: Detección del entorno y `/api/env`
 
 **Files:**
-- Create: `backend/src/ros_studio/env.py`
-- Create: `backend/src/ros_studio/errors.py`
-- Create: `backend/src/ros_studio/api/__init__.py`, `backend/src/ros_studio/api/routes_env.py`
-- Create: `backend/src/ros_studio/app.py`, `backend/src/ros_studio/cli.py`, `backend/src/ros_studio/__main__.py`
+- Create: `backend/src/cotton/env.py`
+- Create: `backend/src/cotton/errors.py`
+- Create: `backend/src/cotton/api/__init__.py`, `backend/src/cotton/api/routes_env.py`
+- Create: `backend/src/cotton/app.py`, `backend/src/cotton/cli.py`, `backend/src/cotton/__main__.py`
 - Test: `backend/tests/test_env.py`, `backend/tests/test_api_env.py`
 
 **Interfaces:**
@@ -227,7 +227,7 @@ git commit -m "spike: measure lichtblick assets and install paths"
 
 ```python
 import pytest
-from ros_studio.env import detect_environment, RosEnvironmentError
+from cotton.env import detect_environment, RosEnvironmentError
 
 
 def test_detects_environment() -> None:
@@ -256,8 +256,8 @@ Y en `test_api_env.py`:
 
 ```python
 from fastapi.testclient import TestClient
-from ros_studio.app import create_app
-from ros_studio.env import EnvironmentInfo
+from cotton.app import create_app
+from cotton.env import EnvironmentInfo
 
 
 def test_env_endpoint() -> None:
@@ -273,7 +273,7 @@ def test_env_endpoint() -> None:
 - [ ] **Step 2: Ejecutar y ver el fallo**
 
 Run: `pytest backend/tests/test_env.py backend/tests/test_api_env.py -v`
-Expected: FAIL con `ModuleNotFoundError: ros_studio.env`.
+Expected: FAIL con `ModuleNotFoundError: cotton.env`.
 
 - [ ] **Step 3: Implementar**
 
@@ -293,7 +293,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: detect ros environment and expose /api/env"
 ```
 
@@ -302,11 +302,11 @@ git commit -m "feat: detect ros environment and expose /api/env"
 ### Task 6: Hilo ROS y cola de comandos
 
 **Files:**
-- Create: `backend/src/ros_studio/ros/__init__.py`, `backend/src/ros_studio/ros/thread.py`
+- Create: `backend/src/cotton/ros/__init__.py`, `backend/src/cotton/ros/thread.py`
 - Test: `backend/tests/test_ros_thread.py`, `backend/tests/integration/test_ros_thread_ros.py`
 
 **Interfaces:**
-- Produces: `RosThread(node_name: str = "ros_studio", poll_interval: float = 0.05)` con `start() -> None`, `stop() -> None`, `async call(fn: Callable[..., T], *args: Any, timeout: float = 5.0) -> T`; excepciones `RosCallTimeout`, `RosCallError`; métodos protegidos `_setup()`, `_spin_once(timeout)`, `_teardown()` para tests.
+- Produces: `RosThread(node_name: str = "cotton", poll_interval: float = 0.05)` con `start() -> None`, `stop() -> None`, `async call(fn: Callable[..., T], *args: Any, timeout: float = 5.0) -> T`; excepciones `RosCallTimeout`, `RosCallError`; métodos protegidos `_setup()`, `_spin_once(timeout)`, `_teardown()` para tests.
 - Consumes: nada.
 
 - [ ] **Step 1: Escribir el test unitario con un doble**
@@ -315,7 +315,7 @@ git commit -m "feat: detect ros environment and expose /api/env"
 import asyncio
 import time
 import pytest
-from ros_studio.ros.thread import RosThread, RosCallTimeout
+from cotton.ros.thread import RosThread, RosCallTimeout
 
 
 class FakeRosThread(RosThread):
@@ -367,7 +367,7 @@ Expected: PASS. El test de integración se ejecuta en Docker más adelante.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/ros backend/tests
+git add backend/src/cotton/ros backend/tests
 git commit -m "feat: add single-owner ros thread with command queue"
 ```
 
@@ -376,7 +376,7 @@ git commit -m "feat: add single-owner ros thread with command queue"
 ### Task 7: `GraphSource` con `rclpy`
 
 **Files:**
-- Create: `backend/src/ros_studio/ros/models.py`, `backend/src/ros_studio/ros/graph.py`
+- Create: `backend/src/cotton/ros/models.py`, `backend/src/cotton/ros/graph.py`
 - Test: `backend/tests/test_graph.py`
 
 **Interfaces:**
@@ -387,7 +387,7 @@ git commit -m "feat: add single-owner ros thread with command queue"
 
 ```python
 from dataclasses import dataclass
-from ros_studio.ros.graph import RclpyGraphSource
+from cotton.ros.graph import RclpyGraphSource
 
 
 @dataclass
@@ -399,7 +399,7 @@ class Endpoint:
 
 class FakeNode:
     def get_node_names_and_namespaces(self):
-        return [("talker", "/"), ("listener", "/"), ("ros_studio_1", "/")]
+        return [("talker", "/"), ("listener", "/"), ("cotton_1", "/")]
 
     def get_topic_names_and_types(self):
         return [("/chatter", ["std_msgs/msg/String"])]
@@ -418,7 +418,7 @@ class FakeNode:
 
 
 def test_snapshot_excludes_self_and_inverts_endpoints() -> None:
-    source = RclpyGraphSource(FakeNode(), self_node_name="/ros_studio_1")
+    source = RclpyGraphSource(FakeNode(), self_node_name="/cotton_1")
     graph = source.snapshot()
     assert [node.name for node in graph.nodes] == ["/listener", "/talker"]
     assert graph.topics[0].name == "/chatter"
@@ -435,7 +435,7 @@ def test_topic_without_endpoints_is_listed() -> None:
         def get_subscriptions_info_by_topic(self, topic):
             return []
 
-    graph = RclpyGraphSource(EmptyNode(), self_node_name="/ros_studio_1").snapshot()
+    graph = RclpyGraphSource(EmptyNode(), self_node_name="/cotton_1").snapshot()
     assert graph.topics[0].publishers == []
     assert graph.topics[0].subscribers == []
 ```
@@ -457,7 +457,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/ros backend/tests/test_graph.py
+git add backend/src/cotton/ros backend/tests/test_graph.py
 git commit -m "feat: add rclpy graph source and models"
 ```
 
@@ -466,9 +466,9 @@ git commit -m "feat: add rclpy graph source and models"
 ### Task 8: Bus de eventos, watcher y WebSocket `/ws`
 
 **Files:**
-- Create: `backend/src/ros_studio/events.py`, `backend/src/ros_studio/ros/watcher.py`
-- Create: `backend/src/ros_studio/api/ws.py`, `backend/src/ros_studio/api/routes_graph.py`
-- Modify: `backend/src/ros_studio/app.py`, `backend/src/ros_studio/cli.py`
+- Create: `backend/src/cotton/events.py`, `backend/src/cotton/ros/watcher.py`
+- Create: `backend/src/cotton/api/ws.py`, `backend/src/cotton/api/routes_graph.py`
+- Modify: `backend/src/cotton/app.py`, `backend/src/cotton/cli.py`
 - Test: `backend/tests/test_events.py`, `backend/tests/test_watcher.py`, `backend/tests/test_ws_graph.py`
 
 **Interfaces:**
@@ -555,7 +555,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: stream graph snapshots over websocket"
 ```
 
@@ -564,9 +564,9 @@ git commit -m "feat: stream graph snapshots over websocket"
 ### Task 9: Parámetros remotos
 
 **Files:**
-- Create: `backend/src/ros_studio/ros/params.py`
-- Create: `backend/src/ros_studio/api/routes_params.py`
-- Modify: `backend/src/ros_studio/app.py`
+- Create: `backend/src/cotton/ros/params.py`
+- Create: `backend/src/cotton/api/routes_params.py`
+- Modify: `backend/src/cotton/app.py`
 - Test: `backend/tests/test_params.py`, `backend/tests/test_api_params.py`
 
 **Interfaces:**
@@ -577,7 +577,7 @@ git commit -m "feat: stream graph snapshots over websocket"
 
 ```python
 import pytest
-from ros_studio.ros.params import coerce_value
+from cotton.ros.params import coerce_value
 
 
 @pytest.mark.parametrize("current,new,expected", [
@@ -615,7 +615,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: read and write remote ros parameters"
 ```
 
@@ -624,9 +624,9 @@ git commit -m "feat: read and write remote ros parameters"
 ### Task 10: Frecuencia de topic bajo demanda
 
 **Files:**
-- Create: `backend/src/ros_studio/ros/rate.py`
-- Create: `backend/src/ros_studio/api/routes_topics.py`
-- Modify: `backend/src/ros_studio/app.py`
+- Create: `backend/src/cotton/ros/rate.py`
+- Create: `backend/src/cotton/api/routes_topics.py`
+- Modify: `backend/src/cotton/app.py`
 - Test: `backend/tests/test_rate.py`, `backend/tests/test_api_rate.py`
 
 **Interfaces:**
@@ -636,7 +636,7 @@ git commit -m "feat: read and write remote ros parameters"
 - [ ] **Step 1: Escribir los tests**
 
 ```python
-from ros_studio.ros.rate import compute_hz, RateResult
+from cotton.ros.rate import compute_hz, RateResult
 
 
 def test_compute_hz() -> None:
@@ -671,7 +671,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: measure topic rate on demand"
 ```
 
@@ -685,7 +685,7 @@ git commit -m "feat: measure topic rate on demand"
 - Create: `frontend/src/api/session.ts`, `frontend/src/api/client.ts`, `frontend/src/api/ws.ts`
 - Create: `frontend/src/state/store.ts`, `frontend/src/state/preferences.ts`
 - Create: `frontend/src/layout/Workbench.tsx`, `frontend/src/layout/StatusBar.tsx`
-- Modify: `backend/src/ros_studio/app.py`
+- Modify: `backend/src/cotton/app.py`
 - Test: `frontend/src/api/session.test.ts`, `frontend/src/api/ws.test.ts`, `frontend/src/state/preferences.test.ts`, `frontend/src/layout/StatusBar.test.tsx`, `backend/tests/test_spa.py`
 
 **Interfaces:**
@@ -739,7 +739,7 @@ it("persiste tema y layout", () => {
 ```python
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from ros_studio.app import mount_spa
+from cotton.app import mount_spa
 
 
 def test_mount_spa_serves_index_and_falls_back(tmp_path) -> None:
@@ -759,9 +759,9 @@ Expected: FAIL, archivos sin implementar.
 
 - [ ] **Step 3: Implementar**
 
-`session.ts` lee `#token=`, guarda el token en `sessionStorage` y devuelve el hash limpio para `history.replaceState`. `client.ts` añade `Authorization: Bearer`, lanza `ApiError(code, message, status)` y usa rutas relativas. `ws.ts` construye `ws://${location.host}/ws?token=...`, se reconecta con `nextDelay`, reenvía las suscripciones al abrir y expone `onEvent`. El store guarda los eventos del WS, incluido `ros.status` en `rosConnected`. `preferences.ts` persiste `theme` y el layout serializado de dockview en `localStorage` (`ros-studio-preferences`) y aplica `data-theme` al elemento raíz. `Workbench` monta una barra de actividad (Grafo, Procesos, Plugins, Ajustes), un `dockview` con paneles vacíos («Grafo», «Procesos», «Plugins», «Ajustes») y restaura/guarda el layout en cada cambio; `StatusBar` muestra distro, dominio, workspace, estado de conexión y accesos de tema claro/oscuro.
+`session.ts` lee `#token=`, guarda el token en `sessionStorage` y devuelve el hash limpio para `history.replaceState`. `client.ts` añade `Authorization: Bearer`, lanza `ApiError(code, message, status)` y usa rutas relativas. `ws.ts` construye `ws://${location.host}/ws?token=...`, se reconecta con `nextDelay`, reenvía las suscripciones al abrir y expone `onEvent`. El store guarda los eventos del WS, incluido `ros.status` en `rosConnected`. `preferences.ts` persiste `theme` y el layout serializado de dockview en `localStorage` (`cotton-preferences`) y aplica `data-theme` al elemento raíz. `Workbench` monta una barra de actividad (Grafo, Procesos, Plugins, Ajustes), un `dockview` con paneles vacíos («Grafo», «Procesos», «Plugins», «Ajustes») y restaura/guarda el layout en cada cambio; `StatusBar` muestra distro, dominio, workspace, estado de conexión y accesos de tema claro/oscuro.
 
-`vite.config.ts` proxya `/api` y `/ws` a `http://127.0.0.1:8000` en desarrollo. `mount_spa` sirve `index.html` para `/` y cualquier ruta que no empiece por `/api` ni `/ws`; si no hay build, responde `{"code": "frontend_not_built", "message": "Ejecuta npm run build"}` en `/`. El CLI pasa la ruta del paquete (`ros_studio/web`) o `None`.
+`vite.config.ts` proxya `/api` y `/ws` a `http://127.0.0.1:8000` en desarrollo. `mount_spa` sirve `index.html` para `/` y cualquier ruta que no empiece por `/api` ni `/ws`; si no hay build, responde `{"code": "frontend_not_built", "message": "Ejecuta npm run build"}` en `/`. El CLI pasa la ruta del paquete (`cotton/web`) o `None`.
 
 - [ ] **Step 4: Ejecutar y ver el verde**
 
@@ -771,7 +771,7 @@ Expected: todo PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend backend/src/ros_studio/app.py backend/tests/test_spa.py
+git add frontend backend/src/cotton/app.py backend/tests/test_spa.py
 git commit -m "feat: scaffold react workbench with api and ws clients"
 ```
 
@@ -844,8 +844,8 @@ git commit -m "feat: add graph, topic detail and parameter editor views"
 ### Task 13: Token de sesión y validación de `Origin`
 
 **Files:**
-- Create: `backend/src/ros_studio/security.py`
-- Modify: `backend/src/ros_studio/app.py`, `backend/src/ros_studio/cli.py`, `backend/src/ros_studio/api/ws.py`
+- Create: `backend/src/cotton/security.py`
+- Modify: `backend/src/cotton/app.py`, `backend/src/cotton/cli.py`, `backend/src/cotton/api/ws.py`
 - Test: `backend/tests/test_security.py`, `backend/tests/test_api_auth.py`
 
 **Interfaces:**
@@ -901,7 +901,7 @@ Expected: PASS (los tests anteriores se actualizan con el fixture de autenticaci
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: require session token and validate websocket origin"
 ```
 
@@ -910,7 +910,7 @@ git commit -m "feat: require session token and validate websocket origin"
 ### Task 14: Modelos de proceso, logs y niveles
 
 **Files:**
-- Create: `backend/src/ros_studio/processes/__init__.py`, `backend/src/ros_studio/processes/models.py`, `backend/src/ros_studio/processes/logs.py`
+- Create: `backend/src/cotton/processes/__init__.py`, `backend/src/cotton/processes/models.py`, `backend/src/cotton/processes/logs.py`
 - Test: `backend/tests/test_process_models.py`, `backend/tests/test_logs.py`
 
 **Interfaces:**
@@ -958,7 +958,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/processes backend/tests
+git add backend/src/cotton/processes backend/tests
 git commit -m "feat: add process models and rotating logs with levels"
 ```
 
@@ -967,8 +967,8 @@ git commit -m "feat: add process models and rotating logs with levels"
 ### Task 15: `ProcessManager` con arranque, streaming y parada ordenada
 
 **Files:**
-- Create: `backend/src/ros_studio/processes/manager.py`
-- Modify: `backend/src/ros_studio/events.py`
+- Create: `backend/src/cotton/processes/manager.py`
+- Modify: `backend/src/cotton/events.py`
 - Test: `backend/tests/test_process_manager.py`
 
 **Interfaces:**
@@ -1033,7 +1033,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/processes backend/src/ros_studio/events.py backend/tests
+git add backend/src/cotton/processes backend/src/cotton/events.py backend/tests
 git commit -m "feat: manage child processes with ordered shutdown"
 ```
 
@@ -1042,8 +1042,8 @@ git commit -m "feat: manage child processes with ordered shutdown"
 ### Task 16: Registro de PIDs, recuperación y cierre
 
 **Files:**
-- Create: `backend/src/ros_studio/storage/__init__.py`, `backend/src/ros_studio/storage/db.py`, `backend/src/ros_studio/storage/process_registry.py`
-- Modify: `backend/src/ros_studio/processes/manager.py`, `backend/src/ros_studio/app.py`, `backend/src/ros_studio/cli.py`
+- Create: `backend/src/cotton/storage/__init__.py`, `backend/src/cotton/storage/db.py`, `backend/src/cotton/storage/process_registry.py`
+- Modify: `backend/src/cotton/processes/manager.py`, `backend/src/cotton/app.py`, `backend/src/cotton/cli.py`
 - Test: `backend/tests/test_storage.py`, `backend/tests/test_recovery.py`
 
 **Interfaces:**
@@ -1106,7 +1106,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: persist process registry and recover orphans"
 ```
 
@@ -1115,8 +1115,8 @@ git commit -m "feat: persist process registry and recover orphans"
 ### Task 17: API REST y WebSocket de procesos
 
 **Files:**
-- Create: `backend/src/ros_studio/api/routes_processes.py`
-- Modify: `backend/src/ros_studio/api/ws.py`, `backend/src/ros_studio/app.py`
+- Create: `backend/src/cotton/api/routes_processes.py`
+- Modify: `backend/src/cotton/api/ws.py`, `backend/src/cotton/app.py`
 - Test: `backend/tests/test_api_processes.py`, `backend/tests/test_ws_processes.py`
 
 **Interfaces:**
@@ -1171,7 +1171,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: expose process api and websocket channels"
 ```
 
@@ -1180,8 +1180,8 @@ git commit -m "feat: expose process api and websocket channels"
 ### Task 18: Perfiles de lanzamiento
 
 **Files:**
-- Create: `backend/src/ros_studio/processes/profiles.py`, `backend/src/ros_studio/api/routes_profiles.py`
-- Modify: `backend/src/ros_studio/storage/db.py`, `backend/src/ros_studio/app.py`
+- Create: `backend/src/cotton/processes/profiles.py`, `backend/src/cotton/api/routes_profiles.py`
+- Modify: `backend/src/cotton/storage/db.py`, `backend/src/cotton/app.py`
 - Test: `backend/tests/test_profiles.py`, `backend/tests/test_api_profiles.py`
 
 **Interfaces:**
@@ -1224,7 +1224,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio backend/tests
+git add backend/src/cotton backend/tests
 git commit -m "feat: persist and launch process profiles"
 ```
 
@@ -1309,8 +1309,8 @@ git commit -m "feat: add processes, logs and profiles ui"
 ### Task 20: Manifiestos de plugin y loader
 
 **Files:**
-- Create: `backend/src/ros_studio/plugins/__init__.py`, `backend/src/ros_studio/plugins/models.py`, `backend/src/ros_studio/plugins/loader.py`
-- Create: `backend/src/ros_studio/builtin_plugins/__init__.py`
+- Create: `backend/src/cotton/plugins/__init__.py`, `backend/src/cotton/plugins/models.py`, `backend/src/cotton/plugins/loader.py`
+- Create: `backend/src/cotton/builtin_plugins/__init__.py`
 - Test: `backend/tests/test_plugin_manifest.py`, `backend/tests/test_plugin_loader.py`
 
 **Interfaces:**
@@ -1385,7 +1385,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/plugins backend/src/ros_studio/builtin_plugins backend/tests
+git add backend/src/cotton/plugins backend/src/cotton/builtin_plugins backend/tests
 git commit -m "feat: load and validate plugin manifests"
 ```
 
@@ -1394,8 +1394,8 @@ git commit -m "feat: load and validate plugin manifests"
 ### Task 21: `PluginManager` con activación, dependencias y healthchecks
 
 **Files:**
-- Create: `backend/src/ros_studio/plugins/manager.py`, `backend/src/ros_studio/plugins/healthcheck.py`
-- Create: `backend/src/ros_studio/storage/settings.py`
+- Create: `backend/src/cotton/plugins/manager.py`, `backend/src/cotton/plugins/healthcheck.py`
+- Create: `backend/src/cotton/storage/settings.py`
 - Test: `backend/tests/test_plugin_manager.py`, `backend/tests/test_healthcheck.py`
 
 **Interfaces:**
@@ -1452,7 +1452,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/plugins backend/tests
+git add backend/src/cotton/plugins backend/tests
 git commit -m "feat: activate plugins with dependency order and healthchecks"
 ```
 
@@ -1461,9 +1461,9 @@ git commit -m "feat: activate plugins with dependency order and healthchecks"
 ### Task 22: API, WebSocket y UI de plugins
 
 **Files:**
-- Create: `backend/src/ros_studio/api/routes_plugins.py`
+- Create: `backend/src/cotton/api/routes_plugins.py`
 - Create: `frontend/src/views/PluginsView.tsx`, `frontend/src/panels/PluginPanel.tsx`
-- Modify: `backend/src/ros_studio/api/ws.py`, `backend/src/ros_studio/app.py`, `frontend/src/layout/Workbench.tsx`
+- Modify: `backend/src/cotton/api/ws.py`, `backend/src/cotton/app.py`, `frontend/src/layout/Workbench.tsx`
 - Test: `backend/tests/test_api_plugins.py`, `frontend/src/views/PluginsView.test.tsx`
 
 **Interfaces:**
@@ -1507,7 +1507,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio frontend/src backend/tests
+git add backend/src/cotton frontend/src backend/tests
 git commit -m "feat: expose and manage plugins in the ui"
 ```
 
@@ -1516,10 +1516,10 @@ git commit -m "feat: expose and manage plugins in the ui"
 ### Task 23: Plugin de Foxglove, Lichtblick y panel embebido
 
 **Files:**
-- Create: `backend/src/ros_studio/builtin_plugins/foxglove/plugin.yaml`
-- Create: `backend/src/ros_studio/builtin_plugins/foxglove/layout.json`
-- Create: `backend/src/ros_studio/lichtblick.py`
-- Modify: `backend/src/ros_studio/app.py`, `backend/src/ros_studio/cli.py`, `frontend/src/panels/PluginPanel.tsx`
+- Create: `backend/src/cotton/builtin_plugins/foxglove/plugin.yaml`
+- Create: `backend/src/cotton/builtin_plugins/foxglove/layout.json`
+- Create: `backend/src/cotton/lichtblick.py`
+- Modify: `backend/src/cotton/app.py`, `backend/src/cotton/cli.py`, `frontend/src/panels/PluginPanel.tsx`
 - Test: `backend/tests/test_lichtblick.py`, `backend/tests/test_foxglove_plugin.py`, `frontend/src/panels/PluginPanel.test.tsx`
 
 **Interfaces:**
@@ -1559,7 +1559,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implementar**
 
-`plugin.yaml` con el manifiesto del diseño. `LichtblickAssets` usa el directorio vendorizado si existe; si no, descarga el zip fijado en `docs/etapa-0-mediciones.md` a `~/.cache/ros-studio/lichtblick/<version>/`, verifica `sha256`, extrae y escribe un marcador `.complete`; en ambos casos copia `layout.json` al directorio servido si no está. Si la descarga falla, el plugin queda en `error` con un mensaje que incluye la URL y cómo pre-sembrar la caché. `app.py` monta `/lichtblick` con `StaticFiles(html=True)` cuando el directorio existe (antes del catch-all de la SPA) y si no devuelve una página con instrucciones. El frontend sustituye `{hostname}` y muestra el iframe a pantalla completa del panel. `layout.json` trae un panel 3D sobre `/tf` y un Plot sobre `/turtle1/pose` para que al abrir el visor ya haya paneles conectados; si el formato de Lichtblick no admite layout por URL, se anota en `docs/etapa-0-mediciones.md` y se abre con la vista por defecto.
+`plugin.yaml` con el manifiesto del diseño. `LichtblickAssets` usa el directorio vendorizado si existe; si no, descarga el zip fijado en `docs/etapa-0-mediciones.md` a `~/.cache/cotton/lichtblick/<version>/`, verifica `sha256`, extrae y escribe un marcador `.complete`; en ambos casos copia `layout.json` al directorio servido si no está. Si la descarga falla, el plugin queda en `error` con un mensaje que incluye la URL y cómo pre-sembrar la caché. `app.py` monta `/lichtblick` con `StaticFiles(html=True)` cuando el directorio existe (antes del catch-all de la SPA) y si no devuelve una página con instrucciones. El frontend sustituye `{hostname}` y muestra el iframe a pantalla completa del panel. `layout.json` trae un panel 3D sobre `/tf` y un Plot sobre `/turtle1/pose` para que al abrir el visor ya haya paneles conectados; si el formato de Lichtblick no admite layout por URL, se anota en `docs/etapa-0-mediciones.md` y se abre con la vista por defecto.
 
 - [ ] **Step 4: Ejecutar y ver el verde**
 
@@ -1569,7 +1569,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio frontend/src backend/tests
+git add backend/src/cotton frontend/src backend/tests
 git commit -m "feat: ship foxglove plugin with local lichtblick panel"
 ```
 
@@ -1606,10 +1606,10 @@ def test_graph_matches_ros_cli(client, auth_headers) -> None:
             for node in client.get("/api/graph", headers=auth_headers).json()["nodes"]
         ), timeout=5)
         api = client.get("/api/graph", headers=auth_headers).json()
-        api_nodes = {n["name"] for n in api["nodes"] if not n["name"].startswith("/ros_studio")}
+        api_nodes = {n["name"] for n in api["nodes"] if not n["name"].startswith("/cotton")}
         cli_nodes = {
             line.strip() for line in subprocess.check_output(["ros2", "node", "list"], text=True).splitlines()
-            if not line.startswith("/ros_studio")
+            if not line.startswith("/cotton")
         }
         assert api_nodes == cli_nodes
         assert {t["name"] for t in api["topics"]} == set(
@@ -1632,17 +1632,17 @@ Expected: PASS contra el contenedor.
 
 - [ ] **Step 3: Crear Docker y CI**
 
-`docker/Dockerfile` con una etapa Node que ejecuta `npm ci && npm run build` y copia `frontend/dist` a `backend/src/ros_studio/web`; la etapa final parte de `ros:jazzy-ros-base`, instala `python3-venv`, `ros-jazzy-foxglove-bridge`, `ros-jazzy-turtlesim`, `ros-jazzy-demo-nodes-cpp`, crea `/opt/ros-studio` con `python3 -m venv --system-site-packages`, construye e instala el wheel (que ya incluye la web) y arranca `ros-studio --host 0.0.0.0 --token test-token`. `compose.yaml` publica `127.0.0.1:8000:8000` y `127.0.0.1:8765:8765` y monta el workspace. El mismo copiado de `frontend/dist` se hace antes de `python -m build` en CI y en la receta de publicación.
+`docker/Dockerfile` con una etapa Node que ejecuta `npm ci && npm run build` y copia `frontend/dist` a `backend/src/cotton/web`; la etapa final parte de `ros:jazzy-ros-base`, instala `python3-venv`, `ros-jazzy-foxglove-bridge`, `ros-jazzy-turtlesim`, `ros-jazzy-demo-nodes-cpp`, crea `/opt/cotton` con `python3 -m venv --system-site-packages`, construye e instala el wheel (que ya incluye la web) y arranca `cotton --host 0.0.0.0 --token test-token`. `compose.yaml` publica `127.0.0.1:8000:8000` y `127.0.0.1:8765:8765` y monta el workspace. El mismo copiado de `frontend/dist` se hace antes de `python -m build` en CI y en la receta de publicación.
 
 `integration.yml`: job en contenedor `ros:humble-ros-base` y `ros:jazzy-ros-base`, instala dependencias, `pytest -m integration`, y un job de E2E que construye la imagen y ejecuta Playwright.
 
 - [ ] **Step 4: Documentar y verificar**
 
-`docs/install.md` con los tres caminos (pixi: `pixi add fastapi uvicorn` + `pixi add --pypi ros-studio`; apt: venv `--system-site-packages`; Docker), el reinicio al cambiar `ROS_DOMAIN_ID`, WSL2 (mismo camino que Ubuntu, con el navegador de Windows entrando por localhost forwarding), la nota de macOS como entorno de desarrollo y el aviso de puertos en Docker. `README.md` enlaza spec, diseño, plan e instalación.
+`docs/install.md` con los tres caminos (pixi: `pixi add fastapi uvicorn` + `pixi add --pypi cotton`; apt: venv `--system-site-packages`; Docker), el reinicio al cambiar `ROS_DOMAIN_ID`, WSL2 (mismo camino que Ubuntu, con el navegador de Windows entrando por localhost forwarding), la nota de macOS como entorno de desarrollo y el aviso de puertos en Docker. `README.md` enlaza spec, diseño, plan e instalación.
 
 Repetir la medición de la etapa 0 (`spikes/graph_probe.py --topics 100`) contra la versión final y anotar en `docs/etapa-0-mediciones.md` que el sondeo sigue por debajo del 5 % de CPU y de 200 ms p95.
 
-Run: `docker build -f docker/Dockerfile -t ros-studio . && docker run --rm ros-studio ros-studio --help && pytest -m integration -v`
+Run: `docker build -f docker/Dockerfile -t cotton . && docker run --rm cotton cotton --help && pytest -m integration -v`
 Expected: imagen construida, ayuda mostrada, integración PASS.
 
 - [ ] **Step 5: Commit**

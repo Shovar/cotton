@@ -1,8 +1,8 @@
-# ROS Studio — Índice de tareas
+# Cotton — Índice de tareas
 
 Desglose ejecutable del plan [`docs/superpowers/plans/2026-11-06-ros-studio-mvp.md`](../plans/2026-11-06-ros-studio-mvp.md), que implementa el diseño [`docs/superpowers/specs/2026-11-06-ros-studio-design.md`](../specs/2026-11-06-ros-studio-design.md) y la spec [`Spec IDE local para ROS 2.md`](../../Spec%20IDE%20local%20para%20ROS%202.md).
 
-El trabajo está partido en diez ficheros independientes. Este documento es el índice: reglas comunes, dependencias, contratos compartidos y estado de los gates.
+El trabajo está partido en once ficheros independientes. Este documento es el índice: reglas comunes, dependencias, contratos compartidos y estado de los gates.
 
 ## Cómo usar estos ficheros
 
@@ -30,8 +30,9 @@ Estados: `[ ]` pendiente · `[x]` hecha · `[!]` bloqueada (anotar por qué al l
 | [`tasks/07-ui-processes.md`](2026-11-06-ros-studio-design/07-ui-processes.md) | T154–T164 | 11 | ui-shell + processes | delivery |
 | [`tasks/08-ui-plugins.md`](2026-11-06-ros-studio-design/08-ui-plugins.md) | T187–T191, T196–T199 | 9 | ui-shell + plugins | delivery |
 | [`tasks/09-delivery.md`](2026-11-06-ros-studio-design/09-delivery.md) | T202–T213 | 12 | todos | — |
+| [`tasks/10-cotton-rename.md`](2026-11-06-ros-studio-design/10-cotton-rename.md) | T220a–T220d | 4 | T213, T218–T219 | Cotton |
 
-Total: **219 tareas**, ninguna de más de 15 minutos. Las 213 originales conservan su ID; T214 (contrato REST/WS), T215 (registro de paneles), T216 (canal WS del grafo), T217 (grafo de nodos y topics) y T218–T219 (identidad visual) son tareas nuevas.
+Total: **223 tareas**, ninguna de más de 15 minutos. Las 213 originales conservan su ID; T214 (contrato REST/WS), T215 (registro de paneles), T216 (canal WS del grafo), T217 (grafo de nodos y topics), T218–T219 (identidad visual) y T220a–T220d (renombrado a Cotton) son tareas nuevas.
 
 ## Olas de trabajo
 

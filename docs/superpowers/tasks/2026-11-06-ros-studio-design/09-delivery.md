@@ -26,7 +26,7 @@
 ## Bloque E3 — Docker
 
 - [x] **T206 · 15 min** — Crear la etapa Node del Dockerfile que compila el frontend y lo copia al paquete. **Hecho:** existe `frontend/dist`.
-- [x] **T207 · 15 min** — Crear la etapa ROS del Dockerfile con venv y wheel. **Hecho:** `ros-studio --help` funciona en la imagen.
+- [x] **T207 · 15 min** — Crear la etapa ROS del Dockerfile con venv y wheel. **Hecho:** `cotton --help` funciona en la imagen.
 - [x] **T208 · 10 min** — Crear `compose.yaml` con workspace y puertos `127.0.0.1:8000`/`8765`. **Hecho:** `docker compose config` es válido.
 
 ## Bloque E4 — CI
@@ -52,7 +52,7 @@ pip install -e ".[dev]"
 ruff check backend
 ruff format --check backend
 mypy backend/src
-pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
+pytest -m "not integration" --cov=cotton --cov-fail-under=80
 ```
 
 Frontend:

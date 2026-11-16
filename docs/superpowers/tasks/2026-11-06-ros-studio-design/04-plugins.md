@@ -62,7 +62,7 @@ pip install -e ".[dev]"
 ruff check backend
 ruff format --check backend
 mypy backend/src
-pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
+pytest -m "not integration" --cov=cotton --cov-fail-under=80
 ```
 
 ## Gate de cierre
