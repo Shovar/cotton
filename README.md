@@ -1,13 +1,73 @@
 # ROS Studio
 
 <p align="center">
-  <img src="frontend/src/assets/ros-studio-logo.png" alt="ROS Studio" width="140" />
+  <img src="frontend/src/assets/ros-studio-logo-readme.png" alt="ROS Studio" width="140" />
 </p>
 
-ROS Studio is a local web control panel for an active ROS 2 environment: it shows
-the node graph, manages launch processes with live logs, and embeds a Foxglove
-viewer. It runs inside the environment you already have, binds to loopback, and
-requires a session token instead of accounts or cloud services.
+ROS Studio is a local web control panel for an active ROS 2 environment. It shows
+the node graph, starts and supervises processes with live logs, completes ROS 2
+commands, and embeds a Foxglove viewer. It runs inside the environment you
+already have, binds to loopback, and requires a session token instead of accounts
+or cloud services.
+
+## Install
+
+Requirements: ROS 2 Humble or Jazzy, Python 3.10+, and Node 24+ only when the
+installer has to build the frontend.
+
+```bash
+git clone https://github.com/Shovar/ros-studio.git ros-studio
+cd ros-studio
+scripts/install.sh
+ros-studio
+```
+
+The installer creates a user virtualenv in `~/.local/share/ros-studio/venv`,
+installs the app there and links the `ros-studio` command into `~/.local/bin`.
+The command is a small wrapper: it sources `ROS_SETUP` when set; otherwise, if
+the terminal has no ROS 2 environment active, it sources the distro named by
+`ROS_DISTRO` or the only `/opt/ros/*/setup.bash` it finds. Re-run the installer
+to upgrade.
+
+To install a prebuilt wheel instead of the checkout:
+
+```bash
+scripts/install.sh dist/ros_studio-0.1.0-py3-none-any.whl
+```
+
+If `~/.local/bin` is not on your `PATH`, add it to your shell profile. For a
+colcon workspace overlay, source its `install/setup.bash` first or point
+`ROS_SETUP` at it:
+
+```bash
+ROS_SETUP=~/ros2_ws/install/setup.bash ros-studio
+```
+
+Uninstall with `rm -rf ~/.local/share/ros-studio ~/.local/bin/ros-studio`. See
+[Installation](docs/install.md) for pixi/RoboStack, apt, Docker, WSL2, the manual
+wheel build and troubleshooting.
+
+## What it does
+
+- **Graph** — nodes, topics, services and actions, kept in sync with the ROS
+  graph and filterable from the UI.
+- **Processes** — start commands, follow their logs, stop or restart them, and
+  reuse named profiles.
+- **Command prompt** — suggestions from `PATH`, ROS 2 verbs and the live graph;
+  `Tab` completes and `Ctrl+R` searches the persisted history.
+- **Plugins** — the Foxglove/Lichtblick viewer and extra panels, with their
+  assets checked and served locally.
+
+The server listens on `127.0.0.1:8000` by default and opens the browser with the
+session token in the URL fragment. The app stores the token in `sessionStorage`
+and clears the address bar. Use `--host`, `--port`, `--token`, `--no-browser` and
+repeatable `--allow-origin` to change that; use `ros-studio --help` for the
+current list. Do not bind to `0.0.0.0` outside Docker.
+
+Data stays on the machine: SQLite state and logs in the platform config
+directory (`~/.config/ros-studio/` on Linux), and the Lichtblick cache in
+`~/.cache/ros-studio/` (macOS uses `~/Library/Caches/ros-studio/`). There is no
+telemetry, account or remote execution.
 
 ## Documentation
 
@@ -22,7 +82,7 @@ requires a session token instead of accounts or cloud services.
 ## Development
 
 ```bash
-/opt/homebrew/bin/python3.12 -m venv .venv --system-site-packages
+python3 -m venv .venv --system-site-packages
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
@@ -61,8 +121,8 @@ frontend stores it in `sessionStorage` and removes it from the address bar.
 
 The backend serves the compiled SPA from `backend/src/ros_studio/web`. For a
 packaged install, copy `frontend/dist` there after `npm run build` (the
-Dockerfile, the CI workflows and the release recipe do it before packaging);
-`scripts/dev.sh` does it for local runs. Then install the package:
+Dockerfile and the CI workflows do it before packaging); `scripts/dev.sh` and
+`scripts/install.sh` do it for local runs. Then install the package:
 
 ```bash
 rm -rf backend/src/ros_studio/web

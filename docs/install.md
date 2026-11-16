@@ -12,13 +12,56 @@ Requirements:
 
 - ROS 2 Humble or Jazzy, with `ros2`, `rclpy`, `ROS_DISTRO` and
   `AMENT_PREFIX_PATH` reachable from the shell that starts ROS Studio.
-- Python 3.10+.
+- Python 3.10+ and `python3-venv` on Debian/Ubuntu.
 - Node 24+ (`24.15+` for the test suite) and npm only when building or testing
-  the frontend from source.
+  the frontend from source, or when the installer has to build it.
 - `foxglove_bridge` and `turtlesim` for the viewer plugin and the E2E flow
   (`ros-<distro>-foxglove-bridge`, `ros-<distro>-turtlesim`).
 
-## From source (any supported path)
+## Installer (recommended)
+
+From a checkout:
+
+```bash
+scripts/install.sh
+ros-studio
+```
+
+The installer creates `~/.local/share/ros-studio/venv` with
+`--system-site-packages`, installs the package there, and writes
+`~/.local/share/ros-studio/bin/ros-studio`, linked as `~/.local/bin/ros-studio`.
+The linked command is a wrapper: it sources `ROS_SETUP` when set; otherwise,
+when ROS 2 is not active it sources the distro named by `ROS_DISTRO` or the only
+`/opt/ros/*/setup.bash` it finds. It also keeps the venv's `site-packages` ahead
+of ROS `PYTHONPATH` entries.
+
+From a prebuilt wheel:
+
+```bash
+scripts/install.sh dist/ros_studio-0.1.0-py3-none-any.whl
+```
+
+Without a wheel, the installer builds the frontend when the compiled bundle is
+missing or older than its sources, then installs the checkout. It picks the
+first Python 3.10+ interpreter it finds (`python3.13` to `python3`) unless
+`PYTHON` names one. Re-run the same command to upgrade. `--prefix DIR` changes the install directory and
+`--bin-dir DIR` changes where the command is linked; `--help` lists both.
+
+If your terminal does not already include `~/.local/bin`, add it to `PATH` in
+`~/.profile` or `~/.zshrc`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+For a colcon overlay, source its `install/setup.bash` before `ros-studio`, or
+run `ROS_SETUP=~/ros2_ws/install/setup.bash ros-studio`. Uninstall with
+`rm -rf ~/.local/share/ros-studio ~/.local/bin/ros-studio`.
+
+## Build a wheel manually
+
+Use this path for releases, CI or an environment where the installer does not
+fit:
 
 ```bash
 npm install
@@ -29,8 +72,8 @@ python -m build --wheel
 ```
 
 The wheel embeds `frontend/dist` as `ros_studio/web`; the copy step is required
-because the frontend build is not tracked in git. Install the wheel inside an
-environment that can already import `rclpy`:
+because the frontend build is not tracked in git. Install the wheel with the
+installer, or inside an environment that can already import `rclpy`:
 
 ```bash
 pip install dist/ros_studio-0.1.0-py3-none-any.whl
@@ -87,18 +130,21 @@ installs, `import rclpy` works and `ros-studio --help` prints its usage.
 ## apt (Ubuntu 22.04 and 24.04)
 
 ```bash
-sudo apt install ros-jazzy-desktop ros-jazzy-foxglove-bridge ros-jazzy-turtlesim
-source /opt/ros/jazzy/setup.bash
+sudo apt install python3-venv ros-jazzy-desktop ros-jazzy-foxglove-bridge ros-jazzy-turtlesim
 
-python3 -m venv --system-site-packages ~/.local/share/ros-studio/venv
-source ~/.local/share/ros-studio/venv/bin/activate
-pip install ./dist/ros_studio-0.1.0-py3-none-any.whl
+cd ros-studio
+scripts/install.sh
 ros-studio
 ```
 
-`--system-site-packages` is mandatory: it lets the virtual environment import
-the `rclpy` installed by apt without declaring it as a PyPI dependency. For
+The installer creates the venv with `--system-site-packages`, so it imports the
+`rclpy` installed by apt without declaring it as a PyPI dependency. The wrapper
+sources `/opt/ros/jazzy/setup.bash` when it is the only ROS installation; source
+it yourself (or set `ROS_SETUP`) when Humble and Jazzy are both installed. For
 Humble, replace `jazzy` with `humble` everywhere.
+
+To install an already built wheel, pass it to the installer instead:
+`scripts/install.sh ./dist/ros_studio-0.1.0-py3-none-any.whl`.
 
 The apt path was not executed on this macOS host; the integration workflow in
 `.github/workflows/integration.yml` runs the same commands inside the official
@@ -205,8 +251,14 @@ the assets are missing.
 
 ## Troubleshooting
 
+- `ros-studio: command not found`: add `~/.local/bin` to `PATH` (see the
+  installer section) or reinstall with a directory that is already on `PATH`.
 - `ROS_DISTRO is not set` or `AMENT_PREFIX_PATH is not set`: source
-  `/opt/ros/<distro>/setup.bash` (or your colcon workspace) in the same shell.
+  `/opt/ros/<distro>/setup.bash` (or your colcon workspace) in the same shell,
+  or set `ROS_SETUP` and let the installed wrapper source it.
+- `ros-studio: ROS_SETUP does not exist`: point `ROS_SETUP` at the setup script
+  or unset it to let the wrapper look in `/opt/ros`.
+- `ros-studio: broken installation`: re-run `scripts/install.sh`.
 - `rclpy is not importable`: recreate the venv with
   `python3 -m venv --system-site-packages`.
 - `frontend_not_built` on `/`: the wheel has no `ros_studio/web`; rebuild the
