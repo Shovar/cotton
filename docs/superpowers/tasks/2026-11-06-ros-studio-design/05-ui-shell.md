@@ -43,6 +43,7 @@
 ## Bloque U5 — Identidad visual
 
 - [x] **T218 · 10 min** — Mostrar el logo en la pestaña y la barra de actividad. **Hecho:** el test del Workbench pasa y `npm run build` incluye el favicon.
+- [x] **T219 · 10 min** — Reemplazar el logo por la versión transparente y adaptarlo al tema. **Hecho:** tests del Workbench/preferences, PNG con canal alfa y build verificados.
 
 ## Verificación
 

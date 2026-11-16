@@ -103,6 +103,7 @@ describe("Workbench", () => {
     const logo = screen.getByRole("img", { name: "ROS Studio" });
     expect(logo).toBeVisible();
     expect(logo).toHaveAttribute("src", "/src/assets/ros-studio-logo.png");
+    expect(logo).toHaveClass("brightness-0", "dark:invert");
   });
 
   it("opens the three shell sections in the dock", () => {

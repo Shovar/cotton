@@ -52,6 +52,20 @@ describe("applyTheme", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
+  it("uses the matching favicon for the selected theme", () => {
+    const favicon = document.createElement("link");
+    favicon.rel = "icon";
+    document.head.append(favicon);
+
+    try {
+      applyTheme("dark");
+
+      expect(favicon).toHaveAttribute("href", "/src/assets/ros-studio-favicon-dark.png");
+    } finally {
+      favicon.remove();
+    }
+  });
+
   it("accepts an explicit root", () => {
     const root = document.createElement("div");
 

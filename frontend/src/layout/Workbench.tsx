@@ -110,7 +110,7 @@ export function Workbench() {
         <img
           src={logoUrl}
           alt="ROS Studio"
-          className="mb-1 size-10 object-contain"
+          className="mb-1 size-10 object-contain brightness-0 dark:invert"
         />
         <TooltipProvider delayDuration={300}>
           {panels.map((panel) => {
