@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from ros_studio.plugins.models import PluginManifest
+from cotton.plugins.models import PluginManifest
 
 MINIMAL: dict[str, object] = {
     "name": "demo",

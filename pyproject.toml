@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ros-studio"
+name = "cotton"
 version = "0.1.0"
 description = "Local web control panel for an active ROS 2 environment"
 readme = "README.md"
@@ -30,19 +30,19 @@ dev = [
 ]
 
 [project.scripts]
-ros-studio = "ros_studio.cli:main"
+cotton = "cotton.cli:main"
 
 [tool.hatch.build]
 # The Dockerfile and the release recipe copy the compiled frontend here before
 # building the wheel; `artifacts` keeps it despite the .gitignore entry.
-artifacts = ["backend/src/ros_studio/web/"]
+artifacts = ["backend/src/cotton/web/"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["backend/src/ros_studio"]
+packages = ["backend/src/cotton"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "backend/src/ros_studio",
+  "backend/src/cotton",
   "backend/tests",
   "docs",
   "AGENTS.md",
@@ -59,7 +59,7 @@ addopts = "-p no:launch_testing -p no:launch_ros"
 markers = ["integration: requires a real ROS 2 environment"]
 
 [tool.coverage.run]
-source = ["ros_studio"]
+source = ["cotton"]
 branch = true
 
 [tool.coverage.report]
@@ -73,7 +73,7 @@ target-version = "py310"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ros_studio"]
+known-first-party = ["cotton"]
 
 [tool.mypy]
 python_version = "3.10"

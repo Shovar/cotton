@@ -4,10 +4,10 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_params import create_router
-from ros_studio.app import create_app
-from ros_studio.ros.thread import RosCallError
-from ros_studio.services import Services
+from cotton.api.routes_params import create_router
+from cotton.app import create_app
+from cotton.ros.thread import RosCallError
+from cotton.services import Services
 
 
 class StubParams:

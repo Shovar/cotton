@@ -2,7 +2,7 @@ import importlib
 
 import pytest
 
-from ros_studio.env import (
+from cotton.env import (
     EnvironmentInfo,
     RosEnvironmentError,
     detect_environment,
@@ -72,7 +72,7 @@ def test_ensure_requires_ros2_on_path() -> None:
 
 def test_ensure_requires_rclpy(monkeypatch: pytest.MonkeyPatch) -> None:
     env = {"ROS_DISTRO": "jazzy", "AMENT_PREFIX_PATH": "/opt/ros/jazzy", "PATH": "/bin"}
-    monkeypatch.setattr("ros_studio.env.shutil.which", lambda *_args, **_kwargs: "/bin/ros2")
+    monkeypatch.setattr("cotton.env.shutil.which", lambda *_args, **_kwargs: "/bin/ros2")
 
     def missing(_name: str) -> None:
         raise ImportError("no rclpy")
@@ -84,6 +84,6 @@ def test_ensure_requires_rclpy(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_ensure_returns_environment_when_ros_is_present(monkeypatch: pytest.MonkeyPatch) -> None:
     env = {"ROS_DISTRO": "jazzy", "AMENT_PREFIX_PATH": "/opt/ros/jazzy", "PATH": "/bin"}
-    monkeypatch.setattr("ros_studio.env.shutil.which", lambda *_args, **_kwargs: "/bin/ros2")
+    monkeypatch.setattr("cotton.env.shutil.which", lambda *_args, **_kwargs: "/bin/ros2")
     monkeypatch.setattr(importlib, "import_module", lambda _name: object())
     assert ensure_ros_environment(env).distro == "jazzy"

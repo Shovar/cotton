@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ros_studio.storage.db import Database
+from cotton.storage.db import Database
 
 
 def tables(db: Database) -> set[str]:

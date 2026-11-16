@@ -2,8 +2,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ros_studio.processes.logs import LogBuffer, LogFileWriter, parse_level
-from ros_studio.processes.models import LogLine
+from cotton.processes.logs import LogBuffer, LogFileWriter, parse_level
+from cotton.processes.models import LogLine
 
 
 def now() -> datetime:

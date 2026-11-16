@@ -14,18 +14,18 @@ from fastapi.testclient import TestClient
 pytestmark = pytest.mark.integration
 pytest.importorskip("rclpy")
 
-from ros_studio.api import routes_graph, routes_processes, routes_topics  # noqa: E402
-from ros_studio.app import Services, create_app  # noqa: E402
-from ros_studio.env import ensure_ros_environment  # noqa: E402
-from ros_studio.events import EventBus  # noqa: E402
-from ros_studio.processes.manager import ProcessManager  # noqa: E402
-from ros_studio.ros.graph import ThreadGraphSource  # noqa: E402
-from ros_studio.ros.rate import ThreadRateSource  # noqa: E402
-from ros_studio.ros.thread import RosThread  # noqa: E402
-from ros_studio.ros.watcher import GraphWatcher  # noqa: E402
-from ros_studio.security import Auth  # noqa: E402
-from ros_studio.storage.db import Database  # noqa: E402
-from ros_studio.storage.process_registry import ProcessRegistry  # noqa: E402
+from cotton.api import routes_graph, routes_processes, routes_topics  # noqa: E402
+from cotton.app import Services, create_app  # noqa: E402
+from cotton.env import ensure_ros_environment  # noqa: E402
+from cotton.events import EventBus  # noqa: E402
+from cotton.processes.manager import ProcessManager  # noqa: E402
+from cotton.ros.graph import ThreadGraphSource  # noqa: E402
+from cotton.ros.rate import ThreadRateSource  # noqa: E402
+from cotton.ros.thread import RosThread  # noqa: E402
+from cotton.ros.watcher import GraphWatcher  # noqa: E402
+from cotton.security import Auth  # noqa: E402
+from cotton.storage.db import Database  # noqa: E402
+from cotton.storage.process_registry import ProcessRegistry  # noqa: E402
 
 TOKEN = "integration-token"
 ORIGIN = "http://testserver"
@@ -79,7 +79,7 @@ def _graph(client: TestClient) -> dict[str, object]:
 def _node_names(client: TestClient) -> set[str]:
     nodes = _graph(client)["nodes"]
     assert isinstance(nodes, list)
-    return {node["name"] for node in nodes if not node["name"].startswith("/ros_studio")}
+    return {node["name"] for node in nodes if not node["name"].startswith("/cotton")}
 
 
 def _topic_names(client: TestClient) -> set[str]:
@@ -94,7 +94,7 @@ def _cli_names(*args: str) -> set[str]:
 
 
 def _without_our_own(names: set[str]) -> set[str]:
-    return {name for name in names if not name.startswith(("/ros_studio", "/_ros2cli_daemon"))}
+    return {name for name in names if not name.startswith(("/cotton", "/_ros2cli_daemon"))}
 
 
 @pytest.mark.skipif(

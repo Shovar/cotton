@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 
-from ros_studio.events import Event, EventBus
-from ros_studio.ros.models import GraphSnapshot
-from ros_studio.ros.thread import RosCallError
-from ros_studio.ros.watcher import GraphWatcher
+from cotton.events import Event, EventBus
+from cotton.ros.models import GraphSnapshot
+from cotton.ros.thread import RosCallError
+from cotton.ros.watcher import GraphWatcher
 
 
 def graph_with(revision: int) -> GraphSnapshot:

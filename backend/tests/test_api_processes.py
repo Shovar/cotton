@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_processes import create_router, register_process_channels
-from ros_studio.app import create_app
-from ros_studio.processes.manager import ProcessManager, StopTimeouts
-from ros_studio.processes.models import ProcessSpec
-from ros_studio.services import Services
+from cotton.api.routes_processes import create_router, register_process_channels
+from cotton.app import create_app
+from cotton.processes.manager import ProcessManager, StopTimeouts
+from cotton.processes.models import ProcessSpec
+from cotton.services import Services
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"

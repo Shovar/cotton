@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from ros_studio.events import Event, EventBus
-from ros_studio.processes.manager import (
+from cotton.events import Event, EventBus
+from cotton.processes.manager import (
     ProcessConflict,
     ProcessManager,
     ProcessNotFound,
     StopTimeouts,
 )
-from ros_studio.processes.models import ProcessSpec
+from cotton.processes.models import ProcessSpec
 
 
 @pytest.fixture

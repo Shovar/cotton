@@ -1,7 +1,7 @@
 import pytest
 
-from ros_studio.channels import Channel, ChannelRegistry
-from ros_studio.events import Event
+from cotton.channels import Channel, ChannelRegistry
+from cotton.events import Event
 
 
 def test_registry_resolves_registered_channels() -> None:

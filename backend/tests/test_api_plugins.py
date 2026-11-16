@@ -7,13 +7,13 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_plugins import create_router, register_plugin_channel
-from ros_studio.app import create_app
-from ros_studio.plugins.loader import PluginLoader
-from ros_studio.plugins.manager import Healthcheck, HealthcheckError, PluginManager
-from ros_studio.plugins.settings import SettingsRepository
-from ros_studio.processes.models import ProcessRecord, ProcessSpec
-from ros_studio.services import Services
+from cotton.api.routes_plugins import create_router, register_plugin_channel
+from cotton.app import create_app
+from cotton.plugins.loader import PluginLoader
+from cotton.plugins.manager import Healthcheck, HealthcheckError, PluginManager
+from cotton.plugins.settings import SettingsRepository
+from cotton.processes.models import ProcessRecord, ProcessSpec
+from cotton.services import Services
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"

@@ -5,9 +5,9 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from ros_studio.api import routes_commands
-from ros_studio.app import create_app
-from ros_studio.services import Services
+from cotton.api import routes_commands
+from cotton.app import create_app
+from cotton.services import Services
 
 
 def executable(path: Path) -> None:

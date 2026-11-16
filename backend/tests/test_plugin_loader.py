@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from ros_studio.plugins.loader import BUILTIN_PLUGINS_DIR, PluginLoader
+from cotton.plugins.loader import BUILTIN_PLUGINS_DIR, PluginLoader
 
 
 def write_plugin(root: Path, name: str, **overrides: object) -> Path:

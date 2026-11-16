@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ros_studio.plugins.assets import AssetError, LichtblickAssets
+from cotton.plugins.assets import AssetError, LichtblickAssets
 
 
 def make_archive(path: Path, files: dict[str, str]) -> str:

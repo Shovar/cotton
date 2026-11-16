@@ -3,8 +3,8 @@ from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from ros_studio.app import create_app
-from ros_studio.services import Services
+from cotton.app import create_app
+from cotton.services import Services
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"

@@ -7,11 +7,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_profiles import create_router
-from ros_studio.app import create_app
-from ros_studio.processes.manager import ProcessManager, StopTimeouts
-from ros_studio.processes.profiles import ProfileRepository
-from ros_studio.services import Services
+from cotton.api.routes_profiles import create_router
+from cotton.app import create_app
+from cotton.processes.manager import ProcessManager, StopTimeouts
+from cotton.processes.profiles import ProfileRepository
+from cotton.services import Services
 
 SLEEPER = [sys.executable, "-c", "import time; time.sleep(30)"]
 
