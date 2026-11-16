@@ -34,13 +34,13 @@ describe("TopicDetail", () => {
 
     expect(screen.getByText(/std_msgs\/msg\/String/)).toBeInTheDocument();
     expect(screen.getByText("/talker")).toBeInTheDocument();
-    expect(screen.getByText("Sin suscriptores")).toBeInTheDocument();
+    expect(screen.getByText("No subscribers")).toBeInTheDocument();
   });
 
   it("shows the empty publisher state", () => {
     render(<TopicDetail topic={{ ...TOPIC, publishers: [] }} />);
 
-    expect(screen.getByText("Sin editores")).toBeInTheDocument();
+    expect(screen.getByText("No publishers")).toBeInTheDocument();
   });
 
   it("measures the frequency on demand", async () => {
@@ -49,7 +49,7 @@ describe("TopicDetail", () => {
     );
     render(<TopicDetail topic={TOPIC} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Medir frecuencia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Measure rate" }));
 
     expect(await screen.findByText("62.1 Hz")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -62,9 +62,9 @@ describe("TopicDetail", () => {
     stubFetch(jsonResponse({ available: false, hz: null, window_s: 2.0, reason: "no_publishers" }));
     render(<TopicDetail topic={TOPIC} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Medir frecuencia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Measure rate" }));
 
-    expect(await screen.findByText("No disponible: sin editores")).toBeInTheDocument();
+    expect(await screen.findByText("Unavailable: no publishers")).toBeInTheDocument();
   });
 
   it("reports an unknown message type", async () => {
@@ -73,9 +73,9 @@ describe("TopicDetail", () => {
     );
     render(<TopicDetail topic={TOPIC} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Medir frecuencia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Measure rate" }));
 
-    expect(await screen.findByText("No disponible: tipo desconocido")).toBeInTheDocument();
+    expect(await screen.findByText("Unavailable: unknown type")).toBeInTheDocument();
   });
 
   it("shows the API error when measuring fails", async () => {
@@ -84,7 +84,7 @@ describe("TopicDetail", () => {
     );
     render(<TopicDetail topic={TOPIC} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Medir frecuencia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Measure rate" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Topic does not exist");
   });

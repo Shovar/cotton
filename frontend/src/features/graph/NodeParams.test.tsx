@@ -38,7 +38,7 @@ describe("NodeParams", () => {
     renderParams();
 
     fireEvent.click(await screen.findByRole("checkbox", { name: "use_sim_time" }));
-    fireEvent.click(screen.getByRole("button", { name: "Guardar use_sim_time" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save use_sim_time" }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -64,9 +64,9 @@ describe("NodeParams", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "ids" }), {
       target: { value: "[3]" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar retries" }));
-    fireEvent.click(screen.getByRole("button", { name: "Guardar frame" }));
-    fireEvent.click(screen.getByRole("button", { name: "Guardar ids" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save retries" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save frame" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save ids" }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -91,9 +91,9 @@ describe("NodeParams", () => {
     fireEvent.change(await screen.findByRole("textbox", { name: "ids" }), {
       target: { value: "[1," },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar ids" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save ids" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Valor no válido");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid value");
     expect(
       fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT"),
     ).toHaveLength(0);
@@ -109,7 +109,7 @@ describe("NodeParams", () => {
     fireEvent.change(await screen.findByRole("spinbutton", { name: "speed" }), {
       target: { value: "2" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar speed" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save speed" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("speed is read-only");
   });
@@ -118,14 +118,14 @@ describe("NodeParams", () => {
     stubFetch({ weird: null }, () => new Response(null, { status: 204 }));
     renderParams();
 
-    expect(await screen.findByText("No editable")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Guardar weird" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Not editable")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save weird" })).not.toBeInTheDocument();
   });
 
   it("shows an empty state for a node without parameters", async () => {
     stubFetch({}, () => new Response(null, { status: 204 }));
     renderParams();
 
-    expect(await screen.findByText("Sin parámetros")).toBeInTheDocument();
+    expect(await screen.findByText("No parameters")).toBeInTheDocument();
   });
 });

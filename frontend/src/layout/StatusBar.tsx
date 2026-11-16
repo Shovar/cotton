@@ -24,14 +24,14 @@ export function StatusBar() {
   return (
     <footer className="status-bar">
       <span>ROS {env?.distro ?? "—"}</span>
-      <span>Dominio {env?.domain_id ?? "—"}</span>
+      <span>Domain {env?.domain_id ?? "—"}</span>
       <span>Workspace {env?.workspace ?? "—"}</span>
-      <span>Procesos {running}</span>
+      <span>Processes {running}</span>
       <span className={rosConnected ? "status-ok" : "status-off"}>
-        {rosConnected ? "ROS conectado" : "ROS desconectado"}
+        {rosConnected ? "ROS connected" : "ROS disconnected"}
       </span>
-      {failed > 0 && <span className="status-off">Errores {failed}</span>}
-      <div className="theme-switch" role="group" aria-label="Tema">
+      {failed > 0 && <span className="status-off">Errors {failed}</span>}
+      <div className="theme-switch" role="group" aria-label="Theme">
         {THEMES.map((candidate) => (
           <button
             key={candidate}
@@ -39,7 +39,7 @@ export function StatusBar() {
             aria-pressed={theme === candidate}
             onClick={() => changeTheme(candidate)}
           >
-            {candidate === "light" ? "Tema claro" : "Tema oscuro"}
+            {candidate === "light" ? "Light theme" : "Dark theme"}
           </button>
         ))}
       </div>

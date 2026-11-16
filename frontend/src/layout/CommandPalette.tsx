@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 const ACTIONS = [
-  { id: "open-graph", label: "Abrir grafo" },
-  { id: "open-processes", label: "Abrir procesos" },
-  { id: "open-plugins", label: "Abrir plugins" },
+  { id: "open-graph", label: "Open graph" },
+  { id: "open-processes", label: "Open processes" },
+  { id: "open-plugins", label: "Open plugins" },
 ] as const;
 
 export function CommandPalette({ onAction }: { onAction: (action: string) => void }) {
@@ -39,12 +39,12 @@ export function CommandPalette({ onAction }: { onAction: (action: string) => voi
   };
 
   return (
-    <div className="command-palette" role="dialog" aria-label="Paleta de comandos">
+    <div className="command-palette" role="dialog" aria-label="Command palette">
       <input
         autoFocus
         type="search"
-        aria-label="Buscar acción"
-        placeholder="Buscar acción"
+        aria-label="Search actions"
+        placeholder="Search actions"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />

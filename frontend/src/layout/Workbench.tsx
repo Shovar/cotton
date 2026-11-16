@@ -89,7 +89,7 @@ export function Workbench() {
 
   return (
     <div className="workbench">
-      <nav className="activity-bar" aria-label="Secciones">
+      <nav className="activity-bar" aria-label="Sections">
         {panels.map((panel) => (
           <button
             key={panel.id}

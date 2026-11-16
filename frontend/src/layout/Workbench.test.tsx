@@ -106,14 +106,14 @@ describe("Workbench", () => {
     expect(fake.api.addPanel).toHaveBeenNthCalledWith(1, {
       id: "graph",
       component: "graph",
-      title: "Grafo",
+      title: "Graph",
       inactive: false,
     });
     expect(screen.getByTestId("dockview")).toHaveAttribute(
       "data-components",
       "graph,processes,plugins",
     );
-    for (const name of ["Grafo", "Procesos", "Plugins"]) {
+    for (const name of ["Graph", "Processes", "Plugins"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
   });
@@ -160,7 +160,7 @@ describe("Workbench", () => {
     fake.api.getPanel.mockClear();
     const panel = fake.api.panels.get("graph");
 
-    fireEvent.click(screen.getByRole("button", { name: "Grafo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Graph" }));
 
     expect(fake.api.getPanel).toHaveBeenCalledWith("graph");
     expect(panel?.api.setActive).toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe("Workbench", () => {
 
     act(() => fake.fireActivePanel("processes"));
 
-    expect(screen.getByRole("button", { name: "Procesos" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Processes" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

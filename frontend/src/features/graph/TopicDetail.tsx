@@ -18,7 +18,7 @@ export function TopicDetail({ topic }: { topic: TopicInfo }) {
         ),
       );
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "No se pudo medir la frecuencia");
+      setError(caught instanceof Error ? caught.message : "Could not measure the rate");
     } finally {
       setMeasuring(false);
     }
@@ -27,10 +27,10 @@ export function TopicDetail({ topic }: { topic: TopicInfo }) {
   return (
     <section className="topic-detail" aria-label={`Topic ${topic.name}`}>
       <h2>{topic.name}</h2>
-      <p>Tipo: {topic.types.join(", ") || "desconocido"}</p>
-      <h3>Editores</h3>
+      <p>Type: {topic.types.join(", ") || "unknown"}</p>
+      <h3>Publishers</h3>
       {topic.publishers.length === 0 ? (
-        <p>Sin editores</p>
+        <p>No publishers</p>
       ) : (
         <ul>
           {topic.publishers.map((publisher) => (
@@ -38,9 +38,9 @@ export function TopicDetail({ topic }: { topic: TopicInfo }) {
           ))}
         </ul>
       )}
-      <h3>Suscriptores</h3>
+      <h3>Subscribers</h3>
       {topic.subscribers.length === 0 ? (
-        <p>Sin suscriptores</p>
+        <p>No subscribers</p>
       ) : (
         <ul>
           {topic.subscribers.map((subscriber) => (
@@ -49,7 +49,7 @@ export function TopicDetail({ topic }: { topic: TopicInfo }) {
         </ul>
       )}
       <button type="button" disabled={measuring} onClick={() => void measure()}>
-        {measuring ? "Midiendo…" : "Medir frecuencia"}
+        {measuring ? "Measuring…" : "Measure rate"}
       </button>
       {rate && <p>{rateLabel(rate)}</p>}
       {error && <p role="alert">{error}</p>}
@@ -62,10 +62,10 @@ function rateLabel(rate: RateResult): string {
     return `${rate.hz} Hz`;
   }
   if (rate.reason === "no_publishers") {
-    return "No disponible: sin editores";
+    return "Unavailable: no publishers";
   }
   if (rate.reason === "type_unavailable") {
-    return "No disponible: tipo desconocido";
+    return "Unavailable: unknown type";
   }
-  return "Frecuencia no disponible";
+  return "Rate unavailable";
 }

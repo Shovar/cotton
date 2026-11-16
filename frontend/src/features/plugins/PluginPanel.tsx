@@ -42,16 +42,16 @@ export function PluginPanel({ plugin, panel, onClose }: PluginPanelProps) {
     <div className="plugin-panel" role="dialog" aria-modal="true" aria-label={title}>
       <header className="plugin-panel-header">
         <h2>{title}</h2>
-        <button type="button" onClick={onClose} aria-label="Cerrar panel">
-          Cerrar
+        <button type="button" onClick={onClose} aria-label="Close panel">
+          Close
         </button>
       </header>
       {!embeddable ? (
-        <p>Este tipo de panel no se puede incrustar.</p>
+        <p>This panel type cannot be embedded.</p>
       ) : !available ? (
         <p>
-          Los assets del visor no están disponibles. Revisa la conexión y reinicia ROS Studio, o
-          copia <code>lichtblick-web.tar.gz</code> en la caché local antes de arrancar.
+          The viewer assets are not available. Check the connection and restart ROS Studio, or
+          copy <code>lichtblick-web.tar.gz</code> into the local cache before starting.
         </p>
       ) : (
         <iframe title={title} src={src} />

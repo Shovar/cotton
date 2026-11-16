@@ -7,9 +7,9 @@ import { useStore } from "../../state/store";
 import { PluginPanel } from "./PluginPanel";
 
 const STATE_LABELS: Record<PluginState, string> = {
-  discovered: "Descubierto",
-  active: "Activo",
-  stopped: "Detenido",
+  discovered: "Discovered",
+  active: "Active",
+  stopped: "Stopped",
   error: "Error",
 };
 
@@ -18,7 +18,7 @@ function panelFor(plugin: PluginRecord): PluginPanelSpec | undefined {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "No se pudo completar la acción";
+  return error instanceof Error ? error.message : "Could not complete the action";
 }
 
 export function PluginsView() {
@@ -88,7 +88,7 @@ export function PluginsView() {
     <section className="plugins-view" aria-label="Plugins">
       <h2>Plugins</h2>
       {records.length === 0 ? (
-        <p>Sin plugins</p>
+        <p>No plugins</p>
       ) : (
         <ul>
           {records.map((plugin) => {
@@ -100,9 +100,9 @@ export function PluginsView() {
                   <strong>{plugin.name}</strong>{" "}
                   <span className="plugin-version">{manifest?.version}</span>
                   {manifest?.description && <p>{manifest.description}</p>}
-                  <p className="plugin-state">Estado: {STATE_LABELS[plugin.state]}</p>
+                  <p className="plugin-state">State: {STATE_LABELS[plugin.state]}</p>
                   <p className="plugin-permissions">
-                    Permisos: {manifest?.permissions.join(", ") || "ninguno"}
+                    Permissions: {manifest?.permissions.join(", ") || "none"}
                   </p>
                   {plugin.error && <p className="plugin-error">{plugin.error}</p>}
                   {errors[plugin.name] && (
@@ -117,7 +117,7 @@ export function PluginsView() {
                           type="button"
                           onClick={() => setViewer({ plugin, panel })}
                         >
-                          Abrir panel
+                          Open panel
                         </button>
                       )}
                       <button
@@ -125,7 +125,7 @@ export function PluginsView() {
                         disabled={busy === plugin.name}
                         onClick={() => deactivate(plugin)}
                       >
-                        Desactivar
+                        Deactivate
                       </button>
                     </>
                   ) : (
@@ -134,7 +134,7 @@ export function PluginsView() {
                       disabled={busy === plugin.name}
                       onClick={() => activate(plugin)}
                     >
-                      Activar
+                      Activate
                     </button>
                   )}
                 </div>
