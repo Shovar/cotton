@@ -172,9 +172,7 @@ async def test_missing_process_raises(manager: ProcessManager) -> None:
         await manager.close("missing")
 
 
-async def test_close_stops_forgets_and_announces(
-    manager: ProcessManager, bus: EventBus
-) -> None:
+async def test_close_stops_forgets_and_announces(manager: ProcessManager, bus: EventBus) -> None:
     queue = bus.subscribe()
     try:
         record = await manager.start(
