@@ -166,6 +166,16 @@ class TerminalManager:
         await self._publish_state(record)
         return record
 
+    async def discard(self, terminal_id: str) -> None:
+        self.get(terminal_id)
+        await self._bus.publish("terminal.removed", {"id": terminal_id})
+        self._records.pop(terminal_id, None)
+        self._sessions.pop(terminal_id, None)
+        self._readers.pop(terminal_id, None)
+        self._chunks.pop(terminal_id, None)
+        self._buffer_sizes.pop(terminal_id, None)
+        self._sequences.pop(terminal_id, None)
+
     async def shutdown(self) -> None:
         for terminal_id in reversed(tuple(self._sessions)):
             try:

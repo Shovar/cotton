@@ -25,10 +25,10 @@ provide an interactive terminal or terminal resizing.
   terminal. Both interactive and non-interactive programs must work.
 - Show session state and command exit information where available.
 - Organize sessions into user-created groups.
-- Allow each group to mix tabs and tiled terminal panels.
-- Move a terminal between tabbed and tiled presentation by dragging it to the
-  tab strip or an edge of another terminal.
-- Resize tiled panes with dividers; neighboring panes adapt to the new size.
+- Show one active terminal per group with a tab strip for the group's other
+  sessions.
+- Keep every terminal emulator mounted while its group is hidden, so switching
+  groups never restarts a session view or loses its scrollback.
 - Minimize a terminal without stopping its session. Closing it terminates the
   session and asks for confirmation if it has an active command.
 - Keep PTY sessions alive while hidden or while the frontend reconnects, as long
@@ -49,9 +49,9 @@ provide an interactive terminal or terminal resizing.
    terminal input, provide a controlling TTY, or support interactive programs.
    Rejected because it misses the core requirement.
 2. **Add Cotton-owned PTY sessions to the existing web UI.** Reuses the local
-   React/FastAPI architecture and `dockview`, while adding a session lifecycle
-   specifically for terminals. Chosen because it supports interactive shells
-   without an external multiplexer dependency.
+   React/FastAPI architecture while adding a session lifecycle specifically for
+   terminals. Chosen because it supports interactive shells without an external
+   multiplexer dependency.
 3. **Use an external session broker such as `tmux`.** Would make detached
    sessions and reattachment after a backend restart more practical, but adds a
    runtime dependency and platform-specific packaging. Rejected because crash
@@ -61,12 +61,18 @@ provide an interactive terminal or terminal resizing.
 
 ### Terminal workspace UI
 
-Each terminal belongs to a group. A group's terminal area has a tab strip and
-zero or more tiled panes. A terminal can be represented as a tab or placed in
-the tiled layout; groups may mix both. Dragging a tab to the tab strip keeps it
-tabbed, while dropping it on an edge of a visible pane creates a split. Split
-dividers resize adjacent panes. The existing docking/layout approach should be
-extended rather than replaced.
+Each terminal belongs to a group. A group's terminal area has a tab strip and a
+single terminal body that shows the group's active terminal. Groups are the
+layout unit: splitting one group into tiles is not supported, because creating a
+second group already expresses that intent.
+
+Every terminal in every group stays mounted in the terminal body, stacked in the
+same geometry, and only the selected group's active terminal is visible and
+interactive. Moving a terminal between groups or switching groups therefore
+never remounts its emulator, never resets its scrollback and never leaves a
+previous group's terminal painted on screen. This mirrors the retained-pane
+model used by Orca instead of giving each group its own Dockview instance, which
+duplicated layout state and made hidden groups leak into the visible area.
 
 The group list shows session status. Minimizing moves a terminal out of the
 visible area but leaves its PTY and process running. Closing is distinct:
@@ -79,9 +85,9 @@ start a specific executable in a new terminal; this command mode uses an
 argument list, not shell interpolation. Commands typed into a shell are
 handled by that shell.
 
-Groups and panel placement follow Cotton's existing `localStorage` layout
-behavior. Terminal sessions themselves are owned by the Cotton instance and
-listed by the backend, so another authorized frontend tab can reconnect to
+Groups, the selected group, active terminals and minimized sessions are stored
+in `localStorage`. Terminal sessions themselves are owned by the Cotton instance
+and listed by the backend, so another authorized frontend tab can reconnect to
 them. A stale local layout entry is discarded if its session no longer exists.
 
 ### Backend sessions and lifecycle
@@ -110,6 +116,9 @@ its prompt or running a foreground job is not required. Closing a direct
 command session prompts while that command is running. For a shell, prompt
 before closing when the PTY reports a foreground process group other than the
 shell's; if that cannot be determined reliably, prompt for every live shell.
+Closing removes the session from the backend list so it disappears from every
+frontend; a naturally exited session stays visible with its exit information
+until it is closed.
 
 ### Security and platform
 
@@ -129,8 +138,8 @@ recovery infrastructure or require a separately installed multiplexer.
   output, and terminal resizing work.
 - Sessions remain alive when minimized and can be reattached by the frontend
   while the backend remains up.
-- Groups support tabs and resizable tiled panes at the same time; drag/drop
-  moves sessions between those presentations.
+- Each group shows only its active terminal; switching groups or moving a
+  terminal never re-renders another group's terminal over the body.
 - Session state is visible and updates when a command or shell exits.
 - Closing an active session confirms before terminating it; Cotton shutdown
   stops sessions.
@@ -145,5 +154,5 @@ recovery infrastructure or require a separately installed multiplexer.
   current API contracts and architecture.
 - Define a sensible scrollback limit and explicit errors when OS resources are
   exhausted; do not impose an arbitrary session-count cap.
-- Decide the visual details for group creation, renaming, and minimized-session
-  access, keeping the approved groups/tabs/mosaic interaction.
+- Decide the visual details for group creation, renaming, minimized-session
+  access and the in-group tab strip, keeping groups as the layout unit.

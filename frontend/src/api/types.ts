@@ -152,4 +152,5 @@ export type ServerEvent =
   | { type: "plugin.state"; data: PluginRecord }
   | { type: "terminal.state"; data: TerminalRecord }
   | { type: "terminal.output"; data: TerminalOutput }
+  | { type: "terminal.removed"; data: { id: string } }
   | { type: "error"; data: ErrorData };

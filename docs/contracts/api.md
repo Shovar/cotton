@@ -253,7 +253,7 @@ otherwise.
 | DELETE | `/api/plugins/{name}/activate` | 200 | Stopped `PluginRecord`; 404 `plugin_not_found` |
 | GET | `/api/terminals` | 200 | `TerminalRecord[]` |
 | POST | `/api/terminals` | 201 | Body `{"command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell; 422 `validation_error` |
-| DELETE | `/api/terminals/{id}?force=false` | 200 | Closed `TerminalRecord`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true`, or `terminal_close_failed` if the OS denies termination |
+| DELETE | `/api/terminals/{id}?force=false` | 200 | Closing `TerminalRecord`; the session is then removed from `GET /api/terminals`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true`, or `terminal_close_failed` if the OS denies termination |
 
 Read-only requests are safe to retry. `POST /api/processes` and
 `POST /api/profiles/{id}/start` are not idempotent.
@@ -324,6 +324,7 @@ Every server message has `{ "type": string, "data": object }`.
 | `plugin.state` | `plugins` | `PluginRecord` |
 | `terminal.state` | `terminals` or `terminal:<id>` | `TerminalRecord` |
 | `terminal.output` | `terminal:<id>` | `{"id": string, "sequence": integer, "data": base64 string}` |
+| `terminal.removed` | `terminals` or `terminal:<id>` | `{"id": string}`; sent when a terminal session is closed |
 | `error` | any | `{"code": string, "message": string}` |
 
 ### Channels and initial backfill
@@ -334,8 +335,8 @@ Every server message has `{ "type": string, "data": object }`.
 | `processes` | `process.state`, `process.removed` | One `process.state` per known process |
 | `logs:<id>` | `process.log` events whose `data.id` equals `<id>` | Last 200 log lines for that process |
 | `plugins` | `plugin.state` | One `plugin.state` per known plugin |
-| `terminals` | `terminal.state` | One `terminal.state` per known terminal |
-| `terminal:<id>` | `terminal.output`, `terminal.state` | Joined by `terminal.attach`; output newer than the requested sequence |
+| `terminals` | `terminal.state`, `terminal.removed` | One `terminal.state` per known terminal |
+| `terminal:<id>` | `terminal.output`, `terminal.state`, `terminal.removed` | Joined by `terminal.attach`; output newer than the requested sequence |
 | `test` | test channel only | Registered by tests, never in production |
 
 Log events for processes the client has not subscribed to are never sent.

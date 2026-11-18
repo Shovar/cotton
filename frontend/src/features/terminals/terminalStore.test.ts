@@ -130,6 +130,24 @@ describe("terminal store", () => {
     expect(useTerminalStore.getState().visibleAttachments).toEqual({});
   });
 
+  it("forgets a terminal when the backend reports it removed", () => {
+    const store = useTerminalStore.getState();
+    store.applyServerEvent({ type: "terminal.state", data: record });
+    store.applyServerEvent({
+      type: "terminal.output",
+      data: { id: "t1", sequence: 4, data: "b2s=" },
+    });
+    store.attach("t1");
+
+    store.applyServerEvent({ type: "terminal.removed", data: { id: "t1" } });
+
+    const state = useTerminalStore.getState();
+    expect(state.records).not.toHaveProperty("t1");
+    expect(state.lastSequences).not.toHaveProperty("t1");
+    expect(state.outputChunks).not.toHaveProperty("t1");
+    expect(state.visibleAttachments).not.toHaveProperty("t1");
+  });
+
   it("removes sessions absent from a backend reconciliation", () => {
     const store = useTerminalStore.getState();
     store.applyServerEvent({ type: "terminal.state", data: record });

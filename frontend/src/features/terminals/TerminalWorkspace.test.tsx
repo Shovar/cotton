@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TerminalRecord } from "../../api/types";
@@ -151,7 +151,81 @@ describe("TerminalWorkspace", () => {
       ),
     );
     expect(window.confirm).toHaveBeenCalled();
-    expect(await screen.findByText("Exited")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("tab", { name: "t4" })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("button", { name: "Close t4" })).not.toBeInTheDocument();
+    expect(useTerminalStore.getState().records).not.toHaveProperty("t4");
+  });
+
+  it("shows session state under its group in the sidebar", async () => {
+    mocks.apiGet.mockResolvedValue([record("t14")]);
+    render(<TerminalWorkspace />);
+
+    const sidebar = screen.getByRole("complementary", { name: "Groups" });
+    expect(await within(sidebar).findByText("Running")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Terminal sessions")).not.toBeInTheDocument();
+  });
+
+  it("keeps sessions from every group attached when switching groups", async () => {
+    localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        groups: [
+          { id: "default", name: "Default", terminalIds: ["t15"] },
+          { id: "build", name: "Build", terminalIds: ["t16"] },
+        ],
+        selectedGroupId: "default",
+        activeTerminalByGroup: {},
+        minimizedIds: [],
+        dockLayouts: {},
+      }),
+    );
+    mocks.apiGet.mockResolvedValue([record("t15"), record("t16")]);
+    render(<TerminalWorkspace />);
+
+    await waitFor(() =>
+      expect(useTerminalStore.getState().visibleAttachments).toEqual({
+        t15: true,
+        t16: true,
+      }),
+    );
+    mocks.ws.send.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Build" }));
+
+    expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.detach", { id: "t15" });
+    expect(useTerminalStore.getState().visibleAttachments).toEqual({
+      t15: true,
+      t16: true,
+    });
+  });
+
+  it("selects another terminal in a group after its active terminal moves away", async () => {
+    mocks.apiGet.mockResolvedValue([record("t17"), record("t18")]);
+    render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "t17" });
+
+    fireEvent.click(screen.getByRole("button", { name: "t17" }));
+    fireEvent.change(screen.getByLabelText("New group"), {
+      target: { value: "Build" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
+    fireEvent.click(screen.getByRole("button", { name: "Default" }));
+    const moveSelect = screen.getByLabelText("Move t17 to group") as HTMLSelectElement;
+    const buildId = Array.from(moveSelect.options).find(
+      (option) => option.textContent === "Build",
+    )?.value;
+    if (!buildId) {
+      throw new Error("Build group option is missing");
+    }
+    fireEvent.change(moveSelect, { target: { value: buildId } });
+    fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("tab", { name: "t18" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Restore t18" })).toBeInTheDocument();
   });
 
   it("does not prompt before closing an idle shell", async () => {
@@ -255,12 +329,10 @@ describe("TerminalWorkspace", () => {
       groups: Array<{ id: string; name: string; terminalIds: string[] }>;
       selectedGroupId: string;
       minimizedIds: string[];
-      dockLayouts: Record<string, { panels: Record<string, unknown> }>;
     };
     expect(saved.groups.find((group) => group.name === "Build")?.terminalIds).toContain("t12");
     expect(saved.groups.find((group) => group.id === saved.selectedGroupId)?.name).toBe("Build");
     expect(saved.minimizedIds).toContain("t11");
-    expect(saved.dockLayouts[buildId].panels).toHaveProperty("t12");
 
     render(<TerminalWorkspace />);
 
@@ -310,16 +382,10 @@ describe("TerminalWorkspace", () => {
     );
   });
 
-  it("removes stale sessions from persisted groups and Dockview layouts", async () => {
+  it("removes stale sessions from persisted groups", async () => {
     mocks.apiGet.mockResolvedValue([record("stale")]);
     const previous = render(<TerminalWorkspace />);
     await screen.findByRole("tab", { name: "stale" });
-    await waitFor(() => {
-      const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
-        dockLayouts: Record<string, { panels: Record<string, unknown> }>;
-      };
-      expect(saved.dockLayouts.default.panels).toHaveProperty("stale");
-    });
     previous.unmount();
     useTerminalStore.setState({
       records: {},
@@ -337,11 +403,8 @@ describe("TerminalWorkspace", () => {
     await waitFor(() => {
       const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
         groups: Array<{ terminalIds: string[] }>;
-        dockLayouts: Record<string, { panels: Record<string, unknown> }>;
       };
       expect(saved.groups[0].terminalIds).toEqual(["live"]);
-      expect(saved.dockLayouts.default.panels).not.toHaveProperty("stale");
-      expect(saved.dockLayouts.default.panels).toHaveProperty("live");
     });
     expect(screen.queryByRole("tab", { name: "stale" })).not.toBeInTheDocument();
   });
@@ -376,10 +439,8 @@ describe("TerminalWorkspace", () => {
       expect(useTerminalStore.getState().visibleAttachments).not.toHaveProperty("stale");
       const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
         groups: Array<{ terminalIds: string[] }>;
-        dockLayouts: Record<string, { panels: Record<string, unknown> }>;
       };
       expect(saved.groups[0].terminalIds).not.toContain("stale");
-      expect(saved.dockLayouts.default.panels).not.toHaveProperty("stale");
     });
     expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
       id: "stale",

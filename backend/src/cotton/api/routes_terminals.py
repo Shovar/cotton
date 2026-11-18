@@ -55,6 +55,7 @@ def create_router(manager: TerminalManager) -> APIRouter:
             raise ApiError(409, "terminal_busy", str(exc)) from exc
         except TerminalCloseFailed as exc:
             raise ApiError(409, "terminal_close_failed", str(exc)) from exc
+        await manager.discard(terminal_id)
         return record.to_dict()
 
     return router
@@ -67,7 +68,7 @@ def register_terminal_channels(registry: ChannelRegistry, manager: TerminalManag
     registry.register(
         Channel(
             "terminals",
-            matches=lambda event: event.type == "terminal.state",
+            matches=lambda event: event.type in {"terminal.state", "terminal.removed"},
             initial=initial,
         )
     )
@@ -84,7 +85,7 @@ def _terminal_channel(manager: TerminalManager, name: str) -> Channel | None:
     return Channel(
         name,
         matches=lambda event: (
-            event.type in {"terminal.output", "terminal.state"}
+            event.type in {"terminal.output", "terminal.state", "terminal.removed"}
             and event.data.get("id") == terminal_id
         ),
     )

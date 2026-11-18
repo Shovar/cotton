@@ -23,6 +23,7 @@ interface TerminalStore {
   setConnection: (connection: ConnectionStatus) => void;
   attach: (terminalId: string) => void;
   detach: (terminalId: string) => void;
+  remove: (terminalId: string) => void;
 }
 
 function decodeBase64(value: string): Uint8Array {
@@ -33,6 +34,12 @@ function keepLive<T>(entries: Record<string, T>, liveIds: Set<string>): Record<s
   return Object.fromEntries(
     Object.entries(entries).filter(([id]) => liveIds.has(id)),
   );
+}
+
+function withoutId<T>(entries: Record<string, T>, id: string): Record<string, T> {
+  const next = { ...entries };
+  delete next[id];
+  return next;
 }
 
 function appendOutput(
@@ -80,6 +87,8 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
       set((state) => ({
         records: { ...state.records, [event.data.spec.id]: event.data },
       }));
+    } else if (event.type === "terminal.removed") {
+      get().remove(event.data.id);
     } else if (event.type === "terminal.output") {
       set((state) => {
         const lastSequence = state.lastSequences[event.data.id] ?? 0;
@@ -138,5 +147,14 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
     if (wasVisible && get().connection === "open") {
       ws.send("terminal.detach", { id: terminalId });
     }
+  },
+  remove: (terminalId) => {
+    set((state) => ({
+      records: withoutId(state.records, terminalId),
+      lastSequences: withoutId(state.lastSequences, terminalId),
+      outputChunks: withoutId(state.outputChunks, terminalId),
+      outputBytes: withoutId(state.outputBytes, terminalId),
+      visibleAttachments: withoutId(state.visibleAttachments, terminalId),
+    }));
   },
 }));

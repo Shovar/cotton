@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from cotton.api.routes_terminals import create_router
 from cotton.app import create_app
 from cotton.services import Services
-from cotton.terminals.manager import TerminalManager
+from cotton.terminals.manager import TerminalManager, TerminalNotFound
 from cotton.terminals.ports import PtySession
 
 
@@ -79,6 +79,7 @@ def test_list_create_default_shell_and_close(
         terminal_id = created.json()["spec"]["id"]
         listed = client.get("/api/terminals", headers=auth_headers)
         closed = client.delete(f"/api/terminals/{terminal_id}", headers=auth_headers)
+        after_close = client.get("/api/terminals", headers=auth_headers)
 
     assert created.status_code == 201
     assert created.json()["spec"]["kind"] == "shell"
@@ -86,8 +87,10 @@ def test_list_create_default_shell_and_close(
     assert [record["spec"]["id"] for record in listed.json()] == [terminal_id]
     assert closed.status_code == 200
     assert closed.json()["state"] == "exited"
+    assert after_close.json() == []
     assert spawner.session.closed
-    assert manager.get(terminal_id).state.value == "exited"
+    with pytest.raises(TerminalNotFound):
+        manager.get(terminal_id)
 
 
 def test_command_string_uses_shlex_without_shell_evaluation(

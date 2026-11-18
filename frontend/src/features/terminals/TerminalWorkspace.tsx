@@ -6,32 +6,24 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import type { DockviewApi } from "dockview-react";
-
 import { Button } from "@/components/ui/button";
 
 import { ApiError, apiGet, apiSend } from "../../api/client";
 import type { TerminalRecord, ServerEvent } from "../../api/types";
 import { ws, type ConnectionStatus } from "../../api/ws";
 import { useStore } from "../../state/store";
-import {
-  TerminalGroup,
-  TerminalGroupLayout,
-  type TerminalGroupRecord,
-} from "./TerminalGroup";
-import { TerminalList } from "./TerminalList";
+import { TerminalGroup, type TerminalGroupRecord } from "./TerminalGroup";
+import { TerminalBody } from "./TerminalBody";
 import { useTerminalStore } from "./terminalStore";
 
 const DEFAULT_GROUP_ID = "default";
 const WORKSPACE_STORAGE_KEY = "cotton-terminal-workspace";
-type TerminalDockLayout = ReturnType<DockviewApi["toJSON"]>;
 
 interface TerminalWorkspaceState {
   groups: TerminalGroupRecord[];
   selectedGroupId: string;
   activeTerminalByGroup: Record<string, string | null>;
   minimizedIds: string[];
-  dockLayouts: Record<string, TerminalDockLayout>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,22 +40,12 @@ function isTerminalGroup(value: unknown): value is TerminalGroupRecord {
   );
 }
 
-function isDockviewLayout(value: unknown): value is TerminalDockLayout {
-  return (
-    isRecord(value) &&
-    isRecord(value.grid) &&
-    isRecord(value.grid.root) &&
-    isRecord(value.panels)
-  );
-}
-
 function createDefaultWorkspaceState(): TerminalWorkspaceState {
   return {
     groups: [{ id: DEFAULT_GROUP_ID, name: "Default", terminalIds: [] }],
     selectedGroupId: DEFAULT_GROUP_ID,
     activeTerminalByGroup: {},
     minimizedIds: [],
-    dockLayouts: {},
   };
 }
 
@@ -121,21 +103,12 @@ function readWorkspaceState(): TerminalWorkspaceState {
     const minimizedIds = Array.isArray(value.minimizedIds)
       ? [...new Set(value.minimizedIds.filter((id): id is string => typeof id === "string"))]
       : [];
-    const dockLayouts: Record<string, TerminalDockLayout> = {};
-    if (isRecord(value.dockLayouts)) {
-      for (const [groupId, layout] of Object.entries(value.dockLayouts)) {
-        if (groupIds.has(groupId) && isDockviewLayout(layout)) {
-          dockLayouts[groupId] = layout;
-        }
-      }
-    }
 
     return {
       groups,
       selectedGroupId,
       activeTerminalByGroup,
       minimizedIds,
-      dockLayouts,
     };
   } catch {
     return createDefaultWorkspaceState();
@@ -158,10 +131,7 @@ export function TerminalWorkspace() {
     initialWorkspaceState.activeTerminalByGroup,
   );
   const [minimizedIds, setMinimizedIds] = useState(initialWorkspaceState.minimizedIds);
-  const [dockLayouts, setDockLayouts] = useState(initialWorkspaceState.dockLayouts);
   const [sessionsReconciled, setSessionsReconciled] = useState(false);
-  const selectedId = activeTerminalByGroup[selectedGroupId] ?? null;
-  const dockApis = useRef(new Map<string, DockviewApi>());
   const attachedTerminalIds = useRef(new Set<string>());
   const reconciliationGeneration = useRef(0);
   const [command, setCommand] = useState("");
@@ -202,6 +172,31 @@ export function TerminalWorkspace() {
     [],
   );
 
+  const removeTerminal = useCallback((terminalId: string) => {
+    const store = useTerminalStore.getState();
+    store.detach(terminalId);
+    store.remove(terminalId);
+    attachedTerminalIds.current.delete(terminalId);
+    setGroups((current) =>
+      current.map((group) =>
+        group.terminalIds.includes(terminalId)
+          ? {
+              ...group,
+              terminalIds: group.terminalIds.filter((id) => id !== terminalId),
+            }
+          : group,
+      ),
+    );
+    setMinimizedIds((ids) => ids.filter((id) => id !== terminalId));
+    setActiveTerminalByGroup((current) =>
+      Object.values(current).includes(terminalId)
+        ? Object.fromEntries(
+            Object.entries(current).filter(([, id]) => id !== terminalId),
+          )
+        : current,
+    );
+  }, []);
+
   const reconcileSessions = useCallback(
     async (connection?: ConnectionStatus) => {
       const generation = ++reconciliationGeneration.current;
@@ -241,6 +236,8 @@ export function TerminalWorkspace() {
     const removeEventHandler = ws.onEvent((event: ServerEvent) => {
       if (event.type === "terminal.state") {
         addRecordsToGroups([event.data]);
+      } else if (event.type === "terminal.removed") {
+        removeTerminal(event.data.id);
       }
       useTerminalStore.getState().applyServerEvent(event);
     });
@@ -275,20 +272,39 @@ export function TerminalWorkspace() {
       removeEventHandler();
       removeStatusHandler();
     };
-  }, [addRecordsToGroups, reconcileSessions]);
+  }, [addRecordsToGroups, reconcileSessions, removeTerminal]);
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId);
   const minimizedSet = useMemo(() => new Set(minimizedIds), [minimizedIds]);
   const selectedGroupTerminalIds = useMemo(
-    () => selectedGroup?.terminalIds.filter((id) => !minimizedSet.has(id)) ?? [],
-    [minimizedSet, selectedGroup?.terminalIds],
+    () =>
+      selectedGroup?.terminalIds.filter(
+        (id) => records[id] && !minimizedSet.has(id),
+      ) ?? [],
+    [minimizedSet, records, selectedGroup?.terminalIds],
   );
+  const activeSelectedId = activeTerminalByGroup[selectedGroupId] ?? null;
+  const selectedId =
+    activeSelectedId && selectedGroupTerminalIds.includes(activeSelectedId)
+      ? activeSelectedId
+      : (selectedGroupTerminalIds[0] ?? null);
+  const attachedTargetIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const group of groups) {
+      for (const id of group.terminalIds) {
+        if (!minimizedSet.has(id)) {
+          ids.add(id);
+        }
+      }
+    }
+    return [...ids];
+  }, [groups, minimizedSet]);
 
   useEffect(() => {
     if (!sessionsReconciled) {
       return;
     }
-    const nextIds = new Set(selectedGroupTerminalIds);
+    const nextIds = new Set(attachedTargetIds);
     for (const id of attachedTerminalIds.current) {
       if (!nextIds.has(id)) {
         useTerminalStore.getState().detach(id);
@@ -300,7 +316,7 @@ export function TerminalWorkspace() {
       }
     }
     attachedTerminalIds.current = nextIds;
-  }, [selectedGroupId, selectedGroupTerminalIds, sessionsReconciled]);
+  }, [attachedTargetIds, sessionsReconciled]);
 
   useEffect(
     () => () => {
@@ -311,12 +327,12 @@ export function TerminalWorkspace() {
     [],
   );
 
-  const selectTerminal = (terminalId: string) => {
-    setActiveTerminalByGroup((current) => ({
-      ...current,
-      [selectedGroupId]: terminalId,
-    }));
-    dockApis.current.get(selectedGroupId)?.getPanel(terminalId)?.api.setActive();
+  const selectTerminal = (groupId: string, terminalId: string) => {
+    if (groupId !== selectedGroupId) {
+      selectedGroupIdRef.current = groupId;
+      setSelectedGroupId(groupId);
+    }
+    setActiveTerminalByGroup((current) => ({ ...current, [groupId]: terminalId }));
   };
 
   const selectGroup = (groupId: string) => {
@@ -345,11 +361,6 @@ export function TerminalWorkspace() {
     }
     const nextGroups = groups.filter((group) => group.id !== groupId);
     setGroups(nextGroups);
-    setDockLayouts((current) => {
-      const next = { ...current };
-      delete next[groupId];
-      return next;
-    });
     setActiveTerminalByGroup((current) => {
       const next = { ...current };
       delete next[groupId];
@@ -383,6 +394,13 @@ export function TerminalWorkspace() {
           : group;
       }),
     );
+    setActiveTerminalByGroup((current) => {
+      const next = { ...current, [targetGroupId]: terminalId };
+      if (next[source.id] === terminalId) {
+        delete next[source.id];
+      }
+      return next;
+    });
   };
 
   const createTerminal = async (terminalCommand?: string) => {
@@ -403,7 +421,7 @@ export function TerminalWorkspace() {
               : group.terminalIds.filter((id) => id !== record.spec.id),
         })),
       );
-      selectTerminal(record.spec.id);
+      selectTerminal(targetGroupId, record.spec.id);
       setError(null);
       setCommand("");
     } catch (caught) {
@@ -422,8 +440,8 @@ export function TerminalWorkspace() {
   const closeTerminal = async (record: TerminalRecord) => {
     const path = `/api/terminals/${encodeURIComponent(record.spec.id)}`;
     try {
-      const closed = await apiSend<TerminalRecord>("DELETE", path);
-      useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: closed });
+      await apiSend<TerminalRecord>("DELETE", path);
+      removeTerminal(record.spec.id);
       setError(null);
     } catch (caught) {
       if (
@@ -438,8 +456,8 @@ export function TerminalWorkspace() {
         return;
       }
       try {
-        const closed = await apiSend<TerminalRecord>("DELETE", `${path}?force=true`);
-        useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: closed });
+        await apiSend<TerminalRecord>("DELETE", `${path}?force=true`);
+        removeTerminal(record.spec.id);
         setError(null);
       } catch (retryError) {
         setError(errorMessage(retryError));
@@ -470,33 +488,6 @@ export function TerminalWorkspace() {
     }
   };
 
-  const groupRecords = (selectedGroup?.terminalIds ?? []).flatMap((id) =>
-    records[id] ? [records[id]] : [],
-  );
-  const minimizedRecords = minimizedIds.flatMap((id) =>
-    records[id] ? [records[id]] : [],
-  );
-  const updateLayout = useCallback((groupId: string, layout: TerminalDockLayout) => {
-    setDockLayouts((current) => ({ ...current, [groupId]: layout }));
-  }, []);
-  const updateActivePanel = useCallback((groupId: string, terminalId: string | null) => {
-    setActiveTerminalByGroup((current) =>
-      current[groupId] === terminalId
-        ? current
-        : { ...current, [groupId]: terminalId },
-    );
-  }, []);
-  const registerDockApi = useCallback(
-    (groupId: string, api: DockviewApi | null) => {
-      if (api) {
-        dockApis.current.set(groupId, api);
-      } else {
-        dockApis.current.delete(groupId);
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
     localStorage.setItem(
       WORKSPACE_STORAGE_KEY,
@@ -506,10 +497,9 @@ export function TerminalWorkspace() {
         selectedGroupId,
         activeTerminalByGroup,
         minimizedIds,
-        dockLayouts,
       }),
     );
-  }, [activeTerminalByGroup, dockLayouts, groups, minimizedIds, selectedGroupId]);
+  }, [activeTerminalByGroup, groups, minimizedIds, selectedGroupId]);
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3 p-3" aria-label="Terminal workspace">
@@ -558,52 +548,26 @@ export function TerminalWorkspace() {
         <TerminalGroup
           groups={groups}
           selectedGroupId={selectedGroupId}
+          records={records}
+          activeTerminalByGroup={activeTerminalByGroup}
+          minimizedIds={minimizedIds}
           onSelect={selectGroup}
           onCreate={createGroup}
           onRename={renameGroup}
           onDelete={deleteGroup}
+          onSelectTerminal={selectTerminal}
+          onRestoreTerminal={restoreTerminal}
+          onCloseTerminal={(record) => void closeTerminal(record)}
+          onMoveTerminal={moveTerminal}
         />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <TerminalList
-            records={groupRecords}
-            selectedId={selectedId}
-            groupId={selectedGroupId}
-            groups={groups}
-            onSelect={selectTerminal}
-            onClose={(record) => void closeTerminal(record)}
-            onMove={moveTerminal}
-          />
-          {minimizedRecords.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2" aria-label="Minimized terminals">
-              <span className="text-sm text-muted-foreground">Minimized</span>
-              {minimizedRecords.map((record) => (
-                <Button
-                  key={record.spec.id}
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => restoreTerminal(record.spec.id)}
-                >
-                  Restore {record.spec.id}
-                </Button>
-              ))}
-            </div>
-          )}
-          <div className="relative min-h-0 min-w-0 flex-1">
-            {groups.map((group) => (
-              <TerminalGroupLayout
-                key={group.id}
-                groupId={group.id}
-                terminalIds={group.terminalIds.filter((id) => !minimizedSet.has(id))}
-                isActive={group.id === selectedGroupId}
-                initialLayout={dockLayouts[group.id] ?? null}
-                onActivePanelChange={updateActivePanel}
-                onApi={registerDockApi}
-                onLayoutChange={updateLayout}
-              />
-            ))}
-          </div>
-        </div>
+        <TerminalBody
+          groups={groups}
+          selectedGroupId={selectedGroupId}
+          records={records}
+          activeTerminalByGroup={activeTerminalByGroup}
+          minimizedIds={minimizedIds}
+          onSelect={(terminalId) => selectTerminal(selectedGroupId, terminalId)}
+        />
       </div>
     </section>
   );

@@ -217,6 +217,24 @@ def test_terminals_subscription_backfills_known_sessions(services: Services) -> 
     assert state == {"type": "terminal.state", "data": record.to_dict()}
 
 
+def test_terminals_subscription_announces_removed_sessions(services: Services) -> None:
+    manager, client = build_terminal(services, FakePtySession())
+    with client:
+        record = client.portal.call(manager.start, ["command"])
+        with client.websocket_connect(
+            f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
+        ) as websocket:
+            websocket.send_json({"type": "subscribe", "channels": ["terminals"]})
+            websocket.receive_json()
+            client.portal.call(manager.discard, record.spec.id)
+            removed = websocket.receive_json()
+
+    assert removed == {
+        "type": "terminal.removed",
+        "data": {"id": record.spec.id},
+    }
+
+
 def test_terminal_session_requires_attach_instead_of_direct_subscription(
     services: Services,
 ) -> None:
