@@ -8,7 +8,9 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from cotton.channels import Channel, ChannelRegistry
 from cotton.errors import ApiError
+from cotton.events import Event
 from cotton.terminals.manager import TerminalBusy, TerminalManager, TerminalNotFound
 
 _ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -49,6 +51,36 @@ def create_router(manager: TerminalManager) -> APIRouter:
         return record.to_dict()
 
     return router
+
+
+def register_terminal_channels(registry: ChannelRegistry, manager: TerminalManager) -> None:
+    async def initial() -> list[Event]:
+        return [Event("terminal.state", record.to_dict()) for record in manager.list()]
+
+    registry.register(
+        Channel(
+            "terminals",
+            matches=lambda event: event.type == "terminal.state",
+            initial=initial,
+        )
+    )
+    registry.register_family("terminal:", lambda name: _terminal_channel(manager, name))
+
+
+def _terminal_channel(manager: TerminalManager, name: str) -> Channel | None:
+    terminal_id = name.removeprefix("terminal:")
+    try:
+        manager.get(terminal_id)
+    except TerminalNotFound:
+        return None
+
+    return Channel(
+        name,
+        matches=lambda event: (
+            event.type in {"terminal.output", "terminal.state"}
+            and event.data.get("id") == terminal_id
+        ),
+    )
 
 
 def _command_argv(command: str | list[str] | None) -> list[str] | None:

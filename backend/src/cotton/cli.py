@@ -84,6 +84,7 @@ def build_services(
     terminal_manager = TerminalManager(bus, PosixPtySpawner())
     services.terminal_manager = terminal_manager
     services.routers.append(routes_terminals.create_router(terminal_manager))
+    routes_terminals.register_terminal_channels(services.channels, terminal_manager)
     services.shutdown.append(terminal_manager.shutdown)
 
     plugins = PluginManager(

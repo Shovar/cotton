@@ -156,6 +156,7 @@
 **Files:**
 - Modify: `backend/src/cotton/api/ws.py`
 - Modify: `backend/src/cotton/api/routes_terminals.py`
+- Modify: `backend/src/cotton/cli.py`
 - Test: `backend/tests/test_terminal_ws.py`
 - Modify: `docs/contracts/api.md`
 

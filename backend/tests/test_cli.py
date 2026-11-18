@@ -64,6 +64,7 @@ def test_build_services_uses_cotton_data_directories(
     assert any(
         route.path == "/api/terminals" for router in services.routers for route in router.routes
     )
+    assert services.channels.get("terminals") is not None
 
 
 def test_default_origins_cover_loopback_and_extra() -> None:

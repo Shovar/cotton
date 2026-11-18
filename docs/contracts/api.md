@@ -288,7 +288,26 @@ invalid.
   ```json
   { "type": "error", "data": { "code": "unknown_channel", "message": "Unknown channel: foo" } }
   ```
-- Other message types receive `{"type":"error","data":{"code":"unsupported_message","message":"..."}}`.
+- A `terminal:<id>` channel can only be joined with `terminal.attach`; direct
+  subscription returns `terminal_attach_required`.
+
+### Client messages: terminal control
+
+```json
+{ "type": "terminal.attach", "data": { "id": "t_0123456789abcdef", "after_sequence": 12 } }
+{ "type": "terminal.detach", "data": { "id": "t_0123456789abcdef" } }
+{ "type": "terminal.input", "data": { "id": "t_0123456789abcdef", "data": "aGVsbG8=" } }
+{ "type": "terminal.resize", "data": { "id": "t_0123456789abcdef", "cols": 120, "rows": 40 } }
+```
+
+Attach sends the current `terminal.state`, then replays retained output whose
+sequence is greater than `after_sequence`, and subscribes the client to live
+output. Detach unsubscribes output without stopping the PTY. Input is strict
+base64; resize dimensions must be integers from 1 through 1000. Terminal
+control is accepted only after attachment. Errors use the standard `error`
+message with codes including `terminal_not_found`, `terminal_not_attached`,
+`terminal_not_running`, `invalid_terminal_payload`, and `terminal_io_error`.
+Other unsupported message types receive `unsupported_message`.
 
 ### Server messages
 
@@ -315,7 +334,7 @@ Every server message has `{ "type": string, "data": object }`.
 | `logs:<id>` | `process.log` events whose `data.id` equals `<id>` | Last 200 log lines for that process |
 | `plugins` | `plugin.state` | One `plugin.state` per known plugin |
 | `terminals` | `terminal.state` | One `terminal.state` per known terminal |
-| `terminal:<id>` | `terminal.output`, `terminal.state` | Output after the requested sequence when attached |
+| `terminal:<id>` | `terminal.output`, `terminal.state` | Joined by `terminal.attach`; output newer than the requested sequence |
 | `test` | test channel only | Registered by tests, never in production |
 
 Log events for processes the client has not subscribed to are never sent.
@@ -323,11 +342,9 @@ Feature files own their channels: `02-ros-discovery` registers `graph`;
 `03-processes` registers `processes` and `logs:<id>`; `04-plugins` registers
 `plugins`.
 
-Terminal clients send `terminal.attach` with an `id` and `after_sequence`,
-`terminal.detach` with an `id`, `terminal.input` with base64 `data`, and
-`terminal.resize` with positive `cols` and `rows`. Output sequence numbers
-increase per session. Attaching replays retained output newer than
-`after_sequence`; detaching never stops the PTY.
+Terminal output sequence numbers increase per session. A transient frontend
+disconnect does not stop the PTY; reconnecting clients attach and replay from
+their last received sequence.
 
 ## 6. SPA serving
 
