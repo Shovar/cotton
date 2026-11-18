@@ -59,6 +59,11 @@ class FakePtySession:
         return self._exit_code
 
 
+class PermissionDeniedPtySession(FakePtySession):
+    async def close(self) -> int:
+        raise PermissionError("operation not permitted")
+
+
 class FakePtySpawner:
     def __init__(
         self,
@@ -104,6 +109,26 @@ async def test_default_start_uses_shell_and_inherits_environment(tmp_path: Path)
     assert record.spec.cwd == tmp_path
     assert record.spec.env["PATH"] == os.environ["PATH"]
     assert spawner.calls[0][0] == record.spec.argv
+
+
+async def test_shutdown_continues_after_terminal_close_permission_error(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    spawner = FakePtySpawner(
+        sessions=[
+            PermissionDeniedPtySession(wait_for_close=True),
+            FakePtySession(wait_for_close=True),
+        ]
+    )
+    manager = TerminalManager(EventBus(), spawner)
+    failed = await manager.start(["python", "-c", "pass"], cwd=tmp_path)
+    closed = await manager.start(["python", "-c", "pass"], cwd=tmp_path)
+
+    await manager.shutdown()
+
+    assert manager.get(failed.spec.id).state is TerminalState.FAILED
+    assert manager.get(closed.spec.id).state is TerminalState.EXITED
+    assert "Failed to close terminal" in caplog.text
 
 
 async def test_command_start_preserves_argv_and_environment_overrides(

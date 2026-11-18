@@ -42,6 +42,11 @@ class FakePtySession:
         return 0
 
 
+class PermissionDeniedPtySession(FakePtySession):
+    async def close(self) -> int:
+        raise PermissionError("operation not permitted")
+
+
 class FakePtySpawner:
     def __init__(self, wait_for_close: bool = False) -> None:
         self.session = FakePtySession(wait_for_close)
@@ -177,3 +182,30 @@ def test_unknown_terminal_delete_returns_not_found(
 
     assert response.status_code == 404
     assert response.json()["code"] == "terminal_not_found"
+
+
+def test_close_permission_error_is_reported_and_marks_terminal_failed(
+    services: Services, auth_headers: dict[str, str]
+) -> None:
+    spawner = FakePtySpawner()
+    spawner.session = PermissionDeniedPtySession()
+    manager, client = build_client(services, spawner)
+    with client:
+        created = client.post(
+            "/api/terminals",
+            json={"command": ["python", "-c", "pass"]},
+            headers=auth_headers,
+        )
+        terminal_id = created.json()["spec"]["id"]
+        response = client.delete(
+            f"/api/terminals/{terminal_id}?force=true",
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "terminal_close_failed",
+        "message": "operation not permitted",
+    }
+    assert manager.get(terminal_id).state.value == "failed"
+    assert manager.get(terminal_id).error == "operation not permitted"

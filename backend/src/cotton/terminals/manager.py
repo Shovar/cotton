@@ -4,6 +4,7 @@ import asyncio
 import base64
 import builtins
 import contextlib
+import logging
 import os
 import uuid
 from collections import deque
@@ -22,6 +23,8 @@ from cotton.terminals.models import (
 )
 from cotton.terminals.ports import PtySession, PtySpawner
 
+_log = logging.getLogger(__name__)
+
 
 class TerminalNotFound(RuntimeError):
     """No terminal session is known under this id."""
@@ -29,6 +32,10 @@ class TerminalNotFound(RuntimeError):
 
 class TerminalBusy(RuntimeError):
     """A terminal has an active foreground command."""
+
+
+class TerminalCloseFailed(RuntimeError):
+    """A terminal process could not be fully terminated."""
 
 
 class TerminalManager:
@@ -143,7 +150,15 @@ class TerminalManager:
             reader.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await reader
-        exit_code = await session.close()
+        try:
+            exit_code = await session.close()
+        except PermissionError as exc:
+            self._sessions.pop(terminal_id, None)
+            self._readers.pop(terminal_id, None)
+            record = replace(record, state=TerminalState.FAILED, error=str(exc))
+            self._records[terminal_id] = record
+            await self._publish_state(record)
+            raise TerminalCloseFailed(str(exc)) from exc
         self._sessions.pop(terminal_id, None)
         self._readers.pop(terminal_id, None)
         record = replace(record, state=TerminalState.EXITED, exit_code=exit_code)
@@ -153,7 +168,10 @@ class TerminalManager:
 
     async def shutdown(self) -> None:
         for terminal_id in reversed(tuple(self._sessions)):
-            await self.close(terminal_id, force=True)
+            try:
+                await self.close(terminal_id, force=True)
+            except TerminalCloseFailed as exc:
+                _log.warning("Failed to close terminal %s during shutdown: %s", terminal_id, exc)
 
     def _session_for_control(self, terminal_id: str) -> PtySession:
         record = self.get(terminal_id)

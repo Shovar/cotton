@@ -53,6 +53,7 @@ Every non-2xx JSON response has exactly this shape:
 | 409 | `profile_start_failed` | A profile process failed; already started processes were stopped |
 | 409 | `plugin_error` | Plugin activation or healthcheck failed |
 | 409 | `terminal_busy` | A terminal session has an active command and requires confirmation to close |
+| 409 | `terminal_close_failed` | The operating system denied permission to terminate a terminal process group |
 | 422 | `validation_error` | Request body or path failed validation |
 | 500 | `internal_error` | Unexpected server error; details are not leaked |
 
@@ -252,7 +253,7 @@ otherwise.
 | DELETE | `/api/plugins/{name}/activate` | 200 | Stopped `PluginRecord`; 404 `plugin_not_found` |
 | GET | `/api/terminals` | 200 | `TerminalRecord[]` |
 | POST | `/api/terminals` | 201 | Body `{"command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell; 422 `validation_error` |
-| DELETE | `/api/terminals/{id}?force=false` | 200 | Closed `TerminalRecord`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true` |
+| DELETE | `/api/terminals/{id}?force=false` | 200 | Closed `TerminalRecord`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true`, or `terminal_close_failed` if the OS denies termination |
 
 Read-only requests are safe to retry. `POST /api/processes` and
 `POST /api/profiles/{id}/start` are not idempotent.

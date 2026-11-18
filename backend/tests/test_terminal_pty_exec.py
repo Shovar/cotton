@@ -9,8 +9,43 @@ from pathlib import Path
 
 import pytest
 
-from cotton.terminals.posix import PosixPtySpawner
+from cotton.terminals.posix import PosixPtySession, PosixPtySpawner
 from cotton.terminals.pty_exec import main
+
+
+async def test_close_attempts_every_group_after_permission_is_denied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeProcess:
+        pid = 4242
+
+        async def wait(self) -> int:
+            return 0
+
+    master_fd, slave_fd = os.openpty()
+    os.close(slave_fd)
+    session = PosixPtySession(FakeProcess(), master_fd)  # type: ignore[arg-type]
+    signalled: list[tuple[int, int]] = []
+
+    def signal_group(pgid: int, sig: int) -> None:
+        signalled.append((pgid, sig))
+        if pgid == 4243 and sig == signal.SIGKILL:
+            raise PermissionError("operation not permitted")
+
+    async def groups_are_gone(_pgids: set[int], *, timeout: float) -> bool:
+        return False
+
+    monkeypatch.setattr("cotton.terminals.posix.os.tcgetpgrp", lambda _fd: 4243)
+    monkeypatch.setattr("cotton.terminals.posix._signal_group", signal_group)
+    monkeypatch.setattr("cotton.terminals.posix._wait_for_groups_exit", groups_are_gone)
+
+    with pytest.raises(PermissionError, match="4243"):
+        await session.close()
+
+    assert {(pgid, sig) for pgid, sig in signalled if sig == signal.SIGKILL} == {
+        (4242, signal.SIGKILL),
+        (4243, signal.SIGKILL),
+    }
 
 
 @pytest.mark.integration

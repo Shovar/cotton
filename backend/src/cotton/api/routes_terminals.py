@@ -11,7 +11,12 @@ from pydantic import BaseModel, Field
 from cotton.channels import Channel, ChannelRegistry
 from cotton.errors import ApiError
 from cotton.events import Event
-from cotton.terminals.manager import TerminalBusy, TerminalManager, TerminalNotFound
+from cotton.terminals.manager import (
+    TerminalBusy,
+    TerminalCloseFailed,
+    TerminalManager,
+    TerminalNotFound,
+)
 
 _ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -48,6 +53,8 @@ def create_router(manager: TerminalManager) -> APIRouter:
             raise ApiError(404, "terminal_not_found", str(exc)) from exc
         except TerminalBusy as exc:
             raise ApiError(409, "terminal_busy", str(exc)) from exc
+        except TerminalCloseFailed as exc:
+            raise ApiError(409, "terminal_close_failed", str(exc)) from exc
         return record.to_dict()
 
     return router

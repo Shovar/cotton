@@ -96,11 +96,23 @@ class PosixPtySession:
             except OSError:
                 pass
             for pgid in process_groups:
-                _signal_group(pgid, signal.SIGHUP)
+                try:
+                    _signal_group(pgid, signal.SIGHUP)
+                except PermissionError:
+                    pass
             if not await _wait_for_groups_exit(process_groups, timeout=3):
+                permission_denied: set[int] = set()
                 for pgid in process_groups:
-                    _signal_group(pgid, signal.SIGKILL)
-                await _wait_for_groups_exit(process_groups, timeout=1)
+                    try:
+                        _signal_group(pgid, signal.SIGKILL)
+                    except PermissionError:
+                        permission_denied.add(pgid)
+                if not await _wait_for_groups_exit(process_groups, timeout=1):
+                    if permission_denied:
+                        pgids = ", ".join(str(pgid) for pgid in sorted(permission_denied))
+                        raise PermissionError(
+                            f"permission denied while terminating process group(s): {pgids}"
+                        )
             return await self._process.wait()
         finally:
             os.close(self._master_fd)

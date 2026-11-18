@@ -327,3 +327,27 @@
 - [x] **Step 3: Run frontend gates:** `npm run lint`, `npm run typecheck`, `npm test -- --coverage`, and `npm run build`.
 - [x] **Step 4: Confirm the diff contains terminal workspace changes and all acceptance criteria pass.**
 - [x] **Step 5: Confirm task-level commits are present; Tasks 1–15 already committed the feature.**
+
+### Task 17 (10 min): Handle denied process-group termination
+
+**Files:**
+- Modify: `backend/src/cotton/terminals/posix.py`
+- Modify: `backend/src/cotton/terminals/manager.py`
+- Modify: `backend/src/cotton/api/routes_terminals.py`
+- Test: `backend/tests/test_terminal_pty_exec.py`
+- Test: `backend/tests/test_terminal_api.py`
+- Test: `backend/tests/test_terminal_manager.py`
+- Modify: `docs/contracts/api.md`
+
+- [x] A denied signal does not prevent attempts to terminate other process groups.
+- [x] Failed termination marks the terminal failed and returns `terminal_close_failed`.
+- [x] Add regression coverage for PTY signaling, manager shutdown, and the REST response.
+
+### Task 18 (5 min): Stop cleanly after external ROS shutdown
+
+**Files:**
+- Modify: `backend/src/cotton/ros/thread.py`
+- Test: `backend/tests/test_ros_thread.py`
+
+- [x] Treat `ExternalShutdownException` as a request to stop the ROS spin loop.
+- [x] Add regression coverage without requiring a live ROS context.
