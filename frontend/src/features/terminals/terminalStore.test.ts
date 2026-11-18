@@ -47,7 +47,7 @@ describe("terminal store", () => {
     const state = useTerminalStore.getState();
     expect(state.records.t1).toEqual(record);
     expect(state.lastSequences.t1).toBe(1);
-    expect([...state.outputChunks.t1[0]]).toEqual([104, 101, 108, 108, 111]);
+    expect([...state.outputChunks.t1[0].data]).toEqual([104, 101, 108, 108, 111]);
   });
 
   it("ignores duplicate terminal output sequences", () => {
@@ -76,8 +76,8 @@ describe("terminal store", () => {
     });
 
     let chunks = useTerminalStore.getState().outputChunks.t1;
-    expect(chunks.map((chunk) => chunk.byteLength)).toEqual([25_536, 40_000]);
-    expect(chunks.reduce((size, chunk) => size + chunk.byteLength, 0)).toBe(65_536);
+    expect(chunks.map((chunk) => chunk.data.byteLength)).toEqual([25_536, 40_000]);
+    expect(chunks.reduce((size, chunk) => size + chunk.data.byteLength, 0)).toBe(65_536);
 
     store.applyServerEvent({
       type: "terminal.output",
@@ -85,8 +85,8 @@ describe("terminal store", () => {
     });
     chunks = useTerminalStore.getState().outputChunks.t1;
     expect(chunks).toHaveLength(1);
-    expect(chunks[0].byteLength).toBe(65_536);
-    expect(chunks[0][0]).toBe("z".charCodeAt(0));
+    expect(chunks[0].data.byteLength).toBe(65_536);
+    expect(chunks[0].data[0]).toBe("z".charCodeAt(0));
   });
 
   it("reattaches visible terminals from their last sequence after reconnect", () => {

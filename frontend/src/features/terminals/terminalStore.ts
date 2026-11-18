@@ -6,10 +6,15 @@ import { ws } from "../../api/ws";
 
 const OUTPUT_LIMIT = 65_536;
 
+export interface TerminalOutputChunk {
+  sequence: number;
+  data: Uint8Array;
+}
+
 interface TerminalStore {
   records: Record<string, TerminalRecord>;
   lastSequences: Record<string, number>;
-  outputChunks: Record<string, Uint8Array[]>;
+  outputChunks: Record<string, TerminalOutputChunk[]>;
   outputBytes: Record<string, number>;
   visibleAttachments: Record<string, true>;
   connection: ConnectionStatus;
@@ -24,21 +29,22 @@ function decodeBase64(value: string): Uint8Array {
 }
 
 function appendOutput(
-  existing: Uint8Array[],
+  existing: TerminalOutputChunk[],
   existingBytes: number,
   chunk: Uint8Array,
-): { chunks: Uint8Array[]; bytes: number } {
-  const chunks = [...existing, chunk];
+  sequence: number,
+): { chunks: TerminalOutputChunk[]; bytes: number } {
+  const chunks = [...existing, { sequence, data: chunk }];
   let bytes = existingBytes + chunk.byteLength;
   let first = 0;
   while (bytes > OUTPUT_LIMIT && first < chunks.length) {
     const excess = bytes - OUTPUT_LIMIT;
     const oldest = chunks[first];
-    if (oldest.byteLength <= excess) {
-      bytes -= oldest.byteLength;
+    if (oldest.data.byteLength <= excess) {
+      bytes -= oldest.data.byteLength;
       first += 1;
     } else {
-      chunks[first] = oldest.slice(excess);
+      chunks[first] = { ...oldest, data: oldest.data.slice(excess) };
       bytes -= excess;
     }
   }
@@ -68,6 +74,7 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
           state.outputChunks[event.data.id] ?? [],
           state.outputBytes[event.data.id] ?? 0,
           chunk,
+          event.data.sequence,
         );
         return {
           lastSequences: {
