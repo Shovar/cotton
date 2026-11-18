@@ -4,6 +4,7 @@ import asyncio
 import errno
 import fcntl
 import os
+import signal
 import struct
 import sys
 import termios
@@ -87,15 +88,11 @@ class PosixPtySession:
             return await self._process.wait()
         self._closed = True
         try:
-            try:
-                return await asyncio.wait_for(self._process.wait(), timeout=0.5)
-            except TimeoutError:
-                self._process.terminate()
-                try:
-                    return await asyncio.wait_for(self._process.wait(), timeout=0.5)
-                except TimeoutError:
-                    self._process.kill()
-                    return await self._process.wait()
+            _signal_group(self.pid, signal.SIGHUP)
+            if not await _wait_for_group_exit(self.pid, timeout=3):
+                _signal_group(self.pid, signal.SIGKILL)
+                await _wait_for_group_exit(self.pid, timeout=1)
+            return await self._process.wait()
         finally:
             os.close(self._master_fd)
 
@@ -114,3 +111,30 @@ async def _wait_for_fd(fd: int, *, writable: bool) -> None:
 
 def _set_window_size(fd: int, cols: int, rows: int) -> None:
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+
+
+async def _wait_for_group_exit(pgid: int, timeout: float) -> bool:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while _group_alive(pgid):
+        if loop.time() >= deadline:
+            return False
+        await asyncio.sleep(0.02)
+    return True
+
+
+def _group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _signal_group(pgid: int, sig: int) -> None:
+    try:
+        os.killpg(pgid, sig)
+    except ProcessLookupError:
+        pass

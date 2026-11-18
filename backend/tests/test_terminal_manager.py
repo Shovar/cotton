@@ -9,37 +9,64 @@ from pathlib import Path
 import pytest
 
 from cotton.events import Event, EventBus
-from cotton.terminals.manager import TerminalManager
+from cotton.terminals.manager import TerminalBusy, TerminalManager, TerminalNotFound
 from cotton.terminals.models import TerminalChunk, TerminalState
 from cotton.terminals.ports import PtySession
 
 
 class FakePtySession:
-    def __init__(self, chunks: Sequence[bytes] = (), exit_code: int = 0) -> None:
+    def __init__(
+        self,
+        chunks: Sequence[bytes] = (),
+        exit_code: int = 0,
+        wait_for_close: bool = False,
+        foreground_job: bool = False,
+        foreground_error: bool = False,
+    ) -> None:
         self.pid = 4242
         self._chunks = list(chunks)
         self._exit_code = exit_code
+        self._wait_for_close = wait_for_close
+        self._foreground_job = foreground_job
+        self._foreground_error = foreground_error
+        self._closed = asyncio.Event()
+        self.closed = False
+        self.writes: list[bytes] = []
+        self.resizes: list[tuple[int, int]] = []
 
     async def read(self) -> bytes | None:
         await asyncio.sleep(0)
-        return self._chunks.pop(0) if self._chunks else None
+        if self._chunks:
+            return self._chunks.pop(0)
+        if self._wait_for_close and not self.closed:
+            await self._closed.wait()
+        return None
 
     async def write(self, data: bytes) -> None:
-        pass
+        self.writes.append(data)
 
     async def resize(self, cols: int, rows: int) -> None:
-        pass
+        self.resizes.append((cols, rows))
 
     def has_foreground_job(self) -> bool:
-        return False
+        if self._foreground_error:
+            raise OSError("foreground process group is unavailable")
+        return self._foreground_job
 
     async def close(self) -> int:
+        self.closed = True
+        self._closed.set()
         return self._exit_code
 
 
 class FakePtySpawner:
-    def __init__(self, session: PtySession | None = None, error: OSError | None = None) -> None:
-        self.session = session or FakePtySession()
+    def __init__(
+        self,
+        session: PtySession | None = None,
+        error: OSError | None = None,
+        sessions: Sequence[PtySession] | None = None,
+    ) -> None:
+        self.sessions = list(sessions) if sessions is not None else [session or FakePtySession()]
         self.error = error
         self.calls: list[tuple[tuple[str, ...], Path, dict[str, str]]] = []
 
@@ -47,7 +74,7 @@ class FakePtySpawner:
         self.calls.append((tuple(argv), cwd, dict(env)))
         if self.error is not None:
             raise self.error
-        return self.session
+        return self.sessions.pop(0)
 
 
 async def wait_for_exit(manager: TerminalManager, terminal_id: str) -> None:
@@ -162,3 +189,102 @@ async def test_output_buffer_keeps_newest_suffix_of_oversized_chunk() -> None:
     assert sum(len(chunk.data) for chunk in retained) == 65536
     assert b"".join(chunk.data for chunk in retained) == (output + b"!")[-65536:]
     assert manager.output_since(record.spec.id, 2) == []
+
+
+async def test_input_and_resize_are_forwarded_to_the_pty() -> None:
+    session = FakePtySession(wait_for_close=True)
+    manager = TerminalManager(EventBus(), FakePtySpawner(session))
+    record = await manager.start()
+
+    await manager.write_input(record.spec.id, b"hello")
+    await manager.resize(record.spec.id, 81, 25)
+    await manager.close(record.spec.id, force=True)
+
+    assert session.writes == [b"hello"]
+    assert session.resizes == [(81, 25)]
+
+
+@pytest.mark.parametrize(("cols", "rows"), [(0, 24), (1001, 24), (80, 0), (80, 1001)])
+async def test_resize_rejects_dimensions_outside_supported_range(cols: int, rows: int) -> None:
+    session = FakePtySession(wait_for_close=True)
+    manager = TerminalManager(EventBus(), FakePtySpawner(session))
+    record = await manager.start()
+
+    with pytest.raises(ValueError):
+        await manager.resize(record.spec.id, cols, rows)
+
+    await manager.close(record.spec.id, force=True)
+
+
+async def test_unknown_terminal_ids_are_rejected_for_control_operations() -> None:
+    manager = TerminalManager(EventBus(), FakePtySpawner())
+
+    with pytest.raises(TerminalNotFound):
+        await manager.write_input("missing", b"x")
+    with pytest.raises(TerminalNotFound):
+        await manager.resize("missing", 80, 24)
+    with pytest.raises(TerminalNotFound):
+        manager.has_foreground_job("missing")
+    with pytest.raises(TerminalNotFound):
+        await manager.close("missing")
+
+
+async def test_idle_shell_can_close_without_confirmation() -> None:
+    session = FakePtySession(wait_for_close=True)
+    manager = TerminalManager(EventBus(), FakePtySpawner(session))
+    record = await manager.start()
+
+    closed = await manager.close(record.spec.id)
+
+    assert closed.state is TerminalState.EXITED
+    assert session.closed
+
+
+async def test_active_command_requires_force_before_close() -> None:
+    session = FakePtySession(wait_for_close=True)
+    manager = TerminalManager(EventBus(), FakePtySpawner(session))
+    record = await manager.start(["command"])
+
+    with pytest.raises(TerminalBusy):
+        await manager.close(record.spec.id)
+    assert not session.closed
+
+    closed = await manager.close(record.spec.id, force=True)
+
+    assert closed.state is TerminalState.EXITED
+    assert session.closed
+
+
+@pytest.mark.parametrize(
+    ("foreground_job", "foreground_error"),
+    [(True, False), (False, True)],
+)
+async def test_shell_with_foreground_job_or_unknown_status_requires_force(
+    foreground_job: bool, foreground_error: bool
+) -> None:
+    session = FakePtySession(
+        wait_for_close=True,
+        foreground_job=foreground_job,
+        foreground_error=foreground_error,
+    )
+    manager = TerminalManager(EventBus(), FakePtySpawner(session))
+    record = await manager.start()
+
+    with pytest.raises(TerminalBusy):
+        await manager.close(record.spec.id)
+
+    await manager.close(record.spec.id, force=True)
+
+
+async def test_shutdown_stops_every_live_session() -> None:
+    sessions = [
+        FakePtySession(wait_for_close=True),
+        FakePtySession(wait_for_close=True),
+    ]
+    manager = TerminalManager(EventBus(), FakePtySpawner(sessions=sessions))
+    records = [await manager.start(), await manager.start()]
+
+    await manager.shutdown()
+
+    assert all(session.closed for session in sessions)
+    assert all(manager.get(record.spec.id).state is TerminalState.EXITED for record in records)

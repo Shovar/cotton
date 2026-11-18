@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import builtins
+import contextlib
 import os
 import uuid
 from collections import deque
@@ -24,6 +25,10 @@ from cotton.terminals.ports import PtySession, PtySpawner
 
 class TerminalNotFound(RuntimeError):
     """No terminal session is known under this id."""
+
+
+class TerminalBusy(RuntimeError):
+    """A terminal has an active foreground command."""
 
 
 class TerminalManager:
@@ -105,6 +110,68 @@ class TerminalManager:
         self.get(terminal_id)
         return [chunk for chunk in self._chunks[terminal_id] if chunk.sequence > sequence]
 
+    async def write_input(self, terminal_id: str, data: bytes) -> None:
+        await self._session_for_control(terminal_id).write(data)
+
+    async def resize(self, terminal_id: str, cols: int, rows: int) -> None:
+        if not 1 <= cols <= 1000 or not 1 <= rows <= 1000:
+            raise ValueError("terminal dimensions must be between 1 and 1000")
+        await self._session_for_control(terminal_id).resize(cols, rows)
+
+    def has_foreground_job(self, terminal_id: str) -> bool:
+        record = self.get(terminal_id)
+        if record.state is not TerminalState.RUNNING or record.spec.kind != "shell":
+            return False
+        session = self._sessions.get(terminal_id)
+        if session is None:
+            return False
+        try:
+            return session.has_foreground_job()
+        except (NotImplementedError, OSError):
+            return True
+
+    async def close(self, terminal_id: str, force: bool = False) -> TerminalRecord:
+        record = self.get(terminal_id)
+        session = self._sessions.get(terminal_id)
+        if session is None:
+            return record
+        if not force and self._is_busy(record, session):
+            raise TerminalBusy(f"terminal {terminal_id} has an active command")
+
+        reader = self._readers.get(terminal_id)
+        if reader is not None and not reader.done():
+            reader.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reader
+        exit_code = await session.close()
+        self._sessions.pop(terminal_id, None)
+        self._readers.pop(terminal_id, None)
+        record = replace(record, state=TerminalState.EXITED, exit_code=exit_code)
+        self._records[terminal_id] = record
+        await self._publish_state(record)
+        return record
+
+    async def shutdown(self) -> None:
+        for terminal_id in reversed(tuple(self._sessions)):
+            await self.close(terminal_id, force=True)
+
+    def _session_for_control(self, terminal_id: str) -> PtySession:
+        record = self.get(terminal_id)
+        session = self._sessions.get(terminal_id)
+        if record.state is not TerminalState.RUNNING or session is None:
+            raise RuntimeError(f"terminal {terminal_id} is not running")
+        return session
+
+    def _is_busy(self, record: TerminalRecord, session: PtySession) -> bool:
+        if record.state is not TerminalState.RUNNING:
+            return False
+        if record.spec.kind == "command":
+            return True
+        try:
+            return session.has_foreground_job()
+        except (NotImplementedError, OSError):
+            return True
+
     async def _read_output(self, terminal_id: str, session: PtySession) -> None:
         try:
             while True:
@@ -132,6 +199,8 @@ class TerminalManager:
             self._records[terminal_id] = record
             await self._publish_state(record)
             await session.close()
+            self._sessions.pop(terminal_id, None)
+            self._readers.pop(terminal_id, None)
             return
 
         record = replace(
@@ -141,6 +210,8 @@ class TerminalManager:
         )
         self._records[terminal_id] = record
         await self._publish_state(record)
+        self._sessions.pop(terminal_id, None)
+        self._readers.pop(terminal_id, None)
 
     def _retain_output(self, terminal_id: str, data: bytes) -> TerminalChunk:
         sequence = self._sequences[terminal_id] + 1
