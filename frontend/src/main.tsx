@@ -13,6 +13,7 @@ import "./layout/shellPanels";
 import "./features/graph/register";
 import "./features/plugins/register";
 import "./features/processes/register";
+import "./features/terminals/register";
 import { applyTheme, loadPreferences } from "./state/preferences";
 
 const { hash } = readTokenFromHash(window.location.hash);
