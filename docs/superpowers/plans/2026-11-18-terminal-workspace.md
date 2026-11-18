@@ -275,10 +275,10 @@
 - Minimize removes a panel from the visible dock layout without calling the delete API; restore uses the same session ID.
 - Persist group names, membership, minimized IDs, and dockview layouts under one terminal feature `localStorage` key.
 
-- [ ] **Step 1: Write failing tests** for minimize-without-stop, restoring the same session, reload persistence, and stale-ID cleanup.
-- [ ] **Step 2: Run the focused Vitest test** and confirm minimize/layout state is not preserved.
-- [ ] **Step 3: Implement minimize/restore and feature-owned `localStorage` serialization**.
-- [ ] **Step 4: Run the tests** and verify minimizing never calls `DELETE /api/terminals/{id}`.
+- [x] **Step 1: Write failing tests** for minimize-without-stop, restoring the same session, reload persistence, and stale-ID cleanup.
+- [x] **Step 2: Run the focused Vitest test** and confirm minimize/layout state is not preserved.
+- [x] **Step 3: Implement minimize/restore and feature-owned `localStorage` serialization**.
+- [x] **Step 4: Run the tests** and verify minimizing never calls `DELETE /api/terminals/{id}`.
 - [ ] **Step 5: Commit** as `feat: persist terminal group layouts`.
 
 ### Task 14 (15 min): Reattach and replay after WebSocket reconnect

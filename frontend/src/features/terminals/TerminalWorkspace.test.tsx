@@ -26,6 +26,8 @@ import { ApiError } from "../../api/client";
 import { useTerminalStore } from "./terminalStore";
 import { TerminalWorkspace } from "./TerminalWorkspace";
 
+const WORKSPACE_STORAGE_KEY = "cotton-terminal-workspace";
+
 function record(
   id: string,
   kind: "shell" | "command" = "shell",
@@ -171,5 +173,120 @@ describe("TerminalWorkspace", () => {
     view.unmount();
 
     expect(mocks.ws.send).toHaveBeenLastCalledWith("terminal.detach", { id: "t7" });
+  });
+
+  it("minimizes a terminal without terminating its session", async () => {
+    mocks.apiGet.mockResolvedValue([record("t9")]);
+    render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "t9" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
+
+    expect(screen.queryByRole("tab", { name: "t9" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore t9" })).toBeInTheDocument();
+    expect(mocks.apiSend).not.toHaveBeenCalledWith(
+      "DELETE",
+      "/api/terminals/t9",
+    );
+  });
+
+  it("restores a minimized terminal with the same session id", async () => {
+    mocks.apiGet.mockResolvedValue([record("t10")]);
+    render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "t10" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restore t10" }));
+
+    expect(await screen.findByRole("tab", { name: "t10" })).toBeInTheDocument();
+    expect(useTerminalStore.getState().records.t10).toBeDefined();
+  });
+
+  it("restores groups, membership, and selected layout after reload", async () => {
+    mocks.apiGet.mockResolvedValue([record("t11"), record("t12")]);
+    const firstRender = render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "t11" });
+    await screen.findByRole("tab", { name: "t12" });
+
+    fireEvent.change(screen.getByLabelText("New group"), {
+      target: { value: "Build" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
+    fireEvent.click(screen.getByRole("button", { name: "Default" }));
+    const groupSelect = screen.getByLabelText("Move t12 to group") as HTMLSelectElement;
+    const buildId = Array.from(groupSelect.options).find(
+      (option) => option.textContent === "Build",
+    )?.value;
+    if (!buildId) {
+      throw new Error("Build group option is missing");
+    }
+    fireEvent.change(screen.getByLabelText("Move t12 to group"), {
+      target: { value: buildId },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Build" }));
+    await screen.findByRole("tab", { name: "t12" });
+    fireEvent.click(screen.getByRole("button", { name: "Default" }));
+    fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Build" }));
+    await screen.findByRole("tab", { name: "t12" });
+    firstRender.unmount();
+
+    const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
+      groups: Array<{ id: string; name: string; terminalIds: string[] }>;
+      selectedGroupId: string;
+      minimizedIds: string[];
+      dockLayouts: Record<string, { panels: Record<string, unknown> }>;
+    };
+    expect(saved.groups.find((group) => group.name === "Build")?.terminalIds).toContain("t12");
+    expect(saved.groups.find((group) => group.id === saved.selectedGroupId)?.name).toBe("Build");
+    expect(saved.minimizedIds).toContain("t11");
+    expect(saved.dockLayouts[buildId].panels).toHaveProperty("t12");
+
+    render(<TerminalWorkspace />);
+
+    expect(await screen.findByRole("button", { name: "Build" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(await screen.findByRole("tab", { name: "t12" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t11" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Restore t11" }));
+    expect(await screen.findByRole("tab", { name: "t11" })).toBeInTheDocument();
+  });
+
+  it("removes stale sessions from persisted groups and Dockview layouts", async () => {
+    mocks.apiGet.mockResolvedValue([record("stale")]);
+    const previous = render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "stale" });
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
+        dockLayouts: Record<string, { panels: Record<string, unknown> }>;
+      };
+      expect(saved.dockLayouts.default.panels).toHaveProperty("stale");
+    });
+    previous.unmount();
+    useTerminalStore.setState({
+      records: {},
+      lastSequences: {},
+      outputChunks: {},
+      outputBytes: {},
+      visibleAttachments: {},
+      connection: "closed",
+    });
+    mocks.apiGet.mockResolvedValue([record("live")]);
+
+    render(<TerminalWorkspace />);
+
+    expect(await screen.findByRole("tab", { name: "live" })).toBeInTheDocument();
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
+        groups: Array<{ terminalIds: string[] }>;
+        dockLayouts: Record<string, { panels: Record<string, unknown> }>;
+      };
+      expect(saved.groups[0].terminalIds).toEqual(["live"]);
+      expect(saved.dockLayouts.default.panels).not.toHaveProperty("stale");
+      expect(saved.dockLayouts.default.panels).toHaveProperty("live");
+    });
+    expect(screen.queryByRole("tab", { name: "stale" })).not.toBeInTheDocument();
   });
 });

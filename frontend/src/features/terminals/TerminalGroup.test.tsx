@@ -53,10 +53,12 @@ async function renderDockedTerminals(ids: string[]) {
         groupId="test-group"
         terminalIds={ids}
         isActive
+        initialLayout={null}
         onActivePanelChange={() => {}}
         onApi={(_groupId, api) => {
           dockApi.current = api;
         }}
+        onLayoutChange={() => {}}
       />
     </div>,
   );

@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -32,6 +33,7 @@ export interface TerminalGroupRecord {
 
 const GroupActiveContext = createContext(false);
 const EMPTY_OUTPUT_CHUNKS: TerminalOutputChunk[] = [];
+type TerminalDockLayout = ReturnType<DockviewApi["toJSON"]>;
 
 function encodeBase64(value: string): string {
   const bytes = new TextEncoder().encode(value);
@@ -80,29 +82,49 @@ export function TerminalGroupLayout({
   groupId,
   terminalIds,
   isActive,
+  initialLayout,
   onActivePanelChange,
   onApi,
+  onLayoutChange,
 }: {
   groupId: string;
   terminalIds: string[];
   isActive: boolean;
+  initialLayout: TerminalDockLayout | null;
   onActivePanelChange: (groupId: string, terminalId: string | null) => void;
   onApi: (groupId: string, api: DockviewApi | null) => void;
+  onLayoutChange: (groupId: string, layout: TerminalDockLayout) => void;
 }) {
   const [api, setApi] = useState<DockviewApi | null>(null);
   const components = useMemo(() => ({ terminal: TerminalDockPanel }), []);
   const tabComponents = useMemo(() => ({ terminal: TerminalDockTab }), []);
   const onReady = useCallback((event: DockviewReadyEvent) => setApi(event.api), []);
+  const initialized = useRef(false);
+  const initialLayoutRef = useRef(initialLayout);
 
   useEffect(() => {
     if (!api) {
       return;
     }
 
+    let changed = false;
+    if (!initialized.current) {
+      initialized.current = true;
+      if (initialLayoutRef.current) {
+        try {
+          api.fromJSON(initialLayoutRef.current);
+        } catch {
+          api.clear();
+          changed = true;
+        }
+      }
+    }
+
     const wantedIds = new Set(terminalIds);
     for (const panel of api.panels) {
       if (!wantedIds.has(panel.id)) {
         api.removePanel(panel);
+        changed = true;
       }
     }
     for (const [index, id] of terminalIds.entries()) {
@@ -115,10 +137,14 @@ export function TerminalGroupLayout({
           params: { terminalId: id },
           inactive: index > 0,
         });
+        changed = true;
       }
     }
+    if (changed) {
+      onLayoutChange(groupId, api.toJSON());
+    }
     onActivePanelChange(groupId, api.activePanel?.id ?? terminalIds[0] ?? null);
-  }, [api, groupId, onActivePanelChange, terminalIds]);
+  }, [api, groupId, onActivePanelChange, onLayoutChange, terminalIds]);
 
   useEffect(() => {
     if (!api) {
@@ -127,6 +153,16 @@ export function TerminalGroupLayout({
     onApi(groupId, api);
     return () => onApi(groupId, null);
   }, [api, groupId, onApi]);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+    const subscription = api.onDidLayoutChange(() =>
+      onLayoutChange(groupId, api.toJSON()),
+    );
+    return () => subscription.dispose();
+  }, [api, groupId, onLayoutChange]);
 
   useEffect(() => {
     if (!api) {
