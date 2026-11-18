@@ -17,6 +17,7 @@ from cotton.api import (
     routes_plugins,
     routes_processes,
     routes_profiles,
+    routes_terminals,
     routes_topics,
 )
 from cotton.app import create_app
@@ -38,6 +39,8 @@ from cotton.security import Auth, generate_token
 from cotton.services import Services
 from cotton.storage.db import Database
 from cotton.storage.process_registry import ProcessRegistry
+from cotton.terminals.manager import TerminalManager
+from cotton.terminals.posix import PosixPtySpawner
 
 
 def allowed_origins(port: int, extra: list[str] | None = None) -> set[str]:
@@ -77,6 +80,11 @@ def build_services(
     services.routers.append(routes_processes.create_router(manager))
     services.routers.append(routes_profiles.create_router(manager, ProfileRepository(database)))
     routes_processes.register_process_channels(services.channels, manager)
+
+    terminal_manager = TerminalManager(bus, PosixPtySpawner())
+    services.terminal_manager = terminal_manager
+    services.routers.append(routes_terminals.create_router(terminal_manager))
+    services.shutdown.append(terminal_manager.shutdown)
 
     plugins = PluginManager(
         PluginLoader(BUILTIN_PLUGINS_DIR, Path(user_config_dir("cotton")) / "plugins"),
