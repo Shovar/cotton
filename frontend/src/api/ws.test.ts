@@ -120,6 +120,28 @@ describe("WsClient", () => {
     });
   });
 
+  it("sends terminal input only while open and never replays it after reconnect", () => {
+    const { client, sockets } = createClient();
+    expect(client.send("terminal.input", { id: "t1", data: "aGVsbG8=" })).toBe(false);
+
+    client.connect();
+    sockets[0].open();
+    expect(client.send("terminal.input", { id: "t1", data: "aGVsbG8=" })).toBe(true);
+    sockets[0].serverClose();
+
+    expect(client.send("terminal.input", { id: "t1", data: "c3RhbGU=" })).toBe(false);
+    vi.advanceTimersByTime(1_000);
+    sockets[1].open();
+
+    expect(sockets[0].sent).toEqual([
+      JSON.stringify({
+        type: "terminal.input",
+        data: { id: "t1", data: "aGVsbG8=" },
+      }),
+    ]);
+    expect(sockets[1].sent).toEqual([]);
+  });
+
   it("delivers server events and supports unsubscribing", () => {
     const { client, sockets } = createClient();
     const events: ServerEvent[] = [];

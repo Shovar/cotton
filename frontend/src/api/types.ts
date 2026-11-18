@@ -97,6 +97,38 @@ export interface PluginRecord {
   manifest: PluginManifest;
 }
 
+export type TerminalKind = "shell" | "command";
+export type TerminalState = "starting" | "running" | "exited" | "failed";
+
+export interface TerminalSpec {
+  id: string;
+  kind: TerminalKind;
+  argv: string[];
+  cwd: string;
+  env: Record<string, string>;
+}
+
+export interface TerminalRecord {
+  spec: TerminalSpec;
+  state: TerminalState;
+  pid: number | null;
+  started_at: string | null;
+  exit_code: number | null;
+  error: string | null;
+}
+
+export interface TerminalOutput {
+  id: string;
+  sequence: number;
+  data: string;
+}
+
+export type TerminalControlMessage =
+  | { type: "terminal.attach"; data: { id: string; after_sequence: number } }
+  | { type: "terminal.detach"; data: { id: string } }
+  | { type: "terminal.input"; data: { id: string; data: string } }
+  | { type: "terminal.resize"; data: { id: string; cols: number; rows: number } };
+
 export interface ErrorData {
   code: string;
   message: string;
@@ -118,4 +150,6 @@ export type ServerEvent =
   | { type: "process.removed"; data: { id: string } }
   | { type: "process.log"; data: LogLine }
   | { type: "plugin.state"; data: PluginRecord }
+  | { type: "terminal.state"; data: TerminalRecord }
+  | { type: "terminal.output"; data: TerminalOutput }
   | { type: "error"; data: ErrorData };

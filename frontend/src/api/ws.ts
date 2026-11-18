@@ -67,6 +67,14 @@ export class WsClient {
     }
   }
 
+  send(type: string, data: Record<string, unknown>): boolean {
+    if (this.socket?.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+    this.socket.send(JSON.stringify({ type, data }));
+    return true;
+  }
+
   onEvent(handler: ServerEventHandler): () => void {
     this.eventHandlers.add(handler);
     return () => this.eventHandlers.delete(handler);
