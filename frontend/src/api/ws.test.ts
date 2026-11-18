@@ -111,12 +111,12 @@ describe("WsClient", () => {
     sockets[0].open();
 
     client.subscribe(["graph"]);
-    client.subscribe(["graph", "processes"]);
+    client.subscribe(["graph", "plugins"]);
 
     expect(sockets[0].sent).toHaveLength(2);
     expect(JSON.parse(sockets[0].sent[1])).toEqual({
       type: "subscribe",
-      channels: ["graph", "processes"],
+      channels: ["graph", "plugins"],
     });
   });
 

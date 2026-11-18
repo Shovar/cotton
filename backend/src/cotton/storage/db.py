@@ -5,28 +5,15 @@ import threading
 from pathlib import Path
 
 _MIGRATIONS = {
-    1: """
-        CREATE TABLE process_registry (
-            id TEXT PRIMARY KEY,
-            spec_json TEXT NOT NULL,
-            pid INTEGER NOT NULL,
-            pgid INTEGER NOT NULL,
-            started_at TEXT NOT NULL,
-            exit_code INTEGER
-        );
-    """,
-    2: """
-        CREATE TABLE profiles (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            processes_json TEXT NOT NULL
-        );
-    """,
     3: """
         CREATE TABLE settings (
             key TEXT PRIMARY KEY,
             value_json TEXT NOT NULL
         );
+    """,
+    4: """
+        DROP TABLE IF EXISTS process_registry;
+        DROP TABLE IF EXISTS profiles;
     """,
 }
 

@@ -45,12 +45,9 @@ Every non-2xx JSON response has exactly this shape:
 | 404 | `not_found` | Unknown route |
 | 404 | `node_not_found` | ROS node does not exist or disappeared |
 | 404 | `topic_not_found` | ROS topic does not exist |
-| 404 | `process_not_found` | Unknown process id |
 | 404 | `terminal_not_found` | Unknown terminal session id |
 | 404 | `plugin_not_found` | Unknown plugin name |
-| 409 | `process_conflict` | Process id already active |
 | 409 | `param_not_settable` | Parameter is read-only or rejected by the node |
-| 409 | `profile_start_failed` | A profile process failed; already started processes were stopped |
 | 409 | `plugin_error` | Plugin activation or healthcheck failed |
 | 409 | `terminal_busy` | A terminal session has an active command and requires confirmation to close |
 | 409 | `terminal_close_failed` | The operating system denied permission to terminate a terminal process group |
@@ -117,56 +114,6 @@ maps from fully qualified name to a list of types. Lists and map keys are
 sorted. The app's own node (`/cotton_<pid>`) is never included.
 `revision` increases only when the snapshot changes.
 
-### ProcessSpec
-
-```json
-{
-  "id": "p_1a2b3c4d",
-  "argv": ["ros2", "launch", "demo_nodes_cpp", "talker_listener.launch.py"],
-  "cwd": null,
-  "env": {},
-  "plugin": null,
-  "autostart": false
-}
-```
-
-`argv` is always a list. A string `command` is converted with `shlex.split` at
-the API boundary; nothing is ever passed to a shell.
-
-### ProcessRecord
-
-```json
-{
-  "id": "p_1a2b3c4d",
-  "spec": { "id": "p_1a2b3c4d", "argv": ["sleep", "30"], "cwd": null, "env": {}, "plugin": null, "autostart": false },
-  "state": "running",
-  "pid": 4242,
-  "pgid": 4242,
-  "started_at": "2026-11-06T12:00:00Z",
-  "exit_code": null,
-  "error": null,
-  "recovered": false
-}
-```
-
-`state` is one of `starting`, `running`, `stopping`, `exited`, `failed`.
-A recovered process is alive after a backend restart and has `recovered: true`.
-
-### LogLine
-
-```json
-{
-  "id": "p_1a2b3c4d",
-  "stream": "stdout",
-  "level": "warn",
-  "ts": "2026-11-06T12:00:00Z",
-  "text": "[WARN] [talker]: slow"
-}
-```
-
-`stream` is `stdout` or `stderr`. `level` is `debug`, `info`, `warn`, `error`
-or `null` when the line has no ROS level prefix. `id` is the process id.
-
 ### RateResult
 
 ```json
@@ -176,18 +123,6 @@ or `null` when the line has no ROS level prefix. `id` is the process id.
 When unavailable: `{"available": false, "hz": null, "window_s": 2.0, "reason": "no_publishers"}`.
 Known reasons: `no_publishers`, `type_unavailable`.
 
-### Profile
-
-```json
-{
-  "id": "sim",
-  "name": "Simulation",
-  "processes": [
-    { "id": "a", "argv": ["sleep", "1"], "cwd": null, "env": {}, "plugin": null, "autostart": false }
-  ]
-}
-```
-
 ### PluginRecord
 
 ```json
@@ -195,7 +130,7 @@ Known reasons: `no_publishers`, `type_unavailable`.
   "name": "foxglove",
   "state": "active",
   "error": null,
-  "manifest": { "name": "foxglove", "version": "0.1.0", "description": "...", "processes": [], "panels": [], "permissions": [] }
+  "manifest": { "name": "foxglove", "version": "0.1.0", "description": "...", "panels": [], "permissions": [] }
 }
 ```
 
@@ -221,7 +156,9 @@ Known reasons: `no_publishers`, `type_unavailable`.
 ```
 
 `kind` is `shell` or `command`; `state` is `starting`, `running`, `exited` or
-`failed`. `started_at`, `pid`, `exit_code` and `error` are nullable.
+`failed`. `started_at`, `pid`, `exit_code` and `error` are nullable. `argv` is
+always a list; a string command is converted with `shlex.split` at the API
+boundary and nothing is ever passed to a shell.
 
 ## 4. REST endpoints
 
@@ -237,17 +174,6 @@ otherwise.
 | GET | `/api/nodes/{node_name:path}/params` | 200 | `{ "<param>": <value> }`; 404 `node_not_found` |
 | PUT | `/api/nodes/{node_name:path}/params/{param}` | 204 | Body `{"value": <value>}`; 404 `node_not_found`; 409 `param_not_settable`; 422 `validation_error` |
 | GET | `/api/topics/{topic:path}/rate?window_s=2.0` | 200 | `RateResult`; 404 `topic_not_found`; `window_s` is clamped to `[0.5, 5.0]` |
-| GET | `/api/processes` | 200 | `ProcessRecord[]` |
-| POST | `/api/processes` | 201 | Body `{"id"?: string, "command": string \| string[], "args"?: string[], "cwd"?: string, "env"?: object}`; string command is `shlex.split`; 409 `process_conflict` |
-| DELETE | `/api/processes/{id}` | 200 | Stopped `ProcessRecord`; 404 `process_not_found` |
-| POST | `/api/processes/{id}/close` | 200 | Stopped `ProcessRecord`, forgotten from the registry; 404 `process_not_found` |
-| POST | `/api/processes/{id}/restart` | 200 | Restarted `ProcessRecord`; 404 `process_not_found`; 409 `process_conflict` |
-| GET | `/api/processes/{id}/logs?lines=200` | 200 | `LogLine[]`, newest last; `lines` clamped to `[1, 2000]`; 404 `process_not_found` |
-| GET | `/api/profiles` | 200 | `Profile[]` |
-| POST | `/api/profiles` | 201 | `Profile` body; 422 `validation_error` |
-| PUT | `/api/profiles/{id}` | 200 | `Profile` body; 404 `not_found`; 422 `validation_error` |
-| DELETE | `/api/profiles/{id}` | 204 | 404 `not_found` |
-| POST | `/api/profiles/{id}/start` | 200 | Started `ProcessRecord[]` in listed order; 404 `not_found`; 409 `profile_start_failed` |
 | GET | `/api/plugins` | 200 | `PluginRecord[]` |
 | POST | `/api/plugins/{name}/activate` | 200 | `PluginRecord`; 404 `plugin_not_found`; 409 `plugin_error` |
 | DELETE | `/api/plugins/{name}/activate` | 200 | Stopped `PluginRecord`; 404 `plugin_not_found` |
@@ -255,8 +181,7 @@ otherwise.
 | POST | `/api/terminals` | 201 | Body `{"command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell; 422 `validation_error` |
 | DELETE | `/api/terminals/{id}?force=false` | 200 | Closing `TerminalRecord`; the session is then removed from `GET /api/terminals`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true`, or `terminal_close_failed` if the OS denies termination |
 
-Read-only requests are safe to retry. `POST /api/processes` and
-`POST /api/profiles/{id}/start` are not idempotent.
+Read-only requests are safe to retry. `POST /api/terminals` is not idempotent.
 
 `/api/env` example response:
 
@@ -280,7 +205,7 @@ invalid.
 ### Client message: subscribe
 
 ```json
-{ "type": "subscribe", "channels": ["graph", "processes", "logs:p_1a2b3c4d"] }
+{ "type": "subscribe", "channels": ["graph", "plugins", "terminals"] }
 ```
 
 - A subscribe message may be sent more than once; channels accumulate.
@@ -318,9 +243,6 @@ Every server message has `{ "type": string, "data": object }`.
 | --- | --- | --- |
 | `graph.update` | `graph` | `GraphSnapshot` |
 | `ros.status` | `graph` | `{"connected": bool, "error": string \| null}` |
-| `process.state` | `processes` | `ProcessRecord` |
-| `process.removed` | `processes` | `{"id": string}` |
-| `process.log` | `logs:<id>` | `LogLine` |
 | `plugin.state` | `plugins` | `PluginRecord` |
 | `terminal.state` | `terminals` or `terminal:<id>` | `TerminalRecord` |
 | `terminal.output` | `terminal:<id>` | `{"id": string, "sequence": integer, "data": base64 string}` |
@@ -332,17 +254,15 @@ Every server message has `{ "type": string, "data": object }`.
 | Channel | Forwards | Initial messages on subscribe |
 | --- | --- | --- |
 | `graph` | `graph.update`, `ros.status` | Current snapshot (if any) and current ROS status |
-| `processes` | `process.state`, `process.removed` | One `process.state` per known process |
-| `logs:<id>` | `process.log` events whose `data.id` equals `<id>` | Last 200 log lines for that process |
 | `plugins` | `plugin.state` | One `plugin.state` per known plugin |
 | `terminals` | `terminal.state`, `terminal.removed` | One `terminal.state` per known terminal |
 | `terminal:<id>` | `terminal.output`, `terminal.state`, `terminal.removed` | Joined by `terminal.attach`; output newer than the requested sequence |
 | `test` | test channel only | Registered by tests, never in production |
 
-Log events for processes the client has not subscribed to are never sent.
+Terminal and plugin events are only sent to clients subscribed to their channel.
 Feature files own their channels: `02-ros-discovery` registers `graph`;
-`03-processes` registers `processes` and `logs:<id>`; `04-plugins` registers
-`plugins`.
+`04-plugins` registers `plugins`; `09-terminals` registers `terminals` and
+`terminal:<id>`.
 
 Terminal output sequence numbers increase per session. A transient frontend
 disconnect does not stop the PTY; reconnecting clients attach and replay from

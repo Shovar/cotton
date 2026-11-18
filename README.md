@@ -5,10 +5,9 @@
 </p>
 
 Cotton is a local web control panel for an active ROS 2 environment. It shows
-the node graph, starts and supervises processes with live logs, completes ROS 2
-commands, and embeds a Foxglove viewer. It runs inside the environment you
-already have, binds to loopback, and requires a session token instead of accounts
-or cloud services.
+the node graph, opens PTY terminals and embeds a Foxglove viewer. It runs inside
+the environment you already have, binds to loopback, and requires a session
+token instead of accounts or cloud services.
 
 ## Install
 
@@ -51,13 +50,8 @@ wheel build and troubleshooting.
 
 - **Graph** — nodes, topics, services and actions, kept in sync with the ROS
   graph and filterable from the UI.
-- **Processes** — start commands, follow their logs, stop or restart them, and
-  reuse named profiles.
-- **Terminals** — open interactive shells or command sessions in groups, mix
-  tabs with resizable panes, and minimize or restore sessions without stopping
-  them.
-- **Command prompt** — suggestions from `PATH`, ROS 2 verbs and the live graph;
-  `Tab` completes and `Ctrl+R` searches the persisted history.
+- **Terminals** — open interactive shells or command sessions in groups, switch
+  between group tabs, and minimize or restore sessions without stopping them.
 - **Plugins** — the Foxglove/Lichtblick viewer and extra panels, with their
   assets checked and served locally.
 
@@ -67,8 +61,8 @@ and clears the address bar. Use `--host`, `--port`, `--token`, `--no-browser` an
 repeatable `--allow-origin` to change that; use `cotton --help` for the
 current list. Do not bind to `0.0.0.0` outside Docker.
 
-Data stays on the machine: SQLite state and logs in the platform config
-directory (`~/.config/cotton/` on Linux), and the Lichtblick cache in
+Data stays on the machine: SQLite state in the platform config directory
+(`~/.config/cotton/` on Linux), and the Lichtblick cache in
 `~/.cache/cotton/` (macOS uses `~/Library/Caches/cotton/`). There is no
 telemetry, account or remote execution.
 

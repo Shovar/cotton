@@ -14,18 +14,16 @@ from fastapi.testclient import TestClient
 pytestmark = pytest.mark.integration
 pytest.importorskip("rclpy")
 
-from cotton.api import routes_graph, routes_processes, routes_topics  # noqa: E402
+from cotton.api import routes_graph, routes_topics  # noqa: E402
 from cotton.app import Services, create_app  # noqa: E402
 from cotton.env import ensure_ros_environment  # noqa: E402
 from cotton.events import EventBus  # noqa: E402
-from cotton.processes.manager import ProcessManager  # noqa: E402
 from cotton.ros.graph import ThreadGraphSource  # noqa: E402
 from cotton.ros.rate import ThreadRateSource  # noqa: E402
 from cotton.ros.thread import RosThread  # noqa: E402
 from cotton.ros.watcher import GraphWatcher  # noqa: E402
 from cotton.security import Auth  # noqa: E402
 from cotton.storage.db import Database  # noqa: E402
-from cotton.storage.process_registry import ProcessRegistry  # noqa: E402
 
 TOKEN = "integration-token"
 ORIGIN = "http://testserver"
@@ -60,11 +58,7 @@ def ros_client(tmp_path: Path) -> Iterator[TestClient]:
     watcher = GraphWatcher(ros, ThreadGraphSource(ros), bus, interval=0.25)
     services.routers.append(routes_graph.create_router(watcher))
     services.routers.append(routes_topics.create_router(ros, ThreadRateSource(ros)))
-    manager = ProcessManager(bus, tmp_path / "logs", registry=ProcessRegistry(db))
-    services.routers.append(routes_processes.create_router(manager))
     services.startup.append(watcher.start)
-    services.startup.append(manager.recover)
-    services.shutdown.append(manager.shutdown)
     services.shutdown.append(watcher.stop)
     with TestClient(create_app(services)) as client:
         yield client
@@ -102,13 +96,7 @@ def _without_our_own(names: set[str]) -> set[str]:
     reason="ROS 2 environment is not active",
 )
 def test_graph_matches_the_ros_cli_and_measures_pose(ros_client: TestClient) -> None:
-    started = ros_client.post(
-        "/api/processes",
-        json={"command": "ros2 run turtlesim turtlesim_node"},
-        headers=HEADERS,
-    )
-    assert started.status_code == 201
-
+    turtlesim = subprocess.Popen(["ros2", "run", "turtlesim", "turtlesim_node"])
     try:
         wait_until(lambda: "/turtlesim" in _node_names(ros_client))
         wait_until(lambda: "/turtle1/pose" in _topic_names(ros_client))
@@ -138,5 +126,5 @@ def test_graph_matches_the_ros_cli_and_measures_pose(ros_client: TestClient) -> 
         assert rate["hz"] > 0
         assert rate["window_s"] == 2
     finally:
-        stopped = ros_client.delete(f"/api/processes/{started.json()['id']}", headers=HEADERS)
-        assert stopped.status_code == 200
+        turtlesim.terminate()
+        turtlesim.wait(timeout=10)

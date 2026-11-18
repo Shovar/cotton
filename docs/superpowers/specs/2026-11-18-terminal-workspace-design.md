@@ -14,9 +14,9 @@ desktop terminal windows. The workspace remains part of Cotton's local web UI.
 
 Cotton serves a React frontend from its local FastAPI backend. The frontend
 already uses `dockview` for panels and stores layout in `localStorage`. The
-backend's `ProcessManager` starts managed processes with pipes, captures their
-logs, and reports process state over the authenticated WebSocket. Pipes do not
-provide an interactive terminal or terminal resizing.
+backend starts terminal sessions directly on a PTY; pipes, which an earlier
+managed-process system used, do not provide an interactive terminal or terminal
+resizing.
 
 ## Goals
 
@@ -41,7 +41,6 @@ provide an interactive terminal or terminal resizing.
 - No recovery or reattachment of sessions after the Cotton backend crashes or
   restarts.
 - No remote access, cloud service, telemetry, or arbitrary network bind.
-- No replacement of `ProcessManager` for profile/plugin-managed processes.
 
 ## Approaches considered
 
@@ -97,11 +96,10 @@ lifecycles. It forwards terminal input/output, window-size changes, and exit
 state between the frontend and PTY over authenticated WebSocket channels. The
 manager must not treat PTY output as ordinary line-oriented process logs.
 
-Terminal sessions are separate from `ProcessManager`: profiles and plugins keep
-their existing managed-process behavior. Terminal sessions live in backend
-memory while Cotton is running; a frontend disconnect does not stop them, but a
-backend restart ends them and does not permit reattachment. A normal Cotton
-shutdown must terminate its terminal sessions.
+Terminal sessions live in backend memory while Cotton is running; a frontend
+disconnect does not stop them, but a backend restart ends them and does not
+permit reattachment. A normal Cotton shutdown must terminate its terminal
+sessions.
 
 The backend retains a bounded in-memory output buffer per session so a frontend
 can reconnect without losing recent output. The scrollback limit is an

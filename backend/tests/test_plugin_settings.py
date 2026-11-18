@@ -10,7 +10,7 @@ def test_migration_creates_settings_table(tmp_path: Path) -> None:
     db = Database(tmp_path / "state.db")
     db.migrate()
 
-    assert db.user_version() == 3
+    assert db.user_version() == 4
     db.close()
 
 

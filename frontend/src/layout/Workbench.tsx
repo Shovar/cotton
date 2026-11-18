@@ -4,7 +4,7 @@ import {
   type DockviewApi,
   type DockviewReadyEvent,
 } from "dockview-react";
-import { Boxes, Puzzle, SquareTerminal, Waypoints, type LucideIcon } from "lucide-react";
+import { Boxes, Puzzle, Waypoints, type LucideIcon } from "lucide-react";
 
 import {
   Tooltip,
@@ -21,7 +21,6 @@ type LayoutState = ReturnType<DockviewApi["toJSON"]>;
 
 const PANEL_ICONS: Record<string, LucideIcon> = {
   graph: Waypoints,
-  processes: SquareTerminal,
   plugins: Puzzle,
 };
 

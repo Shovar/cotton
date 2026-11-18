@@ -11,13 +11,8 @@ with the same `name` replaces the builtin one.
 name: foxglove                # unique, lowercase [a-z0-9_.-]
 version: 0.1.0
 description: Foxglove bridge with the local Lichtblick viewer
-permissions: [process, network]   # shown to the user, not enforced in v1
+permissions: [network]        # shown to the user, not enforced in v1
 requires: []                  # plugin names that must be active first
-processes:
-  - id: bridge                # prefixed with "<plugin>." at runtime
-    argv: [ros2, launch, foxglove_bridge, foxglove_bridge_launch.xml, port:=8765]
-    cwd: null
-    env: {}
 healthcheck:
   url: tcp://127.0.0.1:8765   # tcp://, http:// or https://
   timeout_s: 5.0
@@ -30,17 +25,18 @@ panels:
     url: "http://{host}/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765&layoutUrl=http://{host}/lichtblick/layout.json"
 ```
 
-Validation runs at load time: ids must be unique per manifest, `argv` cannot be
-empty, and `iframe`/`stream` panels need an `http(s)` URL. A manifest that fails
+Validation runs at load time: ids must be unique per manifest and
+`iframe`/`stream` panels need an `http(s)` URL. A manifest that fails
 validation, or that requires an unknown plugin, is still listed with `state:
 error` and an `error` message; the other plugins keep loading.
 
-Activation starts processes in dependency order, waits for the healthcheck with
-the configured retries, and rolls back every process it started when the check
-fails. Active plugin names are stored in the `settings` table under
-`plugins.active` and restored on the next start. `DELETE /api/plugins/{name}/activate`
-stops the processes; closing the backend stops them too but keeps the persisted
-list so they return on the next start.
+Activation runs in dependency order and waits for the healthcheck with the
+configured retries. The healthcheck is the only readiness signal: a plugin that
+needs a bridge process must have it running already. Active plugin names are
+stored in the `settings` table under `plugins.active` and restored on the next
+start. `DELETE /api/plugins/{name}/activate` marks the plugin stopped; closing
+the backend does the same but keeps the persisted list so it returns on the next
+start.
 
 ## Lichtblick assets
 

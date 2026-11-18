@@ -21,28 +21,6 @@ def _check_id(value: str, kind: str) -> str:
     return value
 
 
-class PluginProcessSpec(BaseModel):
-    """A process a plugin starts, without the plugin prefix the manager adds."""
-
-    id: str
-    argv: list[str]
-    cwd: str | None = None
-    env: dict[str, str] = Field(default_factory=dict)
-    autostart: bool = False
-
-    @field_validator("id")
-    @classmethod
-    def _valid_id(cls, value: str) -> str:
-        return _check_id(value, "process")
-
-    @field_validator("argv")
-    @classmethod
-    def _non_empty_argv(cls, value: list[str]) -> list[str]:
-        if not value or not all(isinstance(item, str) and item for item in value):
-            raise ValueError("argv must contain at least one non-empty element")
-        return value
-
-
 class PanelSpec(BaseModel):
     id: str
     title: str = ""
@@ -81,7 +59,6 @@ class PluginManifest(BaseModel):
     name: str
     version: str = "0.0.0"
     description: str = ""
-    processes: list[PluginProcessSpec] = Field(default_factory=list)
     panels: list[PanelSpec] = Field(default_factory=list)
     permissions: list[str] = Field(default_factory=list)
     requires: list[str] = Field(default_factory=list)
@@ -103,10 +80,6 @@ class PluginManifest(BaseModel):
 
     @model_validator(mode="after")
     def _unique_ids(self) -> PluginManifest:
-        process_ids = [process.id for process in self.processes]
-        duplicate = _first_duplicate(process_ids)
-        if duplicate is not None:
-            raise ValueError(f"duplicate process id: {duplicate}")
         panel_ids = [panel.id for panel in self.panels]
         duplicate = _first_duplicate(panel_ids)
         if duplicate is not None:
@@ -114,9 +87,7 @@ class PluginManifest(BaseModel):
         return self
 
     def to_dict(self) -> dict[str, Any]:
-        return self.model_dump(
-            include={"name", "version", "description", "processes", "panels", "permissions"}
-        )
+        return self.model_dump(include={"name", "version", "description", "panels", "permissions"})
 
 
 @dataclass(frozen=True)

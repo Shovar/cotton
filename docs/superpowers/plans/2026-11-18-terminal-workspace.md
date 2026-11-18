@@ -4,7 +4,7 @@
 
 **Goal:** Add a local web terminal workspace with PTY-backed sessions, groups, tabs, resizable mosaics, and live status.
 
-**Architecture:** Keep Cotton's React/FastAPI application and `dockview`; add a backend terminal-session manager using POSIX PTYs and a small exec helper, separate from `ProcessManager`. Use the existing authenticated `/ws` connection for terminal input, resize, state, output, and replay; persist frontend group/layout state in `localStorage`.
+**Architecture:** Keep Cotton's React/FastAPI application and `dockview`; add a backend terminal-session manager using POSIX PTYs and a small exec helper. Use the existing authenticated `/ws` connection for terminal input, resize, state, output, and replay; persist frontend group state in `localStorage`.
 
 **Tech Stack:** Python 3.10+, FastAPI, asyncio and POSIX stdlib (`pty`, `termios`, `fcntl`); React 19, TypeScript, Vite, Zustand, dockview, xterm.js.
 
@@ -16,7 +16,6 @@
 - All terminal APIs and WebSocket channels use Cotton's existing session-token and WebSocket `Origin` checks.
 - `The implementation must respect the project's supported local environments (Linux, WSL2 and Docker; macOS is used for development).`
 - `It must not add recovery infrastructure or require a separately installed multiplexer.`
-- No replacement of `ProcessManager` for profile/plugin-managed processes.
 - Code, comments, commit messages and documentation are written in English.
 - Backend dependencies remain unchanged; add only the terminal-emulator frontend packages needed for VT behavior.
 

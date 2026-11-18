@@ -106,12 +106,12 @@ describe("Workbench", () => {
     expect(logo).toHaveClass("brightness-0", "dark:invert");
   });
 
-  it("opens the three shell sections in the dock", () => {
+  it("opens the two shell sections in the dock", () => {
     registerShellPanels();
 
     render(<Workbench />);
 
-    expect(fake.api.addPanel).toHaveBeenCalledTimes(3);
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(2);
     expect(fake.api.addPanel).toHaveBeenNthCalledWith(1, {
       id: "graph",
       component: "graph",
@@ -120,9 +120,9 @@ describe("Workbench", () => {
     });
     expect(screen.getByTestId("dockview")).toHaveAttribute(
       "data-components",
-      "graph,processes,plugins",
+      "graph,plugins",
     );
-    for (const name of ["Graph", "Processes", "Plugins"]) {
+    for (const name of ["Graph", "Plugins"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
   });
@@ -160,7 +160,7 @@ describe("Workbench", () => {
 
     render(<Workbench />);
 
-    expect(fake.api.addPanel).toHaveBeenCalledTimes(3);
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(2);
   });
 
   it("activates an open panel from the activity bar", () => {
@@ -203,9 +203,9 @@ describe("Workbench", () => {
     registerShellPanels();
     render(<Workbench />);
 
-    act(() => fake.fireActivePanel("processes"));
+    act(() => fake.fireActivePanel("plugins"));
 
-    expect(screen.getByRole("button", { name: "Processes" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Plugins" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

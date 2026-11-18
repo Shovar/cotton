@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 
 const ACTIONS = [
   { id: "open-graph", label: "Open graph" },
-  { id: "open-processes", label: "Open processes" },
   { id: "open-plugins", label: "Open plugins" },
 ] as const;
 
