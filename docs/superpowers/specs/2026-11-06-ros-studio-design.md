@@ -1,4 +1,4 @@
-# ROS Studio — diseño v1
+# Cotton — diseño v1
 
 Nov 6, 2026 · @toni · estado: aprobado
 
@@ -6,7 +6,7 @@ Spec de referencia: [`Spec IDE local para ROS 2.md`](../../Spec%20IDE%20local%20
 
 ## 1. Intención
 
-ROS Studio es el panel de control que falta entre `rqt` y una docena de terminales: una web local que muestra el grafo ROS 2, gestiona los procesos de launch y embebe la visualización, sin cuentas ni nube.
+Cotton es el panel de control que falta entre `rqt` y una docena de terminales: una web local que muestra el grafo ROS 2, gestiona los procesos de launch y embebe la visualización, sin cuentas ni nube.
 
 Se instala y se lanza **dentro del entorno ROS 2 que el usuario ya tiene activo**, igual que `rqt` o `ros2`. No trae su propio ROS, no cambia de distro y no adivina la configuración de nadie: la lee del entorno y, si falta algo, lo dice con un mensaje accionable.
 
@@ -25,7 +25,7 @@ Se instala y se lanza **dentro del entorno ROS 2 que el usuario ya tiene activo*
 - **`rclpy` no es dependencia de PyPI.** Lo aporta el entorno ROS; el wheel lo comprueba en tiempo de ejecución y no lo declara, para no romper resolvedores ni instalar un `rclpy` huérfano.
 - **Docker no tiene camino especial.** La misma app se instala dentro del contenedor; solo cambian el bind (`--host 0.0.0.0`) y los puertos publicados en loopback. Es la única excepción documentada al bind por defecto.
 - **Seguridad desde la fase 2.** Bind a `127.0.0.1`, token de sesión, validación de `Origin` en WebSocket y CORS restringido. Lanzar procesos es equivalente a dar una shell.
-- **Nombre y licencia (decisión mía, revisable):** paquete `ros-studio`, licencia Apache-2.0, la que mejor encaja con un ecosistema de plugins de terceros.
+- **Nombre y licencia (decisión mía, revisable):** paquete `cotton`, licencia Apache-2.0, la que mejor encaja con un ecosistema de plugins de terceros.
 
 ### 3.1 Cambios respecto a la spec
 
@@ -52,7 +52,7 @@ Frontend igual en las tres: React + TypeScript + Vite, layout con `dockview`, Li
 
 ### 5.1 Un proceso, dos mundos
 
-`ros-studio` arranca un único proceso Python: FastAPI/uvicorn en el bucle asyncio y un **hilo ROS** dedicado que posee el nodo `rclpy`. `rclpy` no es thread-safe, así que todas las llamadas al grafo y a parámetros pasan por una cola de comandos con futuros; la API async espera sin bloquear el event loop. El nodo propio (`/ros_studio_<pid>`) se excluye siempre del grafo mostrado.
+`cotton` arranca un único proceso Python: FastAPI/uvicorn en el bucle asyncio y un **hilo ROS** dedicado que posee el nodo `rclpy`. `rclpy` no es thread-safe, así que todas las llamadas al grafo y a parámetros pasan por una cola de comandos con futuros; la API async espera sin bloquear el event loop. El nodo propio (`/cotton_<pid>`) se excluye siempre del grafo mostrado.
 
 El backend sirve la SPA compilada, la API REST, el WebSocket y los ficheros estáticos de Lichtblick. No hay segundo servidor salvo `foxglove_bridge`, que es un proceso gestionado.
 
@@ -90,7 +90,7 @@ La etapa 0 mide el coste real de este sondeo con 100 topics. Si no cabe en el 5 
 
 ### 5.5 Plugins
 
-- Manifiestos `plugin.yaml` validados con Pydantic, en `ros_studio/plugins/` (incluidos) y `~/.config/ros-studio/plugins/` (usuario).
+- Manifiestos `plugin.yaml` validados con Pydantic, en `cotton/plugins/` (incluidos) y `~/.config/cotton/plugins/` (usuario).
 - Ciclo: descubierto → activo → detenido. «Instalado» significa presente en disco.
 - Al activar: procesos en orden de dependencia, healthcheck `tcp://` o `http://` con timeout y panel habilitado solo cuando todo está sano.
 - Tipos de panel: `iframe`, `stream` (VNC/noVNC) y `native`.
@@ -121,14 +121,14 @@ Se mantiene la tabla de la spec con estos añadidos: `GET /api/env`, `GET /api/h
 
 ### 5.8 Persistencia
 
-SQLite en el directorio de configuración de plataforma (`~/.config/ros-studio/` en Linux): ajustes, perfiles, specs de procesos, estado de plugins y registro de PIDs. Migraciones con `user_version`. Logs rotados en el directorio de estado. Sin ORM: `sqlite3` y una capa de repositorios pequeña.
+SQLite en el directorio de configuración de plataforma (`~/.config/cotton/` en Linux): ajustes, perfiles, specs de procesos, estado de plugins y registro de PIDs. Migraciones con `user_version`. Logs rotados en el directorio de estado. Sin ORM: `sqlite3` y una capa de repositorios pequeña.
 
 ### 5.9 Empaquetado e instalación
 
 - `pyproject.toml` con hatchling; dependencias: `fastapi`, `uvicorn`, `pydantic`, `pyyaml`, `platformdirs`. `rclpy` fuera, comprobado en runtime.
-- Frontend compilado en CI y empaquetado dentro del wheel; comando `ros-studio`.
-- **pixi:** `pixi add fastapi uvicorn` desde conda-forge y `pixi add --pypi ros-studio`, para no mezclar resolvedores. Se valida en la etapa 0; si el resolvedor se queja de dependencias duplicadas, se documenta la variante `--no-deps` con las de conda.
-- **apt (Ubuntu 22.04/24.04):** venv con `--system-site-packages` para que vea el `rclpy` del sistema, y `pip install ros-studio` dentro. Documentado en README.
+- Frontend compilado en CI y empaquetado dentro del wheel; comando `cotton`.
+- **pixi:** `pixi add fastapi uvicorn` desde conda-forge y `pixi add --pypi cotton`, para no mezclar resolvedores. Se valida en la etapa 0; si el resolvedor se queja de dependencias duplicadas, se documenta la variante `--no-deps` con las de conda.
+- **apt (Ubuntu 22.04/24.04):** venv con `--system-site-packages` para que vea el `rclpy` del sistema, y `pip install cotton` dentro. Documentado en README.
 - **Docker:** instalación normal dentro de la imagen y `--host 0.0.0.0` dentro del contenedor. Se publican `127.0.0.1:8000:8000` y `127.0.0.1:8765:8765`: el panel de Lichtblick se conecta directo a `foxglove_bridge`, así que el puerto del puente también tiene que estar en el host. Ambos quedan atados a loopback y el README avisa de que en Docker el token protege la API, no el puente. Navegador remoto fuera de alcance.
 - **Lichtblick:** la etapa 0 mide el tamaño del build y revisa la licencia vigente. Si el wheel se vuelve demasiado grande, se acepta la descarga fijada con checksum en el primer arranque a la caché local; se documenta cómo pre-sembrarla para instalaciones sin red. Si cabe, se vendoriza. En ambos casos la versión queda fijada y la URL vive en el manifiesto.
 
@@ -173,7 +173,7 @@ Puerto por defecto (8000), intervalo de sondeo, tamaño del buffer de logs, tiem
 
 ## 10. Decisiones mías para revisar
 
-- Nombre `ros-studio` y licencia Apache-2.0.
+- Nombre `cotton` y licencia Apache-2.0.
 - SQLite en vez de YAML para perfiles y estado.
 - `dockview` en vez de `flexlayout-react`.
 - Lichtblick como visor por defecto, versión fijada.

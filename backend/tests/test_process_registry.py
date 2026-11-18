@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ros_studio.processes.models import ProcessRecord, ProcessSpec
-from ros_studio.storage.db import Database
-from ros_studio.storage.process_registry import ProcessRegistry
+from cotton.processes.models import ProcessRecord, ProcessSpec
+from cotton.storage.db import Database
+from cotton.storage.process_registry import ProcessRegistry
 
 
 def record(process_id: str = "p1", pid: int = 123) -> ProcessRecord:

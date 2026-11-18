@@ -1,4 +1,4 @@
-export const TOKEN_STORAGE_KEY = "ros-studio-token";
+export const TOKEN_STORAGE_KEY = "cotton-token";
 
 export interface TokenHash {
   token: string | null;

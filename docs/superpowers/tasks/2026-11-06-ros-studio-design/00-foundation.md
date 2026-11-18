@@ -16,17 +16,17 @@
 
 ## Bloque F1 — Repositorio y tooling
 
-- [x] **T001 · 5 min** — Inicializar git (`git init -b main`) y crear `backend/src/ros_studio`, `backend/tests`, `docs`, `.github/workflows`. **Hecho:** `git status` funciona y los directorios existen.
-- [x] **T002 · 5 min** — Crear `.gitignore` con `.venv/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `dist/`, `frontend/node_modules/`, `frontend/dist/`, `backend/src/ros_studio/web/`, `*.db`. **Hecho:** `git status` no muestra ruido.
+- [x] **T001 · 5 min** — Inicializar git (`git init -b main`) y crear `backend/src/cotton`, `backend/tests`, `docs`, `.github/workflows`. **Hecho:** `git status` funciona y los directorios existen.
+- [x] **T002 · 5 min** — Crear `.gitignore` con `.venv/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `dist/`, `frontend/node_modules/`, `frontend/dist/`, `backend/src/cotton/web/`, `*.db`. **Hecho:** `git status` no muestra ruido.
 - [x] **T003 · 5 min** — Añadir `LICENSE` con el texto Apache-2.0. **Hecho:** el fichero empieza por «Apache License» y tiene 2.0.
 - [x] **T004 · 5 min** — Crear `README.md` con una descripción de tres líneas y enlaces a spec, diseño, plan y tareas. **Hecho:** los enlaces resuelven.
-- [x] **T005 · 10 min** — Crear `pyproject.toml` con hatchling, `ros-studio`, Python `>=3.10`, dependencias `fastapi`, `uvicorn[standard]`, `pydantic`, `PyYAML`, `platformdirs` y extra `dev`. **Hecho:** `python -m build --sdist` no falla por configuración.
-- [x] **T006 · 5 min** — Crear `backend/src/ros_studio/__init__.py` con `__version__ = "0.1.0"`. **Hecho:** `python -c "import ros_studio; print(ros_studio.__version__)"` imprime la versión tras instalar.
+- [x] **T005 · 10 min** — Crear `pyproject.toml` con hatchling, `cotton`, Python `>=3.10`, dependencias `fastapi`, `uvicorn[standard]`, `pydantic`, `PyYAML`, `platformdirs` y extra `dev`. **Hecho:** `python -m build --sdist` no falla por configuración.
+- [x] **T006 · 5 min** — Crear `backend/src/cotton/__init__.py` con `__version__ = "0.1.0"`. **Hecho:** `python -c "import cotton; print(cotton.__version__)"` imprime la versión tras instalar.
 - [x] **T007 · 10 min** — Escribir `backend/tests/test_package.py` y configurar pytest (`testpaths`, `asyncio_mode`, marcador `integration`). **Hecho:** el test pasa.
 - [x] **T008 · 10 min** — Crear `.venv`, instalar `-e ".[dev]"` y ejecutar `pytest`. **Hecho:** la suite colecta y pasa.
 - [x] **T009 · 10 min** — Configurar `ruff` y `mypy` (con `ignore_missing_imports` para `rclpy.*`, `rcl_interfaces.*`, `rosidl_runtime_py.*`). **Hecho:** `ruff check backend && mypy backend/src` pasa.
 - [x] **T010 · 10 min** — Crear `.github/workflows/ci.yml` con matrix Python 3.10/3.12, ruff, mypy y `pytest -m "not integration"`. **Hecho:** el YAML es válido y los comandos son los mismos que en local.
-- [x] **T011 · 10 min** — Ejecutar checks completos y commit `chore: bootstrap ros-studio repository`. **Hecho:** `git log -1` muestra el commit.
+- [x] **T011 · 10 min** — Ejecutar checks completos y commit `chore: bootstrap cotton repository`. **Hecho:** `git log -1` muestra el commit.
 
 ## Bloque F2 — Contrato REST/WS
 
@@ -40,7 +40,7 @@
 - [x] **T039 · 10 min** — Implementar `ensure_ros_environment` y `RosEnvironmentError` comprobando `rclpy`, `AMENT_PREFIX_PATH` y `ros2` en `PATH`. **Hecho:** T037 en verde.
 - [x] **T040 · 10 min** — Crear `errors.py` con `ApiError` y el handler `{code, message}`. **Hecho:** un endpoint de prueba devuelve el formato.
 - [x] **T041 · 10 min** — Crear `create_app(env)` y `GET /api/env`; test con `TestClient`. **Hecho:** responde 200 con la distro.
-- [x] **T042 · 10 min** — Añadir `cli.py` y `__main__.py` con `--host`, `--port`, `--no-browser` y `uvicorn.run`. **Hecho:** `ros-studio --help` lista las opciones.
+- [x] **T042 · 10 min** — Añadir `cli.py` y `__main__.py` con `--host`, `--port`, `--no-browser` y `uvicorn.run`. **Hecho:** `cotton --help` lista las opciones.
 - [x] **T043 · 10 min** — Ejecutar tests, ruff y mypy; commit `feat: detect ros environment and expose /api/env`. **Hecho:** commit creado.
 
 ## Bloque F4 — Hilo ROS
@@ -91,7 +91,7 @@ pip install -e ".[dev]"
 ruff check backend
 ruff format --check backend
 mypy backend/src
-pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
+pytest -m "not integration" --cov=cotton --cov-fail-under=80
 ```
 
 Frontend (cuando exista el build):

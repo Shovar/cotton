@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from ros_studio.processes.models import LogLine, ProcessRecord, ProcessSpec
+from cotton.processes.models import LogLine, ProcessRecord, ProcessSpec
 
 
 def started_at() -> datetime:

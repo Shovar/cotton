@@ -4,8 +4,8 @@ Date: 2026-11-16
 Status: proposed
 Scope: `frontend/src/features/processes/*`, `frontend/src/styles.css`,
 `frontend/src/state/store.ts`, `frontend/src/api/types.ts`,
-`backend/src/ros_studio/processes/manager.py`,
-`backend/src/ros_studio/api/routes_processes.py`, plus a follow-up pass that
+`backend/src/cotton/processes/manager.py`,
+`backend/src/cotton/api/routes_processes.py`, plus a follow-up pass that
 translates the whole UI to English.
 
 ## Intent
@@ -97,7 +97,7 @@ A terminal is a process slot. The process list is the set of terminals.
 - The input keeps the accessible name `Command`; the button is `Run`.
 - `cwd` moves into a collapsed `Advanced options` disclosure with the help
   text: the directory where the command runs; empty uses the directory that
-  started ROS Studio.
+  started Cotton.
 
 ### Process cards
 

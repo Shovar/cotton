@@ -15,7 +15,7 @@ frontend/playwright-report/
 frontend/test-results/
 node_modules/
 coverage/
-backend/src/ros_studio/web/
+backend/src/cotton/web/
 *.db
 *.db-wal
 *.db-shm

@@ -1,7 +1,7 @@
 {
-  "name": "ros-studio",
+  "name": "cotton",
   "private": true,
-  "description": "Root command delegation for the ROS Studio frontend",
+  "description": "Root command delegation for the Cotton frontend",
   "scripts": {
     "postinstall": "npm --prefix frontend install",
     "dev": "npm --prefix frontend run dev --",

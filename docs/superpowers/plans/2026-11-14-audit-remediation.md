@@ -22,7 +22,7 @@
 
 ## Review Focus
 
-1. **`ros-studio --port 9000`:** el panel de Foxglove debe cargar desde el puerto real; el puente sigue en `8765`.
+1. **`cotton --port 9000`:** el panel de Foxglove debe cargar desde el puerto real; el puente sigue en `8765`.
 2. **Nuevo publisher en un topic sin cambios de tipo:** la caché no lo verá hasta que cambien nombre o tipos; es un límite aceptado y documentado, no un fallo silencioso.
 3. **`/rosout` y `/parameter_events`:** tras excluir el nodo propio deben seguir listados con sus demás editores/suscriptores.
 4. **Dos instancias o reinicio del hilo ROS:** nombres con PID distintos y caché descartada al cambiar de nodo.
@@ -33,7 +33,7 @@
 ### Task 1: Sacar el token del access log
 
 **Files:**
-- Modify: `backend/src/ros_studio/cli.py:147`
+- Modify: `backend/src/cotton/cli.py:147`
 - Test: `backend/tests/test_cli.py`
 
 **Interfaces:**
@@ -79,7 +79,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/cli.py backend/tests/test_cli.py
+git add backend/src/cotton/cli.py backend/tests/test_cli.py
 git commit -m "fix: keep the session token out of uvicorn access logs"
 ```
 
@@ -88,13 +88,13 @@ git commit -m "fix: keep the session token out of uvicorn access logs"
 ### Task 2: Nodo con PID y probe de frecuencia con nombre propio
 
 **Files:**
-- Modify: `backend/src/ros_studio/ros/thread.py:30-32`
-- Modify: `backend/src/ros_studio/ros/rate.py:38-51,76-99`
+- Modify: `backend/src/cotton/ros/thread.py:30-32`
+- Modify: `backend/src/cotton/ros/rate.py:38-51,76-99`
 - Test: `backend/tests/test_ros_thread.py`, `backend/tests/test_rate.py`
 
 **Interfaces:**
 - Consumes: `RosThread(node_name=...)`, `measure_rate(node, topic, window_s)`.
-- Produces: `RosThread.node_name` por defecto `f"ros_studio_{os.getpid()}"`; `measure_rate(..., probe_name: str = "ros_studio_rate")`; `ThreadRateSource.measure` pasa `f"{ros.node_name}_rate"`.
+- Produces: `RosThread.node_name` por defecto `f"cotton_{os.getpid()}"`; `measure_rate(..., probe_name: str = "cotton_rate")`; `ThreadRateSource.measure` pasa `f"{ros.node_name}_rate"`.
 
 - [ ] **Step 1: Escribir los tests que fallan**
 
@@ -102,11 +102,11 @@ En `test_ros_thread.py`:
 
 ```python
 def test_default_node_name_includes_the_pid() -> None:
-    assert RosThread().node_name == f"ros_studio_{os.getpid()}"
+    assert RosThread().node_name == f"cotton_{os.getpid()}"
 
 
 def test_explicit_node_name_is_kept() -> None:
-    assert RosThread(node_name="ros_studio_7").node_name == "ros_studio_7"
+    assert RosThread(node_name="cotton_7").node_name == "cotton_7"
 ```
 
 En `test_rate.py`:
@@ -118,24 +118,24 @@ def test_thread_rate_source_names_the_probe_after_the_app_node(
     seen: dict[str, str] = {}
 
     def fake_measure(
-        _node: object, _topic: str, window_s: float = 2.0, probe_name: str = "ros_studio_rate"
+        _node: object, _topic: str, window_s: float = 2.0, probe_name: str = "cotton_rate"
     ) -> RateResult:
         seen["probe_name"] = probe_name
         return RateResult(available=True, hz=1.0, window_s=window_s)
 
-    monkeypatch.setattr("ros_studio.ros.rate.measure_rate", fake_measure)
-    ros = SimpleNamespace(node=object(), node_name="ros_studio_42")
+    monkeypatch.setattr("cotton.ros.rate.measure_rate", fake_measure)
+    ros = SimpleNamespace(node=object(), node_name="cotton_42")
 
     assert ThreadRateSource(ros).measure("/chatter").hz == 1.0
-    assert seen["probe_name"] == "ros_studio_42_rate"
+    assert seen["probe_name"] == "cotton_42_rate"
 ```
 
-Añadir a `test_rate.py` los imports que faltan: `from types import SimpleNamespace`, `ThreadRateSource` desde `ros_studio.ros.rate` y `import os` en `test_ros_thread.py`.
+Añadir a `test_rate.py` los imports que faltan: `from types import SimpleNamespace`, `ThreadRateSource` desde `cotton.ros.rate` y `import os` en `test_ros_thread.py`.
 
 - [ ] **Step 2: Ejecutarlos y verlos fallar**
 
 Run: `pytest backend/tests/test_ros_thread.py backend/tests/test_rate.py -v`
-Expected: FAIL (`ros_studio` sin PID; `TypeError` por `probe_name`).
+Expected: FAIL (`cotton` sin PID; `TypeError` por `probe_name`).
 
 - [ ] **Step 3: Implementar**
 
@@ -143,10 +143,10 @@ Expected: FAIL (`ros_studio` sin PID; `TypeError` por `probe_name`).
 
 ```python
 def __init__(self, node_name: str | None = None, poll_interval: float = 0.05) -> None:
-    self.node_name = node_name or f"ros_studio_{os.getpid()}"
+    self.node_name = node_name or f"cotton_{os.getpid()}"
 ```
 
-`rate.py`: añadir `probe_name: str = "ros_studio_rate"` a `measure_rate`, pasarlo a `_count_messages` y usarlo en `rclpy.create_node(probe_name)`. En `ThreadRateSource.measure`:
+`rate.py`: añadir `probe_name: str = "cotton_rate"` a `measure_rate`, pasarlo a `_count_messages` y usarlo en `rclpy.create_node(probe_name)`. En `ThreadRateSource.measure`:
 
 ```python
 return measure_rate(node, topic, window_s, probe_name=f"{self._ros.node_name}_rate")
@@ -160,7 +160,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/ros/thread.py backend/src/ros_studio/ros/rate.py backend/tests/test_ros_thread.py backend/tests/test_rate.py
+git add backend/src/cotton/ros/thread.py backend/src/cotton/ros/rate.py backend/tests/test_ros_thread.py backend/tests/test_rate.py
 git commit -m "fix: name the ros node and rate probe after the app process"
 ```
 
@@ -169,7 +169,7 @@ git commit -m "fix: name the ros node and rate probe after the app process"
 ### Task 3: Excluir el nodo propio de todo el grafo
 
 **Files:**
-- Modify: `backend/src/ros_studio/ros/graph.py:38-89,122-132`
+- Modify: `backend/src/cotton/ros/graph.py:38-89,122-132`
 - Test: `backend/tests/test_graph.py`
 
 **Interfaces:**
@@ -188,21 +188,21 @@ def test_self_node_is_removed_from_endpoints_services_and_actions() -> None:
 
         def get_service_names_and_types(self) -> list[tuple[str, list[str]]]:
             return [
-                ("/ros_studio_1/get_parameters", ["rcl_interfaces/srv/GetParameters"]),
+                ("/cotton_1/get_parameters", ["rcl_interfaces/srv/GetParameters"]),
                 ("/talker/get_parameters", ["rcl_interfaces/srv/GetParameters"]),
             ]
 
         def get_publishers_info_by_topic(self, _topic: str) -> list[Endpoint]:
-            return [Endpoint("ros_studio_1", "/", "rcl_interfaces/msg/Log"), Endpoint("talker", "/", "rcl_interfaces/msg/Log")]
+            return [Endpoint("cotton_1", "/", "rcl_interfaces/msg/Log"), Endpoint("talker", "/", "rcl_interfaces/msg/Log")]
 
         def get_subscriptions_info_by_topic(self, _topic: str) -> list[Endpoint]:
-            return [Endpoint("ros_studio_1_rate", "/", "rcl_interfaces/msg/Log")]
+            return [Endpoint("cotton_1_rate", "/", "rcl_interfaces/msg/Log")]
 
-    graph = RclpyGraphSource(OwnNode(), self_node_name="/ros_studio_1").snapshot()
+    graph = RclpyGraphSource(OwnNode(), self_node_name="/cotton_1").snapshot()
 
     assert graph.topics[0].publishers == ["/talker"]
     assert graph.topics[0].subscribers == []
-    assert "/ros_studio_1/get_parameters" not in graph.services
+    assert "/cotton_1/get_parameters" not in graph.services
     assert "/talker/get_parameters" in graph.services
 ```
 
@@ -211,7 +211,7 @@ Nota: `/rosout` sigue listado porque otros nodos también publican en él.
 - [ ] **Step 2: Ejecutarlo y verlo fallar**
 
 Run: `pytest backend/tests/test_graph.py::test_self_node_is_removed_from_endpoints_services_and_actions -v`
-Expected: FAIL (`["/ros_studio_1", "/talker"]` en publishers).
+Expected: FAIL (`["/cotton_1", "/talker"]` en publishers).
 
 - [ ] **Step 3: Implementar**
 
@@ -238,7 +238,7 @@ Expected: PASS, incluidos los tests existentes de topics sin endpoints.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/ros/graph.py backend/tests/test_graph.py
+git add backend/src/cotton/ros/graph.py backend/tests/test_graph.py
 git commit -m "fix: exclude the app's own nodes from graph endpoints and services"
 ```
 
@@ -247,7 +247,7 @@ git commit -m "fix: exclude the app's own nodes from graph endpoints and service
 ### Task 4: Caché de endpoints por topic
 
 **Files:**
-- Modify: `backend/src/ros_studio/ros/graph.py:31-102`
+- Modify: `backend/src/cotton/ros/graph.py:31-102`
 - Test: `backend/tests/test_graph.py`
 
 **Interfaces:**
@@ -272,7 +272,7 @@ class CountingNode(FakeNode):
 
 def test_endpoints_are_cached_until_the_topic_types_change() -> None:
     node = CountingNode()
-    source = RclpyGraphSource(node, self_node_name="/ros_studio_1")
+    source = RclpyGraphSource(node, self_node_name="/cotton_1")
 
     source.snapshot()
     source.snapshot()
@@ -285,7 +285,7 @@ def test_endpoints_are_cached_until_the_topic_types_change() -> None:
 
 def test_thread_source_reuses_the_cache_until_the_node_changes() -> None:
     node = CountingNode()
-    ros = SimpleNamespace(node=node, node_name="ros_studio_1")
+    ros = SimpleNamespace(node=node, node_name="cotton_1")
     source = ThreadGraphSource(ros)  # type: ignore[arg-type]
 
     source.snapshot()
@@ -330,7 +330,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/ros/graph.py backend/tests/test_graph.py
+git add backend/src/cotton/ros/graph.py backend/tests/test_graph.py
 git commit -m "perf: cache graph endpoints until a topic changes"
 ```
 
@@ -412,7 +412,7 @@ git commit -m "feat: show services and actions in the graph view"
 ### Task 6: El panel del plugin usa el puerto real
 
 **Files:**
-- Modify: `backend/src/ros_studio/builtin_plugins/foxglove/plugin.yaml:24`
+- Modify: `backend/src/cotton/builtin_plugins/foxglove/plugin.yaml:24`
 - Modify: `frontend/src/features/plugins/PluginPanel.tsx:13`
 - Test: `frontend/src/features/plugins/PluginPanel.test.tsx`, `backend/tests/test_plugin_loader.py`
 
@@ -494,7 +494,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/ros_studio/builtin_plugins/foxglove/plugin.yaml backend/tests/test_plugin_loader.py frontend/src/features/plugins/PluginPanel.tsx frontend/src/features/plugins/PluginPanel.test.tsx
+git add backend/src/cotton/builtin_plugins/foxglove/plugin.yaml backend/tests/test_plugin_loader.py frontend/src/features/plugins/PluginPanel.tsx frontend/src/features/plugins/PluginPanel.test.tsx
 git commit -m "fix: load the foxglove panel from the real app port"
 ```
 
@@ -687,7 +687,7 @@ git commit -m "refactor: drop the empty settings panel"
 # Tareas
 
 El tracker real está en
-[`docs/superpowers/tasks/2026-11-06-ros-studio-design.md`](docs/superpowers/tasks/2026-11-06-ros-studio-design.md).
+[`docs/superpowers/tasks/2026-11-06-ros-studio-design.md`](../tasks/2026-11-06-ros-studio-design.md).
 Este fichero existe para que las referencias de `AGENTS.md` resuelvan.
 ```
 
@@ -743,12 +743,12 @@ Incluir, con el resultado esperado de cada uno:
 ```bash
 # T034 — Ubuntu con venv --system-site-packages
 python3 -m venv --system-site-packages /tmp/rs
-/tmp/rs/bin/pip install dist/ros_studio-0.1.0-py3-none-any.whl
-/tmp/rs/bin/python -c "import rclpy, ros_studio; print('ok')"
+/tmp/rs/bin/pip install dist/cotton-0.1.0-py3-none-any.whl
+/tmp/rs/bin/python -c "import rclpy, cotton; print('ok')"
 
 # T069/T070 — parámetros remotos contra un nodo real
 ros2 run demo_nodes_cpp parameter_blackboard &
-ros-studio --no-browser --token test-token &
+cotton --no-browser --token test-token &
 curl -s -H 'Authorization: Bearer test-token' \
   'http://127.0.0.1:8000/api/nodes//parameter_blackboard/params'
 
@@ -786,7 +786,7 @@ Tras la última tarea:
 
 ```bash
 ruff check backend && ruff format --check backend && mypy backend/src
-pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
+pytest -m "not integration" --cov=cotton --cov-fail-under=80
 cd frontend && npm run lint && npm run typecheck && npm test -- --coverage
 ```
 

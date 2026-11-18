@@ -1,6 +1,6 @@
-# Installing ROS Studio
+# Installing Cotton
 
-ROS Studio runs inside a ROS 2 environment you already have. It is a Python
+Cotton runs inside a ROS 2 environment you already have. It is a Python
 package plus a compiled web UI served by the same process; `rclpy` is never
 installed from PyPI, it comes from the active ROS 2 distribution.
 
@@ -11,7 +11,7 @@ discovery limits that do not exist on Linux.
 Requirements:
 
 - ROS 2 Humble or Jazzy, with `ros2`, `rclpy`, `ROS_DISTRO` and
-  `AMENT_PREFIX_PATH` reachable from the shell that starts ROS Studio.
+  `AMENT_PREFIX_PATH` reachable from the shell that starts Cotton.
 - Python 3.10+ and `python3-venv` on Debian/Ubuntu.
 - Node 24+ (`24.15+` for the test suite) and npm only when building or testing
   the frontend from source, or when the installer has to build it.
@@ -24,12 +24,12 @@ From a checkout:
 
 ```bash
 scripts/install.sh
-ros-studio
+cotton
 ```
 
-The installer creates `~/.local/share/ros-studio/venv` with
+The installer creates `~/.local/share/cotton/venv` with
 `--system-site-packages`, installs the package there, and writes
-`~/.local/share/ros-studio/bin/ros-studio`, linked as `~/.local/bin/ros-studio`.
+`~/.local/share/cotton/bin/cotton`, linked as `~/.local/bin/cotton`.
 The linked command is a wrapper: it sources `ROS_SETUP` when set; otherwise,
 when ROS 2 is not active it sources the distro named by `ROS_DISTRO` or the only
 `/opt/ros/*/setup.bash` it finds. It also keeps the venv's `site-packages` ahead
@@ -38,7 +38,7 @@ of ROS `PYTHONPATH` entries.
 From a prebuilt wheel:
 
 ```bash
-scripts/install.sh dist/ros_studio-0.1.0-py3-none-any.whl
+scripts/install.sh dist/cotton-0.1.0-py3-none-any.whl
 ```
 
 Without a wheel, the installer builds the frontend when the compiled bundle is
@@ -54,9 +54,9 @@ If your terminal does not already include `~/.local/bin`, add it to `PATH` in
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-For a colcon overlay, source its `install/setup.bash` before `ros-studio`, or
-run `ROS_SETUP=~/ros2_ws/install/setup.bash ros-studio`. Uninstall with
-`rm -rf ~/.local/share/ros-studio ~/.local/bin/ros-studio`.
+For a colcon overlay, source its `install/setup.bash` before `cotton`, or
+run `ROS_SETUP=~/ros2_ws/install/setup.bash cotton`. Uninstall with
+`rm -rf ~/.local/share/cotton ~/.local/bin/cotton`.
 
 ## Build a wheel manually
 
@@ -66,21 +66,21 @@ fit:
 ```bash
 npm install
 npm run build
-rm -rf backend/src/ros_studio/web
-cp -R frontend/dist backend/src/ros_studio/web
+rm -rf backend/src/cotton/web
+cp -R frontend/dist backend/src/cotton/web
 python -m build --wheel
 ```
 
-The wheel embeds `frontend/dist` as `ros_studio/web`; the copy step is required
+The wheel embeds `frontend/dist` as `cotton/web`; the copy step is required
 because the frontend build is not tracked in git. Install the wheel with the
 installer, or inside an environment that can already import `rclpy`:
 
 ```bash
-pip install dist/ros_studio-0.1.0-py3-none-any.whl
-ros-studio --help
+pip install dist/cotton-0.1.0-py3-none-any.whl
+cotton --help
 ```
 
-`ros-studio` binds to `127.0.0.1:8000`, generates a session token and opens the
+`cotton` binds to `127.0.0.1:8000`, generates a session token and opens the
 browser at `http://127.0.0.1:8000/#token=<token>`. Keep that token in the URL
 fragment only; the app stores it in `sessionStorage` and clears the address bar.
 
@@ -90,11 +90,11 @@ automation, never for an interactive session.
 
 ## Running a checkout
 
-`scripts/dev.sh` starts ROS Studio from a source checkout on any of the paths
+`scripts/dev.sh` starts Cotton from a source checkout on any of the paths
 in this document. It uses the ROS 2 environment that is already active, or
 sources the one given in `ROS_SETUP` (a pixi/RoboStack `setup.sh`, an apt
 `setup.bash` or a colcon workspace `install/setup.bash`), then activates
-`.venv` and forwards every argument to `ros-studio`:
+`.venv` and forwards every argument to `cotton`:
 
 ```bash
 scripts/dev.sh
@@ -110,13 +110,13 @@ discovery limits noted below.
 ## pixi / RoboStack (macOS and Linux)
 
 ```bash
-pixi init ros-studio-env
-cd ros-studio-env
+pixi init cotton-env
+cd cotton-env
 pixi add python=3.12 pip fastapi uvicorn
 pixi add --channel robostack-jazzy ros-jazzy-rclpy ros-jazzy-foxglove-bridge ros-jazzy-turtlesim
-pixi add --pypi ./dist/ros_studio-0.1.0-py3-none-any.whl
-pixi run ros-studio --help
-pixi run ros-studio
+pixi add --pypi ./dist/cotton-0.1.0-py3-none-any.whl
+pixi run cotton --help
+pixi run cotton
 ```
 
 Install FastAPI and uvicorn from conda-forge and the ROS packages from
@@ -125,16 +125,16 @@ resolvedor still complains about duplicate dependencies, install the wheel with
 `pip install --no-deps` and keep the conda-forge versions.
 
 This path was validated in stage 0 (`docs/etapa-0-mediciones.md`, S4): the wheel
-installs, `import rclpy` works and `ros-studio --help` prints its usage.
+installs, `import rclpy` works and `cotton --help` prints its usage.
 
 ## apt (Ubuntu 22.04 and 24.04)
 
 ```bash
 sudo apt install python3-venv ros-jazzy-desktop ros-jazzy-foxglove-bridge ros-jazzy-turtlesim
 
-cd ros-studio
+cd cotton
 scripts/install.sh
-ros-studio
+cotton
 ```
 
 The installer creates the venv with `--system-site-packages`, so it imports the
@@ -144,7 +144,7 @@ it yourself (or set `ROS_SETUP`) when Humble and Jazzy are both installed. For
 Humble, replace `jazzy` with `humble` everywhere.
 
 To install an already built wheel, pass it to the installer instead:
-`scripts/install.sh ./dist/ros_studio-0.1.0-py3-none-any.whl`.
+`scripts/install.sh ./dist/cotton-0.1.0-py3-none-any.whl`.
 
 The apt path was not executed on this macOS host; the integration workflow in
 `.github/workflows/integration.yml` runs the same commands inside the official
@@ -168,16 +168,16 @@ Compose publishes only `127.0.0.1:8000` (UI and API) and `127.0.0.1:8765`
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `ROS_STUDIO_TOKEN` | `test-token` | Session token; change it outside local demos |
+| `COTTON_TOKEN` | `test-token` | Session token; change it outside local demos |
 | `ROS_DOMAIN_ID` | `0` | DDS domain shared with the workspace |
 | `ROS_WORKSPACE` | `docker/workspace` | colcon workspace mounted read-only at `/ws`; its `install/setup.bash` is sourced when present |
 
 Without `docker compose`, the same image runs directly:
 
 ```bash
-docker build -f docker/Dockerfile -t ros-studio .
+docker build -f docker/Dockerfile -t cotton .
 docker run --rm -p 127.0.0.1:8000:8000 -p 127.0.0.1:8765:8765 \
-  -e ROS_DOMAIN_ID=0 ros-studio
+  -e ROS_DOMAIN_ID=0 cotton
 ```
 
 Two caveats:
@@ -193,7 +193,7 @@ Two caveats:
 
 Use the apt path inside the WSL distribution. WSL2 forwards `127.0.0.1:8000` to
 Windows, so the browser on Windows opens `http://127.0.0.1:8000/#token=<token>`
-while ROS Studio and ROS 2 keep running inside WSL. Do not bind to `0.0.0.0`
+while Cotton and ROS 2 keep running inside WSL. Do not bind to `0.0.0.0`
 to make it work.
 
 DDS multicast between WSL2 and a physical robot may be blocked depending on the
@@ -221,19 +221,19 @@ npx playwright install chromium
 npm run e2e
 ```
 
-`ROS_STUDIO_URL` and `ROS_STUDIO_TOKEN` override the default
+`COTTON_URL` and `COTTON_TOKEN` override the default
 `http://127.0.0.1:8000` and `test-token`. The same flow runs in
 `.github/workflows/integration.yml` with Humble and Jazzy.
 
 ## Changing `ROS_DOMAIN_ID`
 
-ROS Studio reads `ROS_DOMAIN_ID` when it starts, and every node must agree on
-it. After changing the variable, restart ROS Studio **and** the processes it
+Cotton reads `ROS_DOMAIN_ID` when it starts, and every node must agree on
+it. After changing the variable, restart Cotton **and** the processes it
 launches, and clear the ROS 2 daemon cache:
 
 ```bash
 ros2 daemon stop
-ros-studio
+cotton
 ```
 
 Restarting only the browser is not enough: the backend keeps its `rclpy` node on
@@ -242,8 +242,8 @@ the old domain.
 ## Offline Lichtblick assets
 
 The Foxglove viewer is downloaded on first start to the platform cache
-(`~/.cache/ros-studio/lichtblick/` on Linux,
-`~/Library/Caches/ros-studio/lichtblick/` on macOS), checked against the pinned
+(`~/.cache/cotton/lichtblick/` on Linux,
+`~/Library/Caches/cotton/lichtblick/` on macOS), checked against the pinned
 SHA-256 and extracted. For offline installs, copy the verified
 `lichtblick-web.tar.gz` next to that directory before the first start; the
 backend serves it at `/lichtblick` and explains how to pre-seed the cache when
@@ -251,17 +251,17 @@ the assets are missing.
 
 ## Troubleshooting
 
-- `ros-studio: command not found`: add `~/.local/bin` to `PATH` (see the
+- `cotton: command not found`: add `~/.local/bin` to `PATH` (see the
   installer section) or reinstall with a directory that is already on `PATH`.
 - `ROS_DISTRO is not set` or `AMENT_PREFIX_PATH is not set`: source
   `/opt/ros/<distro>/setup.bash` (or your colcon workspace) in the same shell,
   or set `ROS_SETUP` and let the installed wrapper source it.
-- `ros-studio: ROS_SETUP does not exist`: point `ROS_SETUP` at the setup script
+- `cotton: ROS_SETUP does not exist`: point `ROS_SETUP` at the setup script
   or unset it to let the wrapper look in `/opt/ros`.
-- `ros-studio: broken installation`: re-run `scripts/install.sh`.
+- `cotton: broken installation`: re-run `scripts/install.sh`.
 - `rclpy is not importable`: recreate the venv with
   `python3 -m venv --system-site-packages`.
-- `frontend_not_built` on `/`: the wheel has no `ros_studio/web`; rebuild the
+- `frontend_not_built` on `/`: the wheel has no `cotton/web`; rebuild the
   frontend and reinstall the wheel.
 - The UI loads but the graph is empty: check that the nodes use the same
   `ROS_DOMAIN_ID` and RMW implementation, then run `ros2 node list`.

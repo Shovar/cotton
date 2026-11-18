@@ -10,12 +10,12 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ros_studio.app import create_app
-from ros_studio.events import EventBus
-from ros_studio.processes.manager import ProcessManager, StopTimeouts
-from ros_studio.processes.models import ProcessRecord, ProcessSpec
-from ros_studio.storage.db import Database
-from ros_studio.storage.process_registry import ProcessRegistry
+from cotton.app import create_app
+from cotton.events import EventBus
+from cotton.processes.manager import ProcessManager, StopTimeouts
+from cotton.processes.models import ProcessRecord, ProcessSpec
+from cotton.storage.db import Database
+from cotton.storage.process_registry import ProcessRegistry
 
 
 @pytest.fixture

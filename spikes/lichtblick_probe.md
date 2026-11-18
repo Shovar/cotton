@@ -1,6 +1,6 @@
 # Lichtblick probe — stage 0
 
-Report of the disposable spikes that decide how ROS Studio ships the viewer.
+Report of the disposable spikes that decide how Cotton ships the viewer.
 Full numbers and environment live in [`docs/etapa-0-mediciones.md`](../docs/etapa-0-mediciones.md).
 
 ## Pinned version
@@ -106,9 +106,9 @@ URL and the viewer URL, so switching viewers does not touch the core.
 
 ## Install validation
 
-- **pixi / RoboStack:** wheel `ros_studio-0.1.0-py3-none-any.whl` (17 442 B)
+- **pixi / RoboStack:** wheel `cotton-0.1.0-py3-none-any.whl` (17 442 B)
   installed with `pip` inside a temporary Jazzy env. `import rclpy`, `import
-  fastapi`, `import uvicorn`, `import ros_studio` and `ros-studio --help` all
+  fastapi`, `import uvicorn`, `import cotton` and `cotton --help` all
   pass. Only `platformdirs` came from PyPI; no resolver conflict, so the
   `--no-deps` variant was not needed.
 - **Ubuntu venv `--system-site-packages`:** not validated. This session runs on

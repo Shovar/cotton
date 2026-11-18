@@ -97,12 +97,12 @@ beforeEach(() => {
 });
 
 describe("Workbench", () => {
-  it("shows the ROS Studio logo in the activity bar", () => {
+  it("shows the Cotton logo in the activity bar", () => {
     render(<Workbench />);
 
-    const logo = screen.getByRole("img", { name: "ROS Studio" });
+    const logo = screen.getByRole("img", { name: "Cotton" });
     expect(logo).toBeVisible();
-    expect(logo).toHaveAttribute("src", "/src/assets/ros-studio-logo.png");
+    expect(logo).toHaveAttribute("src", "/src/assets/cotton-logo.png");
     expect(logo).toHaveClass("brightness-0", "dark:invert");
   });
 

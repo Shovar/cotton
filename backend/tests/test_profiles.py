@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ros_studio.processes.models import ProcessSpec
-from ros_studio.processes.profiles import Profile, ProfileRepository
-from ros_studio.storage.db import Database
+from cotton.processes.models import ProcessSpec
+from cotton.processes.profiles import Profile, ProfileRepository
+from cotton.storage.db import Database
 
 
 def repository(tmp_path: Path) -> ProfileRepository:

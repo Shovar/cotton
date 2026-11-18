@@ -3,8 +3,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ros_studio.app import mount_spa
-from ros_studio.errors import install_error_handlers
+from cotton.app import mount_spa
+from cotton.errors import install_error_handlers
 
 
 def test_mount_spa_serves_index_and_falls_back(tmp_path: Path) -> None:

@@ -26,7 +26,7 @@ jobs:
       - name: Types
         run: mypy backend/src
       - name: Tests
-        run: pytest -m "not integration" --cov=ros_studio --cov-fail-under=80
+        run: pytest -m "not integration" --cov=cotton --cov-fail-under=80
 
   frontend:
     runs-on: ubuntu-latest

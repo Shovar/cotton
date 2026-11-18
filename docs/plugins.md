@@ -1,8 +1,8 @@
 # Plugins
 
-Plugins are declared with a `plugin.yaml` manifest. ROS Studio discovers the
-builtin manifests in `ros_studio/builtin_plugins/` and the user manifests in
-`~/.config/ros-studio/plugins/` (the platform config directory). A user plugin
+Plugins are declared with a `plugin.yaml` manifest. Cotton discovers the
+builtin manifests in `cotton/builtin_plugins/` and the user manifests in
+`~/.config/cotton/plugins/` (the platform config directory). A user plugin
 with the same `name` replaces the builtin one.
 
 ## Manifest
@@ -46,7 +46,7 @@ list so they return on the next start.
 
 The viewer is downloaded, not vendored: `LichtblickAssets` fetches the pinned
 `v1.30.0` release, verifies its SHA-256, extracts it into the platform cache
-directory (`~/.cache/ros-studio/lichtblick/` on Linux), copies the packaged
+directory (`~/.cache/cotton/lichtblick/` on Linux), copies the packaged
 `layout.json` next to it and writes `.complete`.
 For offline installs, copy the verified `lichtblick-web.tar.gz` next to that
 directory before the first start.

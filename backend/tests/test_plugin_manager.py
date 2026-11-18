@@ -9,18 +9,18 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ros_studio.events import EventBus
-from ros_studio.plugins.loader import PluginLoader
-from ros_studio.plugins.manager import (
+from cotton.events import EventBus
+from cotton.plugins.loader import PluginLoader
+from cotton.plugins.manager import (
     Healthcheck,
     HealthcheckError,
     PluginError,
     PluginManager,
     check_health,
 )
-from ros_studio.plugins.settings import SettingsRepository
-from ros_studio.processes.models import ProcessRecord, ProcessSpec
-from ros_studio.storage.db import Database
+from cotton.plugins.settings import SettingsRepository
+from cotton.processes.models import ProcessRecord, ProcessSpec
+from cotton.storage.db import Database
 
 ACTIVE_KEY = "plugins.active"
 

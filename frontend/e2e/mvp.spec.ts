@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const token = process.env.ROS_STUDIO_TOKEN ?? "test-token";
+const token = process.env.COTTON_TOKEN ?? "test-token";
 
 test("turtlesim, graph, frequency, stop and foxglove", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());

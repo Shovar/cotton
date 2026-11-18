@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Development entry point: get a shell with the ROS 2 environment and the
-# project virtualenv active, then run ROS Studio. Any argument is forwarded to
-# the `ros-studio` CLI.
+# project virtualenv active, then run Cotton. Any argument is forwarded to the
+# `cotton` CLI.
 #
 #   scripts/dev.sh
 #   scripts/dev.sh --port 8111 --token dev-token
@@ -48,10 +48,10 @@ venv_site="$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"]
 export PYTHONPATH="${venv_site}${PYTHONPATH:+:${PYTHONPATH}}"
 
 # 4. Serve the current frontend: the backend reads the compiled SPA from
-#    backend/src/ros_studio/web. Rebuild when the sources are newer and copy the
+#    backend/src/cotton/web. Rebuild when the sources are newer and copy the
 #    result, so dev.sh never serves a stale bundle.
 spa_src="$repo_root/frontend/dist"
-spa_dst="$repo_root/backend/src/ros_studio/web"
+spa_dst="$repo_root/backend/src/cotton/web"
 # shortcut: only frontend/src and index.html trigger a rebuild; include the rest
 # of the frontend config here if a change to it must also rebuild.
 if [[ ! -f "$spa_src/index.html" ]] ||
@@ -63,4 +63,4 @@ if [[ ! -f "$spa_dst/index.html" ]] || [[ "$spa_src/index.html" -nt "$spa_dst/in
   cp -R "$spa_src" "$spa_dst"
 fi
 
-exec ros-studio "$@"
+exec python -m cotton "$@"

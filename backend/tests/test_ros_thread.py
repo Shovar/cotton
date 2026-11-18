@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from ros_studio.ros.thread import RosCallError, RosCallTimeout, RosThread
+from cotton.ros.thread import RosCallError, RosCallTimeout, RosThread
 
 
 class FakeRosThread(RosThread):
@@ -77,8 +77,8 @@ def test_stop_leaves_no_threads() -> None:
 
 
 def test_default_node_name_includes_the_pid() -> None:
-    assert RosThread().node_name == f"ros_studio_{os.getpid()}"
+    assert RosThread().node_name == f"cotton_{os.getpid()}"
 
 
 def test_explicit_node_name_is_kept() -> None:
-    assert RosThread(node_name="ros_studio_7").node_name == "ros_studio_7"
+    assert RosThread(node_name="cotton_7").node_name == "cotton_7"

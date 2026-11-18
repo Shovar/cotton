@@ -237,19 +237,19 @@ pre-sembrar la caché copiando el `.tar.gz` ya verificado.
 
 Entorno pixi temporal con `python 3.12`, `pip`, `fastapi`, `uvicorn` desde
 conda-forge y `ros-jazzy-rclpy` desde RoboStack. Wheel construido en el worktree
-(`ros_studio-0.1.0-py3-none-any.whl`, 17 442 B) e instalado dentro del entorno:
+(`cotton-0.1.0-py3-none-any.whl`, 17 442 B) e instalado dentro del entorno:
 
 ```bash
 pixi install
-pip install dist/ros_studio-0.1.0-py3-none-any.whl
-python -c "import rclpy, fastapi, uvicorn, ros_studio; ..."
-ros-studio --help
+pip install dist/cotton-0.1.0-py3-none-any.whl
+python -c "import rclpy, fastapi, uvicorn, cotton; ..."
+cotton --help
 ```
 
 Resultado: instalación correcta. Pip solo trajo `platformdirs` de PyPI; el resto
 de dependencias (FastAPI 0.162.2, uvicorn 0.54.0, Pydantic) ya venían de
 conda-forge y no hubo conflicto de resolvedor. `import rclpy` funciona desde el
-entorno (rclpy de RoboStack) y `ros-studio --help` imprime el uso. No hizo falta
+entorno (rclpy de RoboStack) y `cotton --help` imprime el uso. No hizo falta
 la variante `--no-deps`.
 
 ### Ubuntu con venv `--system-site-packages` (T034)
@@ -259,7 +259,7 @@ host Ubuntu 24.04 con ROS 2 instalado por apt. Queda pendiente ejecutar:
 
 ```bash
 python3 -m venv --system-site-packages /tmp/rs
-/tmp/rs/bin/pip install dist/ros_studio-0.1.0-py3-none-any.whl
+/tmp/rs/bin/pip install dist/cotton-0.1.0-py3-none-any.whl
 /tmp/rs/bin/python -c "import rclpy"
 ```
 

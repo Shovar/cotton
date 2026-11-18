@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_topics import create_router
-from ros_studio.app import create_app
-from ros_studio.ros.rate import RateResult
-from ros_studio.ros.thread import RosCallError
-from ros_studio.services import Services
+from cotton.api.routes_topics import create_router
+from cotton.app import create_app
+from cotton.ros.rate import RateResult
+from cotton.ros.thread import RosCallError
+from cotton.services import Services
 
 
 class StubRate:

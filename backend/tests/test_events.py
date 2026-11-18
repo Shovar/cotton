@@ -1,4 +1,4 @@
-from ros_studio.events import EventBus
+from cotton.events import EventBus
 
 
 async def test_bus_fans_out() -> None:

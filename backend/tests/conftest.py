@@ -6,13 +6,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ros_studio.app import Services, create_app
-from ros_studio.channels import Channel, ChannelRegistry
-from ros_studio.env import EnvironmentInfo
-from ros_studio.events import Event, EventBus
-from ros_studio.ros.thread import RosThread
-from ros_studio.security import Auth
-from ros_studio.storage.db import Database
+from cotton.app import Services, create_app
+from cotton.channels import Channel, ChannelRegistry
+from cotton.env import EnvironmentInfo
+from cotton.events import Event, EventBus
+from cotton.ros.thread import RosThread
+from cotton.security import Auth
+from cotton.storage.db import Database
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"

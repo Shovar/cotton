@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
-from ros_studio.app import create_app
-from ros_studio.env import RosEnvironmentError
-from ros_studio.errors import ApiError
-from ros_studio.services import Services
+from cotton.app import create_app
+from cotton.env import RosEnvironmentError
+from cotton.errors import ApiError
+from cotton.services import Services
 
 
 def test_env_endpoint(client: TestClient, auth_headers: dict[str, str]) -> None:

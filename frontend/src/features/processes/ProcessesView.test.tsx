@@ -70,6 +70,9 @@ describe("ProcessesView", () => {
     apiSend.mockResolvedValue(record("p2"));
 
     renderView();
+    expect(
+      screen.getByText(/Where the command runs/),
+    ).toHaveTextContent("started Cotton");
     fireEvent.change(screen.getByLabelText("Command"), { target: { value: "sleep 5" } });
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
@@ -120,7 +123,7 @@ describe("ProcessesView", () => {
 
   it("searches the persisted history with Ctrl+R", async () => {
     localStorage.setItem(
-      "ros-studio-command-history",
+      "cotton-command-history",
       JSON.stringify(["ros2 topic list", "ros2 launch bringup demo.launch.py"]),
     );
     renderView();

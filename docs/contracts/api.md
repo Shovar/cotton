@@ -1,4 +1,4 @@
-# ROS Studio API contract
+# Cotton API contract
 
 This document is the single source of truth for the HTTP API, WebSocket
 protocol, payload models, error envelope and authentication. Feature workers
@@ -111,7 +111,7 @@ A topic with no endpoints is still listed, with empty lists.
 
 `nodes` is `NodeInfo[]`, `topics` is `TopicInfo[]`, `services` and `actions` are
 maps from fully qualified name to a list of types. Lists and map keys are
-sorted. The app's own node (`/ros_studio_<pid>`) is never included.
+sorted. The app's own node (`/cotton_<pid>`) is never included.
 `revision` increases only when the snapshot changes.
 
 ### ProcessSpec
@@ -305,9 +305,9 @@ Feature modules must not rewrite `app.py`. They receive the shared `Services`
 object and wire themselves in before calling `create_app(services)`:
 
 ```python
-from ros_studio.app import create_app
-from ros_studio.channels import Channel
-from ros_studio.services import Services
+from cotton.app import create_app
+from cotton.channels import Channel
+from cotton.services import Services
 
 services.routers.append(my_router)  # FastAPI APIRouter from the feature module
 services.channels.register(         # one Channel per WebSocket subscription unit

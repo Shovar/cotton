@@ -190,7 +190,7 @@ export function ProcessesView() {
             />
           </label>
           <p className="process-hint">
-            Where the command runs. Empty uses the directory that started ROS Studio.
+            Where the command runs. Empty uses the directory that started Cotton.
           </p>
         </details>
       </form>
