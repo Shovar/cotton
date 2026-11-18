@@ -279,7 +279,7 @@
 - [x] **Step 2: Run the focused Vitest test** and confirm minimize/layout state is not preserved.
 - [x] **Step 3: Implement minimize/restore and feature-owned `localStorage` serialization**.
 - [x] **Step 4: Run the tests** and verify minimizing never calls `DELETE /api/terminals/{id}`.
-- [ ] **Step 5: Commit** as `feat: persist terminal group layouts`.
+- [x] **Step 5: Commit** as `feat: persist terminal group layouts`.
 
 ### Task 14 (15 min): Reattach and replay after WebSocket reconnect
 
