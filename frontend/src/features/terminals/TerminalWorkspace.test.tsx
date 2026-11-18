@@ -45,6 +45,7 @@ function record(
 }
 
 beforeEach(() => {
+  localStorage.removeItem(WORKSPACE_STORAGE_KEY);
   mocks.apiGet.mockReset().mockResolvedValue([]);
   mocks.apiSend.mockReset();
   mocks.ws.send.mockReset();
@@ -252,6 +253,42 @@ describe("TerminalWorkspace", () => {
     expect(screen.queryByRole("tab", { name: "t11" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Restore t11" }));
     expect(await screen.findByRole("tab", { name: "t11" })).toBeInTheDocument();
+  });
+
+  it("attaches restored sessions after reconciling them with the backend", async () => {
+    localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        groups: [{ id: "default", name: "Default", terminalIds: ["t13"] }],
+        selectedGroupId: "default",
+        activeTerminalByGroup: { default: "t13" },
+        minimizedIds: [],
+        dockLayouts: {},
+      }),
+    );
+    let resolveTerminals!: (records: TerminalRecord[]) => void;
+    mocks.apiGet.mockReturnValue(
+      new Promise<TerminalRecord[]>((resolve) => {
+        resolveTerminals = resolve;
+      }),
+    );
+    render(<TerminalWorkspace />);
+
+    useTerminalStore.getState().setConnection("open");
+
+    expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
+      id: "t13",
+      after_sequence: 0,
+    });
+
+    resolveTerminals([record("t13")]);
+    await waitFor(() =>
+      expect(mocks.ws.send).toHaveBeenCalledWith("terminal.attach", {
+        id: "t13",
+        after_sequence: 0,
+      }),
+    );
   });
 
   it("removes stale sessions from persisted groups and Dockview layouts", async () => {

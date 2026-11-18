@@ -159,6 +159,7 @@ export function TerminalWorkspace() {
   );
   const [minimizedIds, setMinimizedIds] = useState(initialWorkspaceState.minimizedIds);
   const [dockLayouts, setDockLayouts] = useState(initialWorkspaceState.dockLayouts);
+  const [sessionsReconciled, setSessionsReconciled] = useState(false);
   const selectedId = activeTerminalByGroup[selectedGroupId] ?? null;
   const dockApis = useRef(new Map<string, DockviewApi>());
   const attachedTerminalIds = useRef(new Set<string>());
@@ -250,6 +251,7 @@ export function TerminalWorkspace() {
               data: record,
             });
           }
+          setSessionsReconciled(true);
         }
       })
       .catch((caught: unknown) => {
@@ -270,6 +272,9 @@ export function TerminalWorkspace() {
   );
 
   useEffect(() => {
+    if (!sessionsReconciled) {
+      return;
+    }
     const nextIds = new Set(selectedGroupTerminalIds);
     for (const id of attachedTerminalIds.current) {
       if (!nextIds.has(id)) {
@@ -282,7 +287,7 @@ export function TerminalWorkspace() {
       }
     }
     attachedTerminalIds.current = nextIds;
-  }, [selectedGroupId, selectedGroupTerminalIds]);
+  }, [selectedGroupId, selectedGroupTerminalIds, sessionsReconciled]);
 
   useEffect(
     () => () => {

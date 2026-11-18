@@ -116,6 +116,60 @@ def test_attach_replays_output_and_detach_stops_control(
     assert session.inputs == []
 
 
+def test_attach_replay_orders_output_that_arrives_during_replay(
+    services: Services, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    session = FakePtySession()
+    manager, client = build_terminal(services, session)
+    original_output_since = manager.output_since
+    schedule_output = False
+
+    def output_since(terminal_id: str, sequence: int):
+        nonlocal schedule_output
+        chunks = original_output_since(terminal_id, sequence)
+        if schedule_output:
+            schedule_output = False
+            asyncio.get_running_loop().create_task(
+                services.bus.publish(
+                    "terminal.output",
+                    {
+                        "id": terminal_id,
+                        "sequence": 1,
+                        "data": base64.b64encode(b"before").decode(),
+                    },
+                )
+            )
+            asyncio.get_running_loop().call_soon(session.output.put_nowait, b"during replay")
+        return chunks
+
+    monkeypatch.setattr(manager, "output_since", output_since)
+    with client:
+        record = client.portal.call(manager.start, ["command"])
+        client.portal.call(session.emit, b"before")
+        wait_for_output(client, manager, record.spec.id)
+        with client.websocket_connect(
+            f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
+        ) as websocket:
+            schedule_output = True
+            websocket.send_json(
+                {
+                    "type": "terminal.attach",
+                    "data": {"id": record.spec.id, "after_sequence": 0},
+                }
+            )
+            state = websocket.receive_json()
+            client.portal.call(session.emit, b"during replay")
+            wait_for_output(client, manager, record.spec.id)
+            replay, live = websocket.receive_json(), websocket.receive_json()
+
+    assert state["type"] == "terminal.state"
+    assert [event["data"]["sequence"] for event in (replay, live)] == [1, 2]
+    assert [base64.b64decode(event["data"]["data"]) for event in (replay, live)] == [
+        b"before",
+        b"during replay",
+    ]
+
+
 def test_attach_with_future_sequence_still_forwards_live_output(
     services: Services,
 ) -> None:

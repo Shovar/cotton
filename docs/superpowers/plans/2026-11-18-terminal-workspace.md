@@ -293,10 +293,10 @@
 - On initial frontend load or WebSocket reconnect while the same Cotton backend process is alive, reconcile `GET /api/terminals` with the saved layout and attach visible sessions. Use sequence 0 after page reload and the last received sequence after a transient WebSocket disconnect. Backend restart still ends sessions and has no recovery path.
 - `terminal.attach` replays output newer than `after_sequence`; `terminal.detach` stops forwarding output only and never terminates the PTY.
 
-- [ ] **Step 1: Write failing tests** for restored sessions after page reload, ordered replay after transient reconnect, no replay of already-received chunks (including a live event racing with replay), and detached sessions remaining alive.
-- [ ] **Step 2: Run the focused backend and frontend tests** and confirm reconnect replay is missing.
-- [ ] **Step 3: Implement session reconciliation and attach/detach replay**.
-- [ ] **Step 4: Run both focused test files** and confirm output has no gaps or duplicate sequence writes.
+- [x] **Step 1: Write failing tests** for restored sessions after page reload, ordered replay after transient reconnect, no replay of already-received chunks (including a live event racing with replay), and detached sessions remaining alive.
+- [x] **Step 2: Run the focused backend and frontend tests** and confirm reconnect replay is missing.
+- [x] **Step 3: Implement session reconciliation and attach/detach replay**.
+- [x] **Step 4: Run both focused test files** and confirm output has no gaps or duplicate sequence writes.
 - [ ] **Step 5: Commit** as `feat: reattach terminal sessions after websocket reconnect`.
 
 ### Task 15 (15 min): Verify the complete terminal flow and document behavior
