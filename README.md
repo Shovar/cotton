@@ -16,8 +16,8 @@ Requirements: ROS 2 Humble or Jazzy, Python 3.10+, and Node 24+ only when the
 installer has to build the frontend.
 
 ```bash
-git clone https://github.com/Shovar/ros-studio.git
-cd ros-studio
+git clone https://github.com/Shovar/cotton.git
+cd cotton
 scripts/install.sh
 cotton
 ```

@@ -14,8 +14,8 @@ chose a clean break rather than compatibility support.
 - Use Cotton-specific configuration, cache, installation, and browser storage
   names. Do not migrate old ROS Studio state; leave any old files untouched.
 - Preserve the app's behavior, API contract, and security model.
-- Do not rename the GitHub repository (`Shovar/ros-studio`) or local checkout.
-  These are hosting/workspace identities rather than the app's runtime name.
+- The GitHub repository is now `Shovar/cotton`; the existing local checkout
+  path remains unchanged.
 - Do not add a `ros-studio` command or `ros_studio` import compatibility layer.
 
 ## Approaches

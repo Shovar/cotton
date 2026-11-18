@@ -63,4 +63,4 @@ if [[ ! -f "$spa_dst/index.html" ]] || [[ "$spa_src/index.html" -nt "$spa_dst/in
   cp -R "$spa_src" "$spa_dst"
 fi
 
-exec cotton "$@"
+exec python -m cotton "$@"

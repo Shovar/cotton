@@ -121,3 +121,9 @@ def test_installer_defaults_to_cotton_prefix(tmp_path: Path) -> None:
     link = tmp_path / ".local" / "bin" / "cotton"
     assert link.is_symlink()
     assert os.readlink(link) == str(tmp_path / ".local" / "share" / "cotton" / "bin" / "cotton")
+
+
+def test_dev_script_runs_cotton_module_from_the_virtualenv() -> None:
+    script = (REPO_ROOT / "scripts" / "dev.sh").read_text()
+
+    assert 'exec python -m cotton "$@"' in script

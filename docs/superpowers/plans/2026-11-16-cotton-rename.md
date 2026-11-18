@@ -86,7 +86,7 @@
 - Modify: `AGENTS.md`, `README.md`, `docs/install.md`, `docs/Spec IDE local para ROS 2.md`, `docs/contracts/`, and the existing design/plan/task documents
 - Create: `docs/superpowers/tasks/2026-11-06-ros-studio-design/10-cotton-rename.md`
 - Modify: `docs/superpowers/tasks/2026-11-06-ros-studio-design.md` and its index to record T220a–T220d and their evidence
-- Keep: dated historical document filenames, GitHub repository slug `Shovar/ros-studio`, and local checkout name
+- Keep: dated historical document filenames and local checkout path; use the current GitHub repository slug `Shovar/cotton`
 
 **Interfaces:**
 - User-facing install examples use `cotton`, `cotton-<version>` wheel names, and Cotton-specific data/cache/install paths.

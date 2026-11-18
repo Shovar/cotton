@@ -132,7 +132,7 @@ installs, `import rclpy` works and `cotton --help` prints its usage.
 ```bash
 sudo apt install python3-venv ros-jazzy-desktop ros-jazzy-foxglove-bridge ros-jazzy-turtlesim
 
-cd ros-studio
+cd cotton
 scripts/install.sh
 cotton
 ```

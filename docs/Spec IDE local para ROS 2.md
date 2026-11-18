@@ -260,7 +260,7 @@ Son estimaciones sin validar; la etapa 0 sirve precisamente para recalibrarlas.
 **Estructura del repositorio (propuesta)**
 
 ```text
-ros-studio/
+cotton/
   backend/        # API, gestor de procesos, descubrimiento ROS
   frontend/       # app web (React, layout de paneles)
   plugins/
