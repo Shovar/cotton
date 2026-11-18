@@ -104,6 +104,102 @@ async def test_close_terminates_the_entire_process_group(tmp_path: Path) -> None
         await session.close()
 
 
+@pytest.mark.integration
+@pytest.mark.skipif(
+    os.name != "posix" or not hasattr(termios, "TIOCSCTTY"),
+    reason="POSIX controlling PTYs are unavailable",
+)
+async def test_close_terminates_a_separate_foreground_process_group(
+    tmp_path: Path,
+) -> None:
+    child_script = (
+        "import os, signal, time\n"
+        "os.setpgid(0, 0)\n"
+        "signal.signal(signal.SIGHUP, signal.SIG_IGN)\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        "time.sleep(60)\n"
+    )
+    parent_script = (
+        "import os, signal, subprocess, sys, time\n"
+        f"child = subprocess.Popen([sys.executable, '-c', {child_script!r}])\n"
+        "signal.signal(signal.SIGTTOU, signal.SIG_IGN)\n"
+        "signal.signal(signal.SIGHUP, signal.SIG_IGN)\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        "while os.getpgid(child.pid) == os.getpgrp(): time.sleep(0.01)\n"
+        "os.tcsetpgrp(0, child.pid)\n"
+        "print(f'FG:{os.tcgetpgrp(0)}', flush=True)\n"
+        "while True: time.sleep(1)\n"
+    )
+    session = await PosixPtySpawner().spawn(
+        [sys.executable, "-c", parent_script],
+        tmp_path,
+        dict(os.environ),
+    )
+    shell_pgid = session.pid
+    foreground_pgid: int | None = None
+    try:
+        output = bytearray()
+        while b"FG:" not in output:
+            chunk = await asyncio.wait_for(session.read(), timeout=3)
+            assert chunk is not None
+            output.extend(chunk)
+        foreground_pgid = int(
+            next(line for line in output.splitlines() if line.startswith(b"FG:"))
+            .decode()
+            .split(":")[1]
+        )
+
+        assert foreground_pgid != shell_pgid
+        await session.close()
+        assert not _process_group_alive(shell_pgid)
+        assert not _process_group_alive(foreground_pgid)
+    finally:
+        pgids = {shell_pgid}
+        if foreground_pgid is not None:
+            pgids.add(foreground_pgid)
+        for pgid in pgids:
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        await session.close()
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    os.name != "posix" or not hasattr(termios, "TIOCSCTTY"),
+    reason="POSIX controlling PTYs are unavailable",
+)
+async def test_close_does_not_signal_process_group_zero(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = await PosixPtySpawner().spawn(
+        [sys.executable, "-c", "pass"],
+        tmp_path,
+        dict(os.environ),
+    )
+    await session._process.wait()
+    signalled_groups: list[int] = []
+
+    def record_signal(pgid: int, sig: int) -> None:
+        signalled_groups.append(pgid)
+
+    async def groups_are_gone(_pgids: set[int], *, timeout: float) -> bool:
+        return True
+
+    monkeypatch.setattr("cotton.terminals.posix.os.tcgetpgrp", lambda _fd: 0)
+    monkeypatch.setattr("cotton.terminals.posix._signal_group", record_signal)
+    monkeypatch.setattr(
+        "cotton.terminals.posix._wait_for_groups_exit",
+        groups_are_gone,
+    )
+
+    await session.close()
+
+    assert 0 not in signalled_groups
+
+
 def test_pty_exec_rejects_missing_executable(capsys: pytest.CaptureFixture[str]) -> None:
     assert main([]) == 2
     assert "executable" in capsys.readouterr().err

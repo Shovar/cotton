@@ -88,10 +88,19 @@ class PosixPtySession:
             return await self._process.wait()
         self._closed = True
         try:
-            _signal_group(self.pid, signal.SIGHUP)
-            if not await _wait_for_group_exit(self.pid, timeout=3):
-                _signal_group(self.pid, signal.SIGKILL)
-                await _wait_for_group_exit(self.pid, timeout=1)
+            process_groups = {self.pid}
+            try:
+                foreground_pgid = os.tcgetpgrp(self._master_fd)
+                if foreground_pgid > 0:
+                    process_groups.add(foreground_pgid)
+            except OSError:
+                pass
+            for pgid in process_groups:
+                _signal_group(pgid, signal.SIGHUP)
+            if not await _wait_for_groups_exit(process_groups, timeout=3):
+                for pgid in process_groups:
+                    _signal_group(pgid, signal.SIGKILL)
+                await _wait_for_groups_exit(process_groups, timeout=1)
             return await self._process.wait()
         finally:
             os.close(self._master_fd)
@@ -113,10 +122,10 @@ def _set_window_size(fd: int, cols: int, rows: int) -> None:
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 
 
-async def _wait_for_group_exit(pgid: int, timeout: float) -> bool:
+async def _wait_for_groups_exit(pgids: set[int], timeout: float) -> bool:
     loop = asyncio.get_running_loop()
     deadline = loop.time() + timeout
-    while _group_alive(pgid):
+    while any(_group_alive(pgid) for pgid in pgids):
         if loop.time() >= deadline:
             return False
         await asyncio.sleep(0.02)
