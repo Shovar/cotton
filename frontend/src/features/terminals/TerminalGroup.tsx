@@ -1,11 +1,157 @@
-import { useState, type FormEvent } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+import {
+  DockviewReact,
+  type DockviewApi,
+  type DockviewReadyEvent,
+  type IDockviewPanelHeaderProps,
+  type IDockviewPanelProps,
+} from "dockview-react";
 
 import { Button } from "@/components/ui/button";
+
+import { ws } from "../../api/ws";
+import { TerminalView } from "./TerminalView";
+import {
+  useTerminalStore,
+  type TerminalOutputChunk,
+} from "./terminalStore";
 
 export interface TerminalGroupRecord {
   id: string;
   name: string;
   terminalIds: string[];
+}
+
+const GroupActiveContext = createContext(false);
+const EMPTY_OUTPUT_CHUNKS: TerminalOutputChunk[] = [];
+
+function encodeBase64(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 32_768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32_768));
+  }
+  return btoa(binary);
+}
+
+function TerminalDockPanel({
+  params,
+}: IDockviewPanelProps<{ terminalId: string }>) {
+  const isGroupActive = useContext(GroupActiveContext);
+  const terminal = useTerminalStore((state) => state.records[params.terminalId]);
+  const outputChunks = useTerminalStore(
+    (state) => state.outputChunks[params.terminalId] ?? EMPTY_OUTPUT_CHUNKS,
+  );
+
+  if (!isGroupActive || !terminal) {
+    return null;
+  }
+
+  return (
+    <TerminalView
+      terminalId={params.terminalId}
+      outputChunks={outputChunks}
+      onInput={(data) =>
+        ws.send("terminal.input", {
+          id: params.terminalId,
+          data: encodeBase64(data),
+        })
+      }
+      onResize={(cols, rows) =>
+        ws.send("terminal.resize", { id: params.terminalId, cols, rows })
+      }
+    />
+  );
+}
+
+function TerminalDockTab({ api }: IDockviewPanelHeaderProps) {
+  return <span className="truncate px-2 text-sm">{api.title}</span>;
+}
+
+export function TerminalGroupLayout({
+  groupId,
+  terminalIds,
+  isActive,
+  onActivePanelChange,
+  onApi,
+}: {
+  groupId: string;
+  terminalIds: string[];
+  isActive: boolean;
+  onActivePanelChange: (groupId: string, terminalId: string | null) => void;
+  onApi: (groupId: string, api: DockviewApi | null) => void;
+}) {
+  const [api, setApi] = useState<DockviewApi | null>(null);
+  const components = useMemo(() => ({ terminal: TerminalDockPanel }), []);
+  const tabComponents = useMemo(() => ({ terminal: TerminalDockTab }), []);
+  const onReady = useCallback((event: DockviewReadyEvent) => setApi(event.api), []);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    const wantedIds = new Set(terminalIds);
+    for (const panel of api.panels) {
+      if (!wantedIds.has(panel.id)) {
+        api.removePanel(panel);
+      }
+    }
+    for (const [index, id] of terminalIds.entries()) {
+      if (!api.getPanel(id)) {
+        api.addPanel({
+          id,
+          component: "terminal",
+          tabComponent: "terminal",
+          title: id,
+          params: { terminalId: id },
+          inactive: index > 0,
+        });
+      }
+    }
+    onActivePanelChange(groupId, api.activePanel?.id ?? terminalIds[0] ?? null);
+  }, [api, groupId, onActivePanelChange, terminalIds]);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+    onApi(groupId, api);
+    return () => onApi(groupId, null);
+  }, [api, groupId, onApi]);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+    const subscription = api.onDidActivePanelChange((event) =>
+      onActivePanelChange(groupId, event.panel?.id ?? null),
+    );
+    return () => subscription.dispose();
+  }, [api, groupId, onActivePanelChange]);
+
+  return (
+    <div
+      className={`absolute inset-0 ${isActive ? "" : "invisible pointer-events-none"}`}
+      aria-hidden={!isActive}
+    >
+      <GroupActiveContext.Provider value={isActive}>
+        <DockviewReact
+          components={components}
+          tabComponents={tabComponents}
+          onReady={onReady}
+        />
+      </GroupActiveContext.Provider>
+    </div>
+  );
 }
 
 export function TerminalGroup({

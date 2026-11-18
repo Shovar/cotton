@@ -1,17 +1,18 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { DockviewApi } from "dockview-react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TerminalRecord } from "../../api/types";
 
 const mocks = vi.hoisted(() => ({
-  apiGet: vi.fn(),
-  apiSend: vi.fn(),
-  ws: {
-    send: vi.fn(),
-    subscribe: vi.fn(),
-    onEvent: vi.fn(() => () => {}),
-    onStatus: vi.fn(() => () => {}),
-  },
+    apiGet: vi.fn(),
+    apiSend: vi.fn(),
+    ws: {
+      send: vi.fn(),
+      subscribe: vi.fn(),
+      onEvent: vi.fn(() => () => {}),
+      onStatus: vi.fn(() => () => {}),
+    },
 }));
 
 vi.mock("../../api/client", async (importOriginal) => ({
@@ -20,9 +21,14 @@ vi.mock("../../api/client", async (importOriginal) => ({
   apiSend: mocks.apiSend,
 }));
 vi.mock("../../api/ws", () => ({ ws: mocks.ws }));
-vi.mock("./TerminalView", () => ({ TerminalView: () => null }));
+vi.mock("./TerminalView", () => ({
+  TerminalView: ({ terminalId }: { terminalId: string }) => (
+    <div role="application" aria-label={`Terminal ${terminalId}`} />
+  ),
+}));
 
 import { useTerminalStore } from "./terminalStore";
+import { TerminalGroupLayout } from "./TerminalGroup";
 import { TerminalWorkspace } from "./TerminalWorkspace";
 
 function record(id: string): TerminalRecord {
@@ -34,6 +40,39 @@ function record(id: string): TerminalRecord {
     exit_code: null,
     error: null,
   };
+}
+
+async function renderDockedTerminals(ids: string[]) {
+  for (const id of ids) {
+    useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: record(id) });
+  }
+  const dockApi: { current: DockviewApi | null } = { current: null };
+  render(
+    <div style={{ height: 600, position: "relative", width: 900 }}>
+      <TerminalGroupLayout
+        groupId="test-group"
+        terminalIds={ids}
+        isActive
+        onActivePanelChange={() => {}}
+        onApi={(_groupId, api) => {
+          dockApi.current = api;
+        }}
+      />
+    </div>,
+  );
+  await waitFor(() => expect(dockApi.current?.totalPanels).toBe(ids.length));
+  if (!dockApi.current) {
+    throw new Error("Dockview API was not initialized");
+  }
+  return dockApi.current;
+}
+
+function splitWidths(api: DockviewApi): number[] {
+  const root = api.toJSON().grid.root;
+  if (root.type !== "branch" || !Array.isArray(root.data)) {
+    throw new Error("Expected terminal panes to be split");
+  }
+  return root.data.map((pane) => pane.size ?? 0);
 }
 
 beforeEach(() => {
@@ -54,6 +93,15 @@ beforeEach(() => {
 });
 
 describe("terminal groups", () => {
+  it("renders every group session as a dock panel with its session id", async () => {
+    mocks.apiGet.mockResolvedValue([record("t1"), record("t2")]);
+
+    render(<TerminalWorkspace />);
+
+    expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "t2" })).toBeInTheDocument();
+  });
+
   it("creates a group and puts new terminals in the selected group", async () => {
     mocks.apiSend.mockResolvedValue(record("t1"));
     render(<TerminalWorkspace />);
@@ -63,12 +111,12 @@ describe("terminal groups", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create group" }));
 
     fireEvent.click(screen.getByRole("button", { name: "New shell" }));
-    expect(await screen.findByText("t1")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    expect(screen.queryByText("t1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t1" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ROS" }));
-    expect(screen.getByText("t1")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "t1" })).toBeInTheDocument();
   });
 
   it("keeps a new terminal in its selected group if state arrives before create returns", async () => {
@@ -92,10 +140,10 @@ describe("terminal groups", () => {
       });
     });
     await act(async () => resolveCreate(record("t8")));
-    expect(await screen.findByText("t8")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "t8" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    expect(screen.queryByText("t8")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t8" })).not.toBeInTheDocument();
   });
 
   it("renames a group", () => {
@@ -129,11 +177,11 @@ describe("terminal groups", () => {
       target: { value: destination },
     });
 
-    expect(screen.queryByText("t2")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t2" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    expect(screen.queryByText("t2")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t2" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Build" }));
-    expect(screen.getByText("t2")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "t2" })).toBeInTheDocument();
   });
 
   it("deletes an empty group", () => {
@@ -145,6 +193,59 @@ describe("terminal groups", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete Temporary" }));
 
     expect(screen.queryByRole("button", { name: "Temporary" })).not.toBeInTheDocument();
+  });
+
+  it("splits a dock tab at its edge without changing the session id", async () => {
+    const api = await renderDockedTerminals(["t1", "t2"]);
+    api.layout(900, 600, true);
+
+    act(() => {
+      api.getPanel("t2")!.api.moveTo({
+        group: api.getPanel("t1")!.group,
+        position: "right",
+      });
+    });
+
+    expect(api.groups).toHaveLength(2);
+    expect(api.getPanel("t1")?.id).toBe("t1");
+    expect(api.getPanel("t2")?.id).toBe("t2");
+    expect(api.getPanel("t1")?.group.id).not.toBe(api.getPanel("t2")?.group.id);
+  });
+
+  it("keeps tabs and tiled terminals in the same group layout", async () => {
+    const api = await renderDockedTerminals(["t1", "t2", "t3"]);
+    api.layout(900, 600, true);
+
+    act(() => {
+      api.getPanel("t3")!.api.moveTo({
+        group: api.getPanel("t1")!.group,
+        position: "right",
+      });
+    });
+
+    expect(api.groups).toHaveLength(2);
+    expect(api.getPanel("t1")?.group.id).toBe(api.getPanel("t2")?.group.id);
+    expect(api.getPanel("t3")?.group.id).not.toBe(api.getPanel("t1")?.group.id);
+    expect(api.panels.map((panel) => panel.id).sort()).toEqual(["t1", "t2", "t3"]);
+  });
+
+  it("resizes a tiled pane and gives the neighboring pane the remaining space", async () => {
+    const api = await renderDockedTerminals(["t1", "t2"]);
+    api.layout(900, 600, true);
+    act(() => {
+      api.getPanel("t2")!.api.moveTo({
+        group: api.getPanel("t1")!.group,
+        position: "right",
+      });
+    });
+
+    const right = api.getPanel("t2")!.group;
+    const [leftBefore, rightBefore] = splitWidths(api);
+    act(() => right.api.setSize({ width: 600 }));
+    const [leftAfter, rightAfter] = splitWidths(api);
+
+    expect(rightAfter).toBeGreaterThan(rightBefore);
+    expect(leftAfter).toBeLessThan(leftBefore);
   });
 
   it("rejects deletion of a non-empty group", async () => {
@@ -160,6 +261,6 @@ describe("terminal groups", () => {
 
     expect(screen.getByRole("button", { name: "Delete Default" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Delete Other" })).toBeEnabled();
-    expect(screen.getByText("t3")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "t3" })).toBeInTheDocument();
   });
 });

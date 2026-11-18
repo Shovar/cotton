@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import type { DockviewApi } from "dockview-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -6,9 +14,12 @@ import { ApiError, apiGet, apiSend } from "../../api/client";
 import type { TerminalRecord, ServerEvent } from "../../api/types";
 import { ws } from "../../api/ws";
 import { useStore } from "../../state/store";
-import { TerminalGroup, type TerminalGroupRecord } from "./TerminalGroup";
+import {
+  TerminalGroup,
+  TerminalGroupLayout,
+  type TerminalGroupRecord,
+} from "./TerminalGroup";
 import { TerminalList } from "./TerminalList";
-import { TerminalView } from "./TerminalView";
 import { useTerminalStore } from "./terminalStore";
 
 const DEFAULT_GROUP_ID = "default";
@@ -17,24 +28,19 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Could not complete the action";
 }
 
-function encodeBase64(value: string): string {
-  const bytes = new TextEncoder().encode(value);
-  let binary = "";
-  for (let offset = 0; offset < bytes.length; offset += 32_768) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32_768));
-  }
-  return btoa(binary);
-}
-
 export function TerminalWorkspace() {
   const records = useTerminalStore((state) => state.records);
-  const outputChunks = useTerminalStore((state) => state.outputChunks);
   const [groups, setGroups] = useState<TerminalGroupRecord[]>([
     { id: DEFAULT_GROUP_ID, name: "Default", terminalIds: [] },
   ]);
   const [selectedGroupId, setSelectedGroupId] = useState(DEFAULT_GROUP_ID);
   const selectedGroupIdRef = useRef(DEFAULT_GROUP_ID);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTerminalByGroup, setActiveTerminalByGroup] = useState<
+    Record<string, string | null>
+  >({});
+  const selectedId = activeTerminalByGroup[selectedGroupId] ?? null;
+  const dockApis = useRef(new Map<string, DockviewApi>());
+  const attachedTerminalIds = useRef(new Set<string>());
   const [command, setCommand] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -99,46 +105,51 @@ export function TerminalWorkspace() {
     };
   }, [addRecordsToGroups]);
 
+  const selectedGroup = groups.find((group) => group.id === selectedGroupId);
+  const selectedGroupTerminalIds = useMemo(
+    () => selectedGroup?.terminalIds ?? [],
+    [selectedGroup?.terminalIds],
+  );
+
   useEffect(() => {
-    if (!selectedId) {
-      return;
+    const nextIds = new Set(selectedGroupTerminalIds);
+    for (const id of attachedTerminalIds.current) {
+      if (!nextIds.has(id)) {
+        useTerminalStore.getState().detach(id);
+      }
     }
-    return () => useTerminalStore.getState().detach(selectedId);
-  }, [selectedId]);
+    for (const id of nextIds) {
+      if (!attachedTerminalIds.current.has(id)) {
+        useTerminalStore.getState().attach(id);
+      }
+    }
+    attachedTerminalIds.current = nextIds;
+  }, [selectedGroupId, selectedGroupTerminalIds]);
+
+  useEffect(
+    () => () => {
+      for (const id of attachedTerminalIds.current) {
+        useTerminalStore.getState().detach(id);
+      }
+    },
+    [],
+  );
 
   const selectTerminal = (terminalId: string) => {
-    if (selectedId === terminalId) {
-      return;
-    }
-    if (selectedId) {
-      useTerminalStore.getState().detach(selectedId);
-    }
-    useTerminalStore.getState().attach(terminalId);
-    setSelectedId(terminalId);
+    setActiveTerminalByGroup((current) => ({
+      ...current,
+      [selectedGroupId]: terminalId,
+    }));
+    dockApis.current.get(selectedGroupId)?.getPanel(terminalId)?.api.setActive();
   };
 
   const selectGroup = (groupId: string) => {
-    if (selectedGroupId === groupId) {
-      return;
-    }
-    if (selectedId) {
-      useTerminalStore.getState().detach(selectedId);
-    }
-    const nextId = groups.find((group) => group.id === groupId)?.terminalIds[0] ?? null;
-    if (nextId) {
-      useTerminalStore.getState().attach(nextId);
-    }
     selectedGroupIdRef.current = groupId;
     setSelectedGroupId(groupId);
-    setSelectedId(nextId);
   };
 
   const createGroup = (name: string) => {
     const group = { id: crypto.randomUUID(), name, terminalIds: [] };
-    if (selectedId) {
-      useTerminalStore.getState().detach(selectedId);
-      setSelectedId(null);
-    }
     setGroups((current) => [...current, group]);
     selectedGroupIdRef.current = group.id;
     setSelectedGroupId(group.id);
@@ -158,7 +169,6 @@ export function TerminalWorkspace() {
     if (selectedGroupId === groupId) {
       selectedGroupIdRef.current = nextGroups[0].id;
       setSelectedGroupId(nextGroups[0].id);
-      setSelectedId(null);
     }
   };
 
@@ -180,10 +190,6 @@ export function TerminalWorkspace() {
           : group;
       }),
     );
-    if (selectedId === terminalId && source.id === selectedGroupId) {
-      useTerminalStore.getState().detach(terminalId);
-      setSelectedId(null);
-    }
   };
 
   const createTerminal = async (terminalCommand?: string) => {
@@ -248,10 +254,25 @@ export function TerminalWorkspace() {
     }
   };
 
-  const selected = selectedId ? records[selectedId] : undefined;
-  const selectedGroup = groups.find((group) => group.id === selectedGroupId);
   const groupRecords = (selectedGroup?.terminalIds ?? []).flatMap((id) =>
     records[id] ? [records[id]] : [],
+  );
+  const updateActivePanel = useCallback((groupId: string, terminalId: string | null) => {
+    setActiveTerminalByGroup((current) =>
+      current[groupId] === terminalId
+        ? current
+        : { ...current, [groupId]: terminalId },
+    );
+  }, []);
+  const registerDockApi = useCallback(
+    (groupId: string, api: DockviewApi | null) => {
+      if (api) {
+        dockApis.current.set(groupId, api);
+      } else {
+        dockApis.current.delete(groupId);
+      }
+    },
+    [],
   );
 
   return (
@@ -297,21 +318,18 @@ export function TerminalWorkspace() {
             onClose={(record) => void closeTerminal(record)}
             onMove={moveTerminal}
           />
-          {selected && (
-            <div className="min-h-0 flex-1">
-              <TerminalView
-                key={selected.spec.id}
-                terminalId={selected.spec.id}
-                outputChunks={outputChunks[selected.spec.id] ?? []}
-                onInput={(data) =>
-                  ws.send("terminal.input", { id: selected.spec.id, data: encodeBase64(data) })
-                }
-                onResize={(cols, rows) =>
-                  ws.send("terminal.resize", { id: selected.spec.id, cols, rows })
-                }
+          <div className="relative min-h-0 min-w-0 flex-1">
+            {groups.map((group) => (
+              <TerminalGroupLayout
+                key={group.id}
+                groupId={group.id}
+                terminalIds={group.terminalIds}
+                isActive={group.id === selectedGroupId}
+                onActivePanelChange={updateActivePanel}
+                onApi={registerDockApi}
               />
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       </div>
     </section>

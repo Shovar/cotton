@@ -88,7 +88,16 @@ describe("TerminalWorkspace", () => {
         command: "echo hello",
       }),
     );
-    expect(await screen.findByText("t2")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Close t2" })).toBeInTheDocument();
+  });
+
+  it("only exposes terminal closing through the session close control", async () => {
+    mocks.apiGet.mockResolvedValue([record("t8")]);
+    render(<TerminalWorkspace />);
+
+    await screen.findByRole("button", { name: "Close t8" });
+
+    expect(screen.getAllByRole("button", { name: "Close t8" })).toHaveLength(1);
   });
 
   it("shows terminal state changes and exit codes", async () => {
@@ -113,7 +122,7 @@ describe("TerminalWorkspace", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<TerminalWorkspace />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Close t4" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Close t4" }))[0]);
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenLastCalledWith(
@@ -131,7 +140,7 @@ describe("TerminalWorkspace", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<TerminalWorkspace />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Close t5" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Close t5" }))[0]);
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenCalledWith("DELETE", "/api/terminals/t5"),
@@ -145,7 +154,7 @@ describe("TerminalWorkspace", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<TerminalWorkspace />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Close t6" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Close t6" }))[0]);
 
     await waitFor(() => expect(mocks.apiSend).toHaveBeenCalledTimes(1));
     expect(mocks.apiSend).toHaveBeenCalledWith("DELETE", "/api/terminals/t6");
@@ -156,7 +165,7 @@ describe("TerminalWorkspace", () => {
     mocks.apiSend.mockResolvedValue(record("t7"));
     const view = render(<TerminalWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "New shell" }));
-    await screen.findByText("t7");
+    await screen.findByRole("button", { name: "Close t7" });
     useTerminalStore.getState().setConnection("open");
 
     view.unmount();
