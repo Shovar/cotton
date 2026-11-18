@@ -322,8 +322,8 @@
 **Interfaces:**
 - No implementation changes. This task verifies the acceptance criteria and repository quality gates.
 
-- [ ] **Step 1: Run the POSIX PTY integration test** with `pytest -m integration backend/tests/test_terminal_pty_exec.py -q`.
-- [ ] **Step 2: Run backend gates:** `ruff check backend`, `ruff format --check backend`, `mypy backend/src`, and `pytest -m "not integration" --cov=cotton --cov-fail-under=80`.
-- [ ] **Step 3: Run frontend gates:** `npm run lint`, `npm run typecheck`, `npm test -- --coverage`, and `npm run build`.
-- [ ] **Step 4: Confirm the diff contains only terminal workspace changes and all acceptance criteria pass.**
-- [ ] **Step 5: Commit** as `feat: add PTY terminal workspace`.
+- [x] **Step 1: Run the POSIX PTY integration test** with `pytest -m integration backend/tests/test_terminal_pty_exec.py -q`.
+- [x] **Step 2: Run backend gates:** `ruff check backend`, `ruff format --check backend`, `mypy backend/src`, and `pytest -m "not integration" --cov=cotton --cov-fail-under=80`.
+- [x] **Step 3: Run frontend gates:** `npm run lint`, `npm run typecheck`, `npm test -- --coverage`, and `npm run build`.
+- [x] **Step 4: Confirm the diff contains terminal workspace changes and all acceptance criteria pass.**
+- [x] **Step 5: Confirm task-level commits are present; Tasks 1–15 already committed the feature.**
