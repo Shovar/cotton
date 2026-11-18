@@ -149,9 +149,16 @@ class TerminalManager:
         chunks = self._chunks[terminal_id]
         chunks.append(chunk)
         size = self._buffer_sizes[terminal_id] + len(data)
-        while size > self._scrollback_bytes:
-            size -= len(chunks.popleft().data)
-        self._buffer_sizes[terminal_id] = size
+        excess = size - self._scrollback_bytes
+        while excess > 0:
+            oldest = chunks[0]
+            if len(oldest.data) <= excess:
+                chunks.popleft()
+                excess -= len(oldest.data)
+            else:
+                chunks[0] = TerminalChunk(oldest.sequence, oldest.data[excess:])
+                excess = 0
+        self._buffer_sizes[terminal_id] = min(size, self._scrollback_bytes)
         return chunk
 
     async def _publish_state(self, record: TerminalRecord) -> None:

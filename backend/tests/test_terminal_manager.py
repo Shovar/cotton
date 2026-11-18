@@ -148,3 +148,17 @@ async def test_output_buffer_does_not_exceed_configured_byte_limit() -> None:
 
     retained = manager.output_since(record.spec.id, 0)
     assert sum(len(chunk.data) for chunk in retained) <= 65536
+
+
+async def test_output_buffer_keeps_newest_suffix_of_oversized_chunk() -> None:
+    output = b"a" * 65536 + b"latest"
+    manager = TerminalManager(EventBus(), FakePtySpawner(FakePtySession([output, b"!"])))
+
+    record = await manager.start(["command"])
+    await wait_for_exit(manager, record.spec.id)
+
+    retained = manager.output_since(record.spec.id, 0)
+    assert [chunk.sequence for chunk in retained] == [1, 2]
+    assert sum(len(chunk.data) for chunk in retained) == 65536
+    assert b"".join(chunk.data for chunk in retained) == (output + b"!")[-65536:]
+    assert manager.output_since(record.spec.id, 2) == []
