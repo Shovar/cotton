@@ -297,7 +297,7 @@
 - [x] **Step 2: Run the focused backend and frontend tests** and confirm reconnect replay is missing.
 - [x] **Step 3: Implement session reconciliation and attach/detach replay**.
 - [x] **Step 4: Run both focused test files** and confirm output has no gaps or duplicate sequence writes.
-- [ ] **Step 5: Commit** as `feat: reattach terminal sessions after websocket reconnect`.
+- [x] **Step 5: Commit** as `feat: reattach terminal sessions after websocket reconnect`.
 
 ### Task 15 (15 min): Verify the complete terminal flow and document behavior
 
