@@ -309,9 +309,9 @@
 - E2E covers creating two terminals, typing into an interactive shell, opening a command session, grouping, splitting/resizing, minimizing/restoring, and closing with confirmation.
 - Document that terminals are local shell access, inherit Cotton's environment, and do not survive a backend restart.
 
-- [ ] **Step 1: Write the Playwright flow** against the local app and verify it fails before the complete feature is wired.
-- [ ] **Step 2: Run `npm run e2e -- --grep terminals`** in the supported ROS environment; record any unavailable environment prerequisite instead of weakening the test.
-- [ ] **Step 3: Update README** to describe local shell access, inherited Cotton environment, and backend-restart behavior; the REST/WebSocket contract is maintained in Tasks 1 and 7.
+- [x] **Step 1: Write the Playwright flow** against the local app and verify it fails before the complete feature is wired.
+- [x] **Step 2: Run `npm run e2e -- --grep terminals`** in the supported ROS environment; record any unavailable environment prerequisite instead of weakening the test.
+- [x] **Step 3: Update README** to describe local shell access, inherited Cotton environment, and backend-restart behavior; the REST/WebSocket contract is maintained in Tasks 1 and 7.
 - [ ] **Step 4: Commit** as `docs: document terminal workspace behavior`.
 
 ### Task 16 (15 min): Run final checks and close the feature

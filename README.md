@@ -53,6 +53,9 @@ wheel build and troubleshooting.
   graph and filterable from the UI.
 - **Processes** — start commands, follow their logs, stop or restart them, and
   reuse named profiles.
+- **Terminals** — open interactive shells or command sessions in groups, mix
+  tabs with resizable panes, and minimize or restore sessions without stopping
+  them.
 - **Command prompt** — suggestions from `PATH`, ROS 2 verbs and the live graph;
   `Tab` completes and `Ctrl+R` searches the persisted history.
 - **Plugins** — the Foxglove/Lichtblick viewer and extra panels, with their
@@ -68,6 +71,11 @@ Data stays on the machine: SQLite state and logs in the platform config
 directory (`~/.config/cotton/` on Linux), and the Lichtblick cache in
 `~/.cache/cotton/` (macOS uses `~/Library/Caches/cotton/`). There is no
 telemetry, account or remote execution.
+
+Terminal sessions provide local shell access on the machine running Cotton and
+inherit Cotton's environment and working directory. They remain alive while the
+backend is running, but end when it shuts down or restarts and cannot be
+recovered afterward.
 
 ## Documentation
 
