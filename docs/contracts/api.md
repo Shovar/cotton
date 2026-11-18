@@ -46,11 +46,13 @@ Every non-2xx JSON response has exactly this shape:
 | 404 | `node_not_found` | ROS node does not exist or disappeared |
 | 404 | `topic_not_found` | ROS topic does not exist |
 | 404 | `process_not_found` | Unknown process id |
+| 404 | `terminal_not_found` | Unknown terminal session id |
 | 404 | `plugin_not_found` | Unknown plugin name |
 | 409 | `process_conflict` | Process id already active |
 | 409 | `param_not_settable` | Parameter is read-only or rejected by the node |
 | 409 | `profile_start_failed` | A profile process failed; already started processes were stopped |
 | 409 | `plugin_error` | Plugin activation or healthcheck failed |
+| 409 | `terminal_busy` | A terminal session has an active command and requires confirmation to close |
 | 422 | `validation_error` | Request body or path failed validation |
 | 500 | `internal_error` | Unexpected server error; details are not leaked |
 
@@ -198,6 +200,28 @@ Known reasons: `no_publishers`, `type_unavailable`.
 
 `state` is one of `discovered`, `active`, `stopped`, `error`.
 
+### TerminalRecord
+
+```json
+{
+  "spec": {
+    "id": "t_0123456789abcdef",
+    "kind": "shell",
+    "argv": ["/bin/bash"],
+    "cwd": "/workspace",
+    "env": {}
+  },
+  "state": "running",
+  "pid": 4242,
+  "started_at": "2026-11-18T10:00:00Z",
+  "exit_code": null,
+  "error": null
+}
+```
+
+`kind` is `shell` or `command`; `state` is `starting`, `running`, `exited` or
+`failed`. `started_at`, `pid`, `exit_code` and `error` are nullable.
+
 ## 4. REST endpoints
 
 All endpoints below require `Authorization: Bearer <token>` unless marked
@@ -226,6 +250,9 @@ otherwise.
 | GET | `/api/plugins` | 200 | `PluginRecord[]` |
 | POST | `/api/plugins/{name}/activate` | 200 | `PluginRecord`; 404 `plugin_not_found`; 409 `plugin_error` |
 | DELETE | `/api/plugins/{name}/activate` | 200 | Stopped `PluginRecord`; 404 `plugin_not_found` |
+| GET | `/api/terminals` | 200 | `TerminalRecord[]` |
+| POST | `/api/terminals` | 201 | Body `{"command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell; 422 `validation_error` |
+| DELETE | `/api/terminals/{id}?force=false` | 200 | Closed `TerminalRecord`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true` |
 
 Read-only requests are safe to retry. `POST /api/processes` and
 `POST /api/profiles/{id}/start` are not idempotent.
@@ -275,6 +302,8 @@ Every server message has `{ "type": string, "data": object }`.
 | `process.removed` | `processes` | `{"id": string}` |
 | `process.log` | `logs:<id>` | `LogLine` |
 | `plugin.state` | `plugins` | `PluginRecord` |
+| `terminal.state` | `terminals` or `terminal:<id>` | `TerminalRecord` |
+| `terminal.output` | `terminal:<id>` | `{"id": string, "sequence": integer, "data": base64 string}` |
 | `error` | any | `{"code": string, "message": string}` |
 
 ### Channels and initial backfill
@@ -285,12 +314,20 @@ Every server message has `{ "type": string, "data": object }`.
 | `processes` | `process.state`, `process.removed` | One `process.state` per known process |
 | `logs:<id>` | `process.log` events whose `data.id` equals `<id>` | Last 200 log lines for that process |
 | `plugins` | `plugin.state` | One `plugin.state` per known plugin |
+| `terminals` | `terminal.state` | One `terminal.state` per known terminal |
+| `terminal:<id>` | `terminal.output`, `terminal.state` | Output after the requested sequence when attached |
 | `test` | test channel only | Registered by tests, never in production |
 
 Log events for processes the client has not subscribed to are never sent.
 Feature files own their channels: `02-ros-discovery` registers `graph`;
 `03-processes` registers `processes` and `logs:<id>`; `04-plugins` registers
 `plugins`.
+
+Terminal clients send `terminal.attach` with an `id` and `after_sequence`,
+`terminal.detach` with an `id`, `terminal.input` with base64 `data`, and
+`terminal.resize` with positive `cols` and `rows`. Output sequence numbers
+increase per session. Attaching replays retained output newer than
+`after_sequence`; detaching never stops the PTY.
 
 ## 6. SPA serving
 
