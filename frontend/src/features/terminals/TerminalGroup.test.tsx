@@ -112,7 +112,9 @@ describe("terminal groups", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create group" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
+    const newShell = screen.getByRole("button", { name: "New shell" });
+    await waitFor(() => expect(newShell).toBeEnabled());
+    fireEvent.click(newShell);
     expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Default" }));
@@ -133,7 +135,9 @@ describe("terminal groups", () => {
       target: { value: "ROS" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
+    const newShell = screen.getByRole("button", { name: "New shell" });
+    await waitFor(() => expect(newShell).toBeEnabled());
+    fireEvent.click(newShell);
 
     act(() => {
       useTerminalStore.getState().applyServerEvent({
@@ -167,7 +171,9 @@ describe("terminal groups", () => {
   it("moves a terminal to another group", async () => {
     mocks.apiSend.mockResolvedValue(record("t2"));
     render(<TerminalWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
+    const newShell = screen.getByRole("button", { name: "New shell" });
+    await waitFor(() => expect(newShell).toBeEnabled());
+    fireEvent.click(newShell);
     await screen.findByText("t2");
     fireEvent.change(screen.getByLabelText("New group"), {
       target: { value: "Build" },
@@ -253,7 +259,9 @@ describe("terminal groups", () => {
   it("rejects deletion of a non-empty group", async () => {
     mocks.apiSend.mockResolvedValue(record("t3"));
     render(<TerminalWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
+    const newShell = screen.getByRole("button", { name: "New shell" });
+    await waitFor(() => expect(newShell).toBeEnabled());
+    fireEvent.click(newShell);
     await waitFor(() => expect(screen.getByText("t3")).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText("New group"), {
       target: { value: "Other" },

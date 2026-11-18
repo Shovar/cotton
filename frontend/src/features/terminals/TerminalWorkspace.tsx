@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 import { ApiError, apiGet, apiSend } from "../../api/client";
 import type { TerminalRecord, ServerEvent } from "../../api/types";
-import { ws } from "../../api/ws";
+import { ws, type ConnectionStatus } from "../../api/ws";
 import { useStore } from "../../state/store";
 import {
   TerminalGroup,
@@ -163,6 +163,7 @@ export function TerminalWorkspace() {
   const selectedId = activeTerminalByGroup[selectedGroupId] ?? null;
   const dockApis = useRef(new Map<string, DockviewApi>());
   const attachedTerminalIds = useRef(new Set<string>());
+  const reconciliationGeneration = useRef(0);
   const [command, setCommand] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -201,68 +202,80 @@ export function TerminalWorkspace() {
     [],
   );
 
+  const reconcileSessions = useCallback(
+    async (connection?: ConnectionStatus) => {
+      const generation = ++reconciliationGeneration.current;
+      try {
+        const current = await apiGet<TerminalRecord[]>("/api/terminals");
+        if (generation !== reconciliationGeneration.current) {
+          return;
+        }
+
+        const liveIds = new Set(current.map((record) => record.spec.id));
+        useTerminalStore.getState().reconcile(current);
+        addRecordsToGroups(current, true);
+        setMinimizedIds((ids) => ids.filter((id) => liveIds.has(id)));
+        setActiveTerminalByGroup((currentActive) =>
+          Object.fromEntries(
+            Object.entries(currentActive).filter(
+              ([, id]) => id === null || liveIds.has(id),
+            ),
+          ),
+        );
+        if (connection) {
+          useTerminalStore.getState().setConnection(connection);
+        }
+        setError(null);
+        setSessionsReconciled(true);
+      } catch (caught: unknown) {
+        if (generation === reconciliationGeneration.current) {
+          setError(errorMessage(caught));
+        }
+      }
+    },
+    [addRecordsToGroups],
+  );
+
   useEffect(() => {
+    let active = true;
     const removeEventHandler = ws.onEvent((event: ServerEvent) => {
       if (event.type === "terminal.state") {
         addRecordsToGroups([event.data]);
       }
       useTerminalStore.getState().applyServerEvent(event);
     });
-    const removeStatusHandler = ws.onStatus((status) =>
-      useTerminalStore.getState().setConnection(status),
-    );
+    const handleStatus = (status: ConnectionStatus) => {
+      const store = useTerminalStore.getState();
+      if (status === "open") {
+        setSessionsReconciled(false);
+        void reconcileSessions(status);
+      } else {
+        if (store.connection === "open") {
+          reconciliationGeneration.current += 1;
+          setSessionsReconciled(false);
+        }
+        store.setConnection(status);
+      }
+    };
+    const removeStatusHandler = ws.onStatus(handleStatus);
     ws.subscribe(["terminals"]);
-    useTerminalStore.getState().setConnection(useStore.getState().connection);
+    const connection = useStore.getState().connection;
+    if (connection !== "open") {
+      useTerminalStore.getState().setConnection(connection);
+    }
+    queueMicrotask(() => {
+      if (active) {
+        void reconcileSessions(connection === "open" ? connection : undefined);
+      }
+    });
 
     return () => {
+      active = false;
+      reconciliationGeneration.current += 1;
       removeEventHandler();
       removeStatusHandler();
     };
-  }, [addRecordsToGroups]);
-
-  useEffect(() => {
-    let active = true;
-    void apiGet<TerminalRecord[]>("/api/terminals")
-      .then((current) => {
-        if (active) {
-          const knownRecords = new Map(
-            Object.values(useTerminalStore.getState().records).map((record) => [
-              record.spec.id,
-              record,
-            ]),
-          );
-          for (const record of current) {
-            knownRecords.set(record.spec.id, record);
-          }
-          const reconciledRecords = [...knownRecords.values()];
-          const liveIds = new Set(reconciledRecords.map((record) => record.spec.id));
-          addRecordsToGroups(reconciledRecords, true);
-          setMinimizedIds((ids) => ids.filter((id) => liveIds.has(id)));
-          setActiveTerminalByGroup((currentActive) =>
-            Object.fromEntries(
-              Object.entries(currentActive).filter(
-                ([, id]) => id === null || liveIds.has(id),
-              ),
-            ),
-          );
-          for (const record of current) {
-            useTerminalStore.getState().applyServerEvent({
-              type: "terminal.state",
-              data: record,
-            });
-          }
-          setSessionsReconciled(true);
-        }
-      })
-      .catch((caught: unknown) => {
-        if (active) {
-          setError(errorMessage(caught));
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [addRecordsToGroups]);
+  }, [addRecordsToGroups, reconcileSessions]);
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId);
   const minimizedSet = useMemo(() => new Set(minimizedIds), [minimizedIds]);
@@ -502,7 +515,12 @@ export function TerminalWorkspace() {
     <section className="flex h-full min-h-0 flex-col gap-3 p-3" aria-label="Terminal workspace">
       <header className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-sm font-semibold">Terminals</h2>
-        <Button type="button" size="sm" onClick={() => void createTerminal()}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={!sessionsReconciled}
+          onClick={() => void createTerminal()}
+        >
           New shell
         </Button>
         <Button
@@ -525,7 +543,12 @@ export function TerminalWorkspace() {
             placeholder="Command to run"
             className="h-8 min-w-48 rounded-md border border-input bg-background px-2 text-sm"
           />
-          <Button type="submit" size="sm" variant="outline">
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            disabled={!sessionsReconciled}
+          >
             Run command
           </Button>
         </form>

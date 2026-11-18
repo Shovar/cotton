@@ -3,16 +3,29 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TerminalRecord } from "../../api/types";
 
-const mocks = vi.hoisted(() => ({
-  apiGet: vi.fn(),
-  apiSend: vi.fn(),
-  ws: {
-    send: vi.fn(),
-    subscribe: vi.fn(),
-    onEvent: vi.fn(() => () => {}),
-    onStatus: vi.fn(() => () => {}),
-  },
-}));
+const mocks = vi.hoisted(() => {
+  let statusHandler:
+    | ((status: "connecting" | "open" | "closed") => void)
+    | undefined;
+  return {
+    apiGet: vi.fn(),
+    apiSend: vi.fn(),
+    emitStatus: (status: "connecting" | "open" | "closed") => statusHandler?.(status),
+    ws: {
+      send: vi.fn(),
+      subscribe: vi.fn(),
+      onEvent: vi.fn(() => () => {}),
+      onStatus: vi.fn(
+        (handler: (status: "connecting" | "open" | "closed") => void) => {
+          statusHandler = handler;
+          return () => {
+            statusHandler = undefined;
+          };
+        },
+      ),
+    },
+  };
+});
 
 vi.mock("../../api/client", async (importOriginal) => ({
   ...((await importOriginal()) as object),
@@ -67,7 +80,9 @@ describe("TerminalWorkspace", () => {
     mocks.apiSend.mockResolvedValue(record("t1"));
     render(<TerminalWorkspace />);
 
-    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
+    const newShell = screen.getByRole("button", { name: "New shell" });
+    await waitFor(() => expect(newShell).toBeEnabled());
+    fireEvent.click(newShell);
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/terminals", {}),
@@ -80,11 +95,13 @@ describe("TerminalWorkspace", () => {
   it("creates a command session from the command field", async () => {
     mocks.apiSend.mockResolvedValue(record("t2", "command"));
     render(<TerminalWorkspace />);
+    const runCommand = screen.getByRole("button", { name: "Run command" });
+    await waitFor(() => expect(runCommand).toBeEnabled());
 
     fireEvent.change(screen.getByLabelText("Command"), {
       target: { value: "echo hello" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Run command" }));
+    fireEvent.click(runCommand);
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/terminals", {
@@ -167,6 +184,8 @@ describe("TerminalWorkspace", () => {
   it("detaches the selected terminal when the workspace unmounts", async () => {
     mocks.apiSend.mockResolvedValue(record("t7"));
     const view = render(<TerminalWorkspace />);
+    const newShell = screen.getByRole("button", { name: "New shell" });
+    await waitFor(() => expect(newShell).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "New shell" }));
     await screen.findByRole("button", { name: "Close t7" });
     useTerminalStore.getState().setConnection("open");
@@ -325,5 +344,66 @@ describe("TerminalWorkspace", () => {
       expect(saved.dockLayouts.default.panels).toHaveProperty("live");
     });
     expect(screen.queryByRole("tab", { name: "stale" })).not.toBeInTheDocument();
+  });
+
+  it("reconciles sessions with the backend before reattaching after reconnect", async () => {
+    let resolveAfterRestart!: (records: TerminalRecord[]) => void;
+    mocks.apiGet
+      .mockResolvedValueOnce([record("stale")])
+      .mockReturnValueOnce(
+        new Promise<TerminalRecord[]>((resolve) => {
+          resolveAfterRestart = resolve;
+        }),
+      );
+    render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "stale" });
+
+    mocks.ws.send.mockClear();
+    mocks.emitStatus("closed");
+    mocks.emitStatus("open");
+
+    expect(mocks.apiGet).toHaveBeenCalledTimes(2);
+    expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
+      id: "stale",
+      after_sequence: 0,
+    });
+
+    resolveAfterRestart([]);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("tab", { name: "stale" })).not.toBeInTheDocument();
+      expect(useTerminalStore.getState().records).not.toHaveProperty("stale");
+      expect(useTerminalStore.getState().visibleAttachments).not.toHaveProperty("stale");
+      const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
+        groups: Array<{ terminalIds: string[] }>;
+        dockLayouts: Record<string, { panels: Record<string, unknown> }>;
+      };
+      expect(saved.groups[0].terminalIds).not.toContain("stale");
+      expect(saved.dockLayouts.default.panels).not.toHaveProperty("stale");
+    });
+    expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
+      id: "stale",
+      after_sequence: 0,
+    });
+  });
+
+  it("waits for the initial backend reconciliation before creating sessions", async () => {
+    let resolveTerminals!: (records: TerminalRecord[]) => void;
+    mocks.apiGet.mockReturnValue(
+      new Promise<TerminalRecord[]>((resolve) => {
+        resolveTerminals = resolve;
+      }),
+    );
+    render(<TerminalWorkspace />);
+
+    expect(screen.getByRole("button", { name: "New shell" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run command" })).toBeDisabled();
+
+    resolveTerminals([]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "New shell" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Run command" })).toBeEnabled();
+    });
   });
 });

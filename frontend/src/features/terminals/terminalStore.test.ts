@@ -129,4 +129,27 @@ describe("terminal store", () => {
     expect(send).toHaveBeenLastCalledWith("terminal.detach", { id: "t1" });
     expect(useTerminalStore.getState().visibleAttachments).toEqual({});
   });
+
+  it("removes sessions absent from a backend reconciliation", () => {
+    const store = useTerminalStore.getState();
+    store.applyServerEvent({ type: "terminal.state", data: record });
+    store.applyServerEvent({
+      type: "terminal.output",
+      data: { id: "t1", sequence: 4, data: "b2s=" },
+    });
+    store.applyServerEvent({
+      type: "terminal.state",
+      data: { ...record, spec: { ...record.spec, id: "stale" } },
+    });
+    store.attach("t1");
+    store.attach("stale");
+
+    useTerminalStore.getState().reconcile([record]);
+
+    const state = useTerminalStore.getState();
+    expect(state.records).toEqual({ t1: record });
+    expect(state.lastSequences).toEqual({ t1: 4 });
+    expect(state.outputChunks).toHaveProperty("t1");
+    expect(state.visibleAttachments).toEqual({ t1: true });
+  });
 });

@@ -19,6 +19,7 @@ interface TerminalStore {
   visibleAttachments: Record<string, true>;
   connection: ConnectionStatus;
   applyServerEvent: (event: ServerEvent) => void;
+  reconcile: (records: TerminalRecord[]) => void;
   setConnection: (connection: ConnectionStatus) => void;
   attach: (terminalId: string) => void;
   detach: (terminalId: string) => void;
@@ -26,6 +27,12 @@ interface TerminalStore {
 
 function decodeBase64(value: string): Uint8Array {
   return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+}
+
+function keepLive<T>(entries: Record<string, T>, liveIds: Set<string>): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(entries).filter(([id]) => liveIds.has(id)),
+  );
 }
 
 function appendOutput(
@@ -58,6 +65,16 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
   outputBytes: {},
   visibleAttachments: {},
   connection: "closed",
+  reconcile: (records) => {
+    const liveIds = new Set(records.map((record) => record.spec.id));
+    set((state) => ({
+      records: Object.fromEntries(records.map((record) => [record.spec.id, record])),
+      lastSequences: keepLive(state.lastSequences, liveIds),
+      outputChunks: keepLive(state.outputChunks, liveIds),
+      outputBytes: keepLive(state.outputBytes, liveIds),
+      visibleAttachments: keepLive(state.visibleAttachments, liveIds),
+    }));
+  },
   applyServerEvent: (event) => {
     if (event.type === "terminal.state") {
       set((state) => ({
