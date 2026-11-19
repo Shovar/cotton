@@ -28,7 +28,9 @@ export function TopicDetail({ topic }: { topic: TopicInfo }) {
   return (
     <section className="topic-detail" aria-label={`Topic ${topic.name}`}>
       <h2>{topic.name}</h2>
-      <p>Type: {topic.types.join(", ") || "unknown"}</p>
+      <p>
+        Type <code>{topic.types.join(", ") || "unknown"}</code>
+      </p>
       <h3>Publishers</h3>
       {topic.publishers.length === 0 ? (
         <p>No publishers</p>

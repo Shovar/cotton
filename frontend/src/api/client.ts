@@ -1,6 +1,6 @@
 import { getToken } from "./session";
 
-export type HttpMethod = "POST" | "PUT" | "DELETE";
+export type HttpMethod = "POST" | "PUT" | "PATCH" | "DELETE";
 
 export class ApiError extends Error {
   constructor(

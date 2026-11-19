@@ -1,19 +1,22 @@
-import type { TerminalRecord } from "../../api/types";
-import { ws } from "../../api/ws";
+import { Minimize2, Plus, SquareTerminal } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
-import type { TerminalGroupRecord } from "./TerminalGroup";
+import type { TerminalRecord } from "../../api/types";
+import { ws } from "../../api/ws";
+
 import { TerminalView } from "./TerminalView";
 import { useTerminalStore, type TerminalOutputChunk } from "./terminalStore";
 
 const EMPTY_OUTPUT_CHUNKS: TerminalOutputChunk[] = [];
 
 export interface TerminalBodyProps {
-  groups: TerminalGroupRecord[];
-  selectedGroupId: string;
-  records: Record<string, TerminalRecord>;
-  activeTerminalByGroup: Record<string, string | null>;
+  records: TerminalRecord[];
+  activeTerminalId: string | null;
   minimizedIds: string[];
+  canCreate: boolean;
+  onCreate: () => void;
+  onMinimize: () => void;
   onSelect: (terminalId: string) => void;
 }
 
@@ -46,56 +49,84 @@ function TerminalPane({ terminalId }: { terminalId: string }) {
 }
 
 export function TerminalBody({
-  groups,
-  selectedGroupId,
   records,
-  activeTerminalByGroup,
+  activeTerminalId,
   minimizedIds,
+  canCreate,
+  onCreate,
+  onMinimize,
   onSelect,
 }: TerminalBodyProps) {
-  const selectedGroup = groups.find((group) => group.id === selectedGroupId);
-  // One pane per terminal, shared by all groups: switching or moving never remounts
-  // xterm, and hidden panes keep the body geometry so they need no refit when shown.
-  const mounted = groups.flatMap((group) =>
-    group.terminalIds
-      .filter((id) => !minimizedIds.includes(id) && records[id])
-      .map((id) => ({ group, id })),
-  );
-  const selectedIds = mounted
-    .filter((entry) => entry.group.id === selectedGroupId)
-    .map((entry) => entry.id);
-  const active = activeTerminalByGroup[selectedGroupId] ?? null;
+  // One pane per terminal, shared across tabs: switching never remounts xterm,
+  // and hidden panes keep the body geometry so they need no refit when shown.
+  const mounted = records.filter((record) => !minimizedIds.includes(record.spec.id));
   const visibleId =
-    active && selectedIds.includes(active) ? active : (selectedIds[0] ?? null);
+    activeTerminalId && mounted.some((record) => record.spec.id === activeTerminalId)
+      ? activeTerminalId
+      : (mounted[0]?.spec.id ?? null);
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border">
-      <div
-        role="tablist"
-        aria-label={`${selectedGroup?.name ?? "Selected"} terminals`}
-        className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border p-1"
-      >
-        {selectedIds.map((terminalId) => (
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+      <div className="flex shrink-0 items-center gap-1 border-b border-border bg-card px-1.5 py-1">
+        <div
+          role="tablist"
+          aria-label="Terminals"
+          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+        >
+          {mounted.map((record) => {
+            const selected = record.spec.id === visibleId;
+            return (
+              <button
+                key={record.spec.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className={`flex h-7 max-w-52 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                  selected
+                    ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+                onClick={() => onSelect(record.spec.id)}
+              >
+                <SquareTerminal aria-hidden="true" className="size-3.5 shrink-0" />
+                <span className="truncate font-mono">{record.spec.id}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
           <Button
-            key={terminalId}
-            role="tab"
-            aria-selected={terminalId === visibleId}
-            size="sm"
-            variant={terminalId === visibleId ? "secondary" : "ghost"}
-            className="max-w-48"
-            onClick={() => onSelect(terminalId)}
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            aria-label="Minimize terminal"
+            title="Minimize terminal"
+            disabled={!visibleId}
+            onClick={onMinimize}
           >
-            <span className="truncate">{terminalId}</span>
+            <Minimize2 aria-hidden="true" />
           </Button>
-        ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1 px-2"
+            disabled={!canCreate}
+            onClick={onCreate}
+          >
+            <Plus aria-hidden="true" />
+            New shell
+          </Button>
+        </div>
       </div>
       <div className="relative min-h-0 flex-1">
-        {mounted.map(({ group, id }) => {
-          const visible = group.id === selectedGroupId && id === visibleId;
+        {mounted.map((record) => {
+          const visible = record.spec.id === visibleId;
           return (
             <div
-              key={id}
-              data-terminal-id={id}
+              key={record.spec.id}
+              data-terminal-id={record.spec.id}
               data-terminal-visible={visible}
               aria-hidden={!visible}
               inert={!visible}
@@ -106,13 +137,13 @@ export function TerminalBody({
                 zIndex: visible ? 1 : 0,
               }}
             >
-              <TerminalPane terminalId={id} />
+              <TerminalPane terminalId={record.spec.id} />
             </div>
           );
         })}
         {!visibleId && (
           <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            No terminals in this group
+            No terminals in this workspace
           </p>
         )}
       </div>

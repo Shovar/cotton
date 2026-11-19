@@ -14,6 +14,7 @@ from cotton.api.routes_terminals import register_terminal_channels
 from cotton.app import create_app
 from cotton.services import Services
 from cotton.terminals.manager import TerminalManager
+from cotton.terminals.models import TerminalRecord
 from cotton.terminals.ports import PtySession
 
 TOKEN = "test-token"
@@ -57,6 +58,10 @@ class FakePtySpawner:
         return self.session
 
 
+async def start_command(manager: TerminalManager) -> TerminalRecord:
+    return await manager.start(["command"], workspace_id="ws_test", group_id="grp_test")
+
+
 def build_terminal(
     services: Services, session: FakePtySession
 ) -> tuple[TerminalManager, TestClient]:
@@ -83,7 +88,7 @@ def test_attach_replays_output_and_detach_stops_control(
     session = FakePtySession()
     manager, client = build_terminal(services, session)
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         client.portal.call(session.emit, b"before")
         wait_for_output(client, manager, record.spec.id)
         with client.websocket_connect(
@@ -144,7 +149,7 @@ def test_attach_replay_orders_output_that_arrives_during_replay(
 
     monkeypatch.setattr(manager, "output_since", output_since)
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         client.portal.call(session.emit, b"before")
         wait_for_output(client, manager, record.spec.id)
         with client.websocket_connect(
@@ -176,7 +181,7 @@ def test_attach_with_future_sequence_still_forwards_live_output(
     session = FakePtySession()
     manager, client = build_terminal(services, session)
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         with client.websocket_connect(
             f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
         ) as websocket:
@@ -207,7 +212,7 @@ def test_attach_with_future_sequence_still_forwards_live_output(
 def test_terminals_subscription_backfills_known_sessions(services: Services) -> None:
     manager, client = build_terminal(services, FakePtySession())
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         with client.websocket_connect(
             f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
         ) as websocket:
@@ -220,7 +225,7 @@ def test_terminals_subscription_backfills_known_sessions(services: Services) -> 
 def test_terminals_subscription_announces_removed_sessions(services: Services) -> None:
     manager, client = build_terminal(services, FakePtySession())
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         with client.websocket_connect(
             f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
         ) as websocket:
@@ -240,7 +245,7 @@ def test_terminal_session_requires_attach_instead_of_direct_subscription(
 ) -> None:
     manager, client = build_terminal(services, FakePtySession())
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         with client.websocket_connect(
             f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
         ) as websocket:
@@ -256,7 +261,7 @@ def test_attached_client_can_send_input_and_resize(
     session = FakePtySession()
     manager, client = build_terminal(services, session)
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         with client.websocket_connect(
             f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
         ) as websocket:
@@ -301,7 +306,7 @@ def test_two_authorized_clients_can_attach_to_same_session(
     session = FakePtySession()
     manager, client = build_terminal(services, session)
     with client:
-        record = client.portal.call(manager.start, ["command"])
+        record = client.portal.call(start_command, manager)
         with client.websocket_connect(f"/ws?token={TOKEN}", headers={"origin": ORIGIN}) as first:
             first.send_json(
                 {
@@ -337,7 +342,7 @@ def test_terminal_controls_reject_unknown_and_unattached_sessions(
     session = FakePtySession()
     manager, client = build_terminal(services, session)
     with client:
-        client.portal.call(manager.start, ["command"])
+        client.portal.call(start_command, manager)
         with client.websocket_connect(
             f"/ws?token={TOKEN}", headers={"origin": ORIGIN}
         ) as websocket:
@@ -374,7 +379,7 @@ def test_terminal_output_requires_valid_token_and_origin(
 ) -> None:
     manager, client = build_terminal(services, FakePtySession())
     with client:
-        client.portal.call(manager.start, ["command"])
+        client.portal.call(start_command, manager)
         with pytest.raises(WebSocketDisconnect) as error:
             with client.websocket_connect(f"/ws?token={token}", headers=headers):
                 pass

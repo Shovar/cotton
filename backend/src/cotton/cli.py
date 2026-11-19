@@ -12,11 +12,15 @@ from platformdirs import user_cache_dir, user_config_dir
 
 from cotton.api import (
     routes_commands,
+    routes_fs,
     routes_graph,
     routes_params,
     routes_plugins,
+    routes_terminal_groups,
     routes_terminals,
     routes_topics,
+    routes_workspace_commands,
+    routes_workspaces,
 )
 from cotton.app import create_app
 from cotton.channels import ChannelRegistry
@@ -36,6 +40,8 @@ from cotton.services import Services
 from cotton.storage.db import Database
 from cotton.terminals.manager import TerminalManager
 from cotton.terminals.posix import PosixPtySpawner
+from cotton.workspaces.commands import SqliteCommandRepository
+from cotton.workspaces.repository import SqliteWorkspaceRepository
 
 
 def allowed_origins(port: int, extra: list[str] | None = None) -> set[str]:
@@ -71,10 +77,18 @@ def build_services(
     services.channels.register(routes_graph.graph_channel(watcher))
     services.routers.append(routes_params.create_router(ros, ThreadParamsSource(ros)))
     services.routers.append(routes_topics.create_router(ros, ThreadRateSource(ros)))
+    services.routers.append(routes_fs.create_router())
 
+    workspaces = SqliteWorkspaceRepository(database)
     terminal_manager = TerminalManager(bus, PosixPtySpawner())
     services.terminal_manager = terminal_manager
-    services.routers.append(routes_terminals.create_router(terminal_manager))
+    commands = SqliteCommandRepository(database)
+    services.routers.append(routes_terminals.create_router(terminal_manager, workspaces, commands))
+    services.routers.append(routes_workspaces.create_router(workspaces, terminal_manager))
+    services.routers.append(routes_terminal_groups.create_router(workspaces, terminal_manager))
+    services.routers.append(
+        routes_workspace_commands.create_router(workspaces, commands, terminal_manager)
+    )
     routes_terminals.register_terminal_channels(services.channels, terminal_manager)
     services.shutdown.append(terminal_manager.shutdown)
 
