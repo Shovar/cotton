@@ -177,9 +177,29 @@ otherwise.
 | GET | `/api/plugins` | 200 | `PluginRecord[]` |
 | POST | `/api/plugins/{name}/activate` | 200 | `PluginRecord`; 404 `plugin_not_found`; 409 `plugin_error` |
 | DELETE | `/api/plugins/{name}/activate` | 200 | Stopped `PluginRecord`; 404 `plugin_not_found` |
-| GET | `/api/terminals` | 200 | `TerminalRecord[]` |
-| POST | `/api/terminals` | 201 | Body `{"command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell; 422 `validation_error` |
+| GET | `/api/terminals?workspace_id=<id>` | 200 | `TerminalRecord[]`, optionally filtered by workspace |
+| POST | `/api/terminals` | 201 | Body `{"workspace_id": string, "group_id"?: string, "command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell in the workspace path; 422 `workspace_required` / `group_not_found` / `validation_error`; 404 `workspace_not_found` |
+| PATCH | `/api/terminals/{id}` | 200 | Body `{"group_id": string}`; moves the session to another group of its own workspace; 404 `terminal_not_found`; 422 `group_not_found` |
+| GET | `/api/workspaces` | 200 | `Workspace[]` |
+| POST | `/api/workspaces` | 201 | Body `{"name": string, "path": string}`; the path is stored resolved; 409 `workspace_exists`; 422 `validation_error` |
+| PATCH | `/api/workspaces/{id}` | 200 | Body `{"name": string}`; 404 `workspace_not_found`; 422 `validation_error` |
+| DELETE | `/api/workspaces/{id}` | 200 | `{"id": string}`; 409 `workspace_has_terminals` while a session of that workspace is alive; 404 `workspace_not_found` |
+| GET | `/api/workspaces/{id}/groups` | 200 | `TerminalGroup[]` ordered by position; 404 `workspace_not_found` |
+| POST | `/api/workspaces/{id}/groups` | 201 | Body `{"name": string}`; appends at the end; 404 `workspace_not_found`; 422 `validation_error` |
+| PATCH | `/api/terminal-groups/{group_id}` | 200 | Body `{"name": string}`; 404 `group_not_found`; 422 `validation_error` |
+| DELETE | `/api/terminal-groups/{group_id}` | 200 | `{"id": string}`; 409 `group_not_empty` with open terminals, `group_is_last` for the only group; 404 `group_not_found` |
+| GET | `/api/workspaces/{id}/commands` | 200 | `WorkspaceCommand[]` ordered by position; 404 `workspace_not_found` |
+| POST | `/api/workspaces/{id}/commands` | 201 | Body `{"label": string, "body": string, "is_startup"?: false}`; 409 `startup_command_exists`; 422 `validation_error`; 404 `workspace_not_found` |
+| PATCH | `/api/workspace-commands/{command_id}` | 200 | Body `{"label"?: string, "body"?: string, "is_startup"?: boolean}`; promoting one command clears the previous startup flag; 404 `command_not_found`; 422 `validation_error` |
+| DELETE | `/api/workspace-commands/{command_id}` | 200 | `{"id": string}`; 404 `command_not_found` |
+| POST | `/api/workspaces/{id}/commands/{command_id}/run` | 201 | Body `{"group_id"?: string}`; starts one shell in the workspace and returns its `TerminalRecord`; 404 `workspace_not_found` / `command_not_found`; 422 `group_not_found` |
 | DELETE | `/api/terminals/{id}?force=false` | 200 | Closing `TerminalRecord`; the session is then removed from `GET /api/terminals`; 404 `terminal_not_found`; 409 `terminal_busy` unless `force=true`, or `terminal_close_failed` if the OS denies termination |
+
+A shell terminal (`POST /api/terminals` without `command`, or `/run`) receives
+the workspace startup command as its first input, followed by the run body as
+`startup && {\n<body>\n}` in a single write. The write waits for the shell's
+first output, falling back to two seconds, so a slow `.bashrc` cannot swallow
+it. Command terminals (`command`) never receive saved input.
 
 Read-only requests are safe to retry. `POST /api/terminals` is not idempotent.
 

@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TerminalRecord } from "../../api/types";
+import {
+  createFakeServer,
+  terminalRecord,
+  type FakeServerSeed,
+} from "../../test/fakeWorkspaceServer";
 
 const mocks = vi.hoisted(() => {
   let statusHandler:
@@ -40,26 +45,46 @@ import { useTerminalStore } from "./terminalStore";
 import { TerminalWorkspace } from "./TerminalWorkspace";
 
 const WORKSPACE_STORAGE_KEY = "cotton-terminal-workspace";
+const WORKSPACE_ID = "ws_a";
+const DEFAULT_GROUP_ID = "grp_a1";
+const BUILD_GROUP_ID = "grp_a2";
 
-function record(
-  id: string,
-  kind: "shell" | "command" = "shell",
-  overrides: Partial<TerminalRecord> = {},
-): TerminalRecord {
+function seed(records: TerminalRecord[] = []): FakeServerSeed {
   return {
-    spec: { id, kind, argv: kind === "shell" ? ["/bin/sh"] : ["echo", "hello"], cwd: "/tmp", env: {} },
-    state: "running",
-    pid: 10,
-    started_at: null,
-    exit_code: null,
-    error: null,
-    ...overrides,
+    workspaces: [
+      {
+        id: WORKSPACE_ID,
+        name: "Alpha",
+        groups: [
+          { id: DEFAULT_GROUP_ID, name: "Default" },
+          { id: BUILD_GROUP_ID, name: "Build" },
+        ],
+      },
+    ],
+    records,
+    commands: [
+      {
+        id: "cmd_build",
+        workspace_id: WORKSPACE_ID,
+        label: "Build",
+        body: "colcon build",
+        is_startup: false,
+        position: 0,
+      },
+    ],
   };
+}
+
+function useServer(options: FakeServerSeed) {
+  const server = createFakeServer(options);
+  mocks.apiGet.mockImplementation(server.apiGet);
+  mocks.apiSend.mockImplementation(server.apiSend);
+  return server;
 }
 
 beforeEach(() => {
   localStorage.removeItem(WORKSPACE_STORAGE_KEY);
-  mocks.apiGet.mockReset().mockResolvedValue([]);
+  mocks.apiGet.mockReset();
   mocks.apiSend.mockReset();
   mocks.ws.send.mockReset();
   mocks.ws.subscribe.mockReset();
@@ -76,8 +101,8 @@ beforeEach(() => {
 });
 
 describe("TerminalWorkspace", () => {
-  it("creates and selects a default shell", async () => {
-    mocks.apiSend.mockResolvedValue(record("t1"));
+  it("creates a shell in the selected workspace and group", async () => {
+    useServer(seed());
     render(<TerminalWorkspace />);
 
     const newShell = screen.getByRole("button", { name: "New shell" });
@@ -85,7 +110,10 @@ describe("TerminalWorkspace", () => {
     fireEvent.click(newShell);
 
     await waitFor(() =>
-      expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/terminals", {}),
+      expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/terminals", {
+        workspace_id: WORKSPACE_ID,
+        group_id: DEFAULT_GROUP_ID,
+      }),
     );
     expect(await screen.findByText("Running")).toBeInTheDocument();
     expect(useTerminalStore.getState().records.t1).toBeDefined();
@@ -93,7 +121,7 @@ describe("TerminalWorkspace", () => {
   });
 
   it("creates a command session from the command field", async () => {
-    mocks.apiSend.mockResolvedValue(record("t2", "command"));
+    useServer(seed());
     render(<TerminalWorkspace />);
     const runCommand = screen.getByRole("button", { name: "Run command" });
     await waitFor(() => expect(runCommand).toBeEnabled());
@@ -105,14 +133,16 @@ describe("TerminalWorkspace", () => {
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/terminals", {
+        workspace_id: WORKSPACE_ID,
+        group_id: DEFAULT_GROUP_ID,
         command: "echo hello",
       }),
     );
-    expect(await screen.findByRole("button", { name: "Close t2" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Close t1" })).toBeInTheDocument();
   });
 
   it("only exposes terminal closing through the session close control", async () => {
-    mocks.apiGet.mockResolvedValue([record("t8")]);
+    useServer(seed([terminalRecord("t8", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     render(<TerminalWorkspace />);
 
     await screen.findByRole("button", { name: "Close t8" });
@@ -121,13 +151,16 @@ describe("TerminalWorkspace", () => {
   });
 
   it("shows terminal state changes and exit codes", async () => {
-    mocks.apiGet.mockResolvedValue([record("t3", "command")]);
+    useServer(seed([terminalRecord("t3", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     render(<TerminalWorkspace />);
 
     expect(await screen.findByText("Running")).toBeInTheDocument();
     useTerminalStore.getState().applyServerEvent({
       type: "terminal.state",
-      data: record("t3", "command", { state: "failed", exit_code: 3 }),
+      data: terminalRecord("t3", WORKSPACE_ID, DEFAULT_GROUP_ID, {
+        state: "failed",
+        exit_code: 3,
+      }),
     });
 
     expect(await screen.findByText("Failed")).toBeInTheDocument();
@@ -135,10 +168,14 @@ describe("TerminalWorkspace", () => {
   });
 
   it("confirms and force-closes a busy terminal", async () => {
-    mocks.apiGet.mockResolvedValue([record("t4", "command")]);
+    const server = useServer(
+      seed([terminalRecord("t4", WORKSPACE_ID, DEFAULT_GROUP_ID)]),
+    );
     mocks.apiSend
       .mockRejectedValueOnce(new ApiError("terminal_busy", "busy", 409))
-      .mockResolvedValueOnce(record("t4", "command", { state: "exited", exit_code: 0 }));
+      .mockResolvedValueOnce(
+        terminalRecord("t4", WORKSPACE_ID, DEFAULT_GROUP_ID, { state: "exited" }),
+      );
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<TerminalWorkspace />);
 
@@ -151,15 +188,13 @@ describe("TerminalWorkspace", () => {
       ),
     );
     expect(window.confirm).toHaveBeenCalled();
-    await waitFor(() =>
-      expect(screen.queryByRole("tab", { name: "t4" })).not.toBeInTheDocument(),
-    );
+    expect(server.records).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Close t4" })).not.toBeInTheDocument();
     expect(useTerminalStore.getState().records).not.toHaveProperty("t4");
   });
 
   it("shows session state under its group in the sidebar", async () => {
-    mocks.apiGet.mockResolvedValue([record("t14")]);
+    useServer(seed([terminalRecord("t14", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     render(<TerminalWorkspace />);
 
     const sidebar = screen.getByRole("complementary", { name: "Groups" });
@@ -167,22 +202,82 @@ describe("TerminalWorkspace", () => {
     expect(screen.queryByLabelText("Terminal sessions")).not.toBeInTheDocument();
   });
 
-  it("keeps sessions from every group attached when switching groups", async () => {
-    localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify({
-        version: 1,
-        groups: [
-          { id: "default", name: "Default", terminalIds: ["t15"] },
-          { id: "build", name: "Build", terminalIds: ["t16"] },
-        ],
-        selectedGroupId: "default",
-        activeTerminalByGroup: {},
-        minimizedIds: [],
-        dockLayouts: {},
-      }),
+  it("loads saved commands for the selected workspace only", async () => {
+    const server = createFakeServer({
+      workspaces: [
+        {
+          id: WORKSPACE_ID,
+          name: "Alpha",
+          groups: [{ id: DEFAULT_GROUP_ID, name: "Default" }],
+        },
+        {
+          id: "ws_b",
+          name: "Beta",
+          groups: [{ id: "grp_b1", name: "Default" }],
+        },
+      ],
+      commands: [
+        {
+          id: "cmd_build",
+          workspace_id: WORKSPACE_ID,
+          label: "Build",
+          body: "colcon build",
+          is_startup: false,
+          position: 0,
+        },
+      ],
+    });
+    mocks.apiGet.mockImplementation(server.apiGet);
+    mocks.apiSend.mockImplementation(server.apiSend);
+    render(<TerminalWorkspace />);
+
+    expect(await screen.findByRole("button", { name: "Run Build" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("ROS workspace"), {
+      target: { value: "ws_b" },
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Run Build" })).not.toBeInTheDocument(),
     );
-    mocks.apiGet.mockResolvedValue([record("t15"), record("t16")]);
+  });
+
+  it("inserts a saved command into the active terminal without a newline", async () => {
+    useServer(seed([terminalRecord("t9", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
+    render(<TerminalWorkspace />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Insert Build" }));
+
+    expect(mocks.ws.send).toHaveBeenCalledWith("terminal.input", {
+      id: "t9",
+      data: btoa("colcon build"),
+    });
+  });
+
+  it("runs a saved command and selects the new session", async () => {
+    const server = useServer(seed());
+    render(<TerminalWorkspace />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Run Build" }));
+
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith(
+        "POST",
+        `/api/workspaces/${WORKSPACE_ID}/commands/cmd_build/run`,
+        { group_id: DEFAULT_GROUP_ID },
+      ),
+    );
+    expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
+    expect(server.records[0].spec.kind).toBe("shell");
+  });
+
+  it("keeps sessions from every group attached when switching groups", async () => {
+    useServer(
+      seed([
+        terminalRecord("t15", WORKSPACE_ID, DEFAULT_GROUP_ID),
+        terminalRecord("t16", WORKSPACE_ID, BUILD_GROUP_ID),
+      ]),
+    );
     render(<TerminalWorkspace />);
 
     await waitFor(() =>
@@ -202,24 +297,24 @@ describe("TerminalWorkspace", () => {
   });
 
   it("selects another terminal in a group after its active terminal moves away", async () => {
-    mocks.apiGet.mockResolvedValue([record("t17"), record("t18")]);
+    useServer(
+      seed([
+        terminalRecord("t17", WORKSPACE_ID, DEFAULT_GROUP_ID),
+        terminalRecord("t18", WORKSPACE_ID, DEFAULT_GROUP_ID),
+      ]),
+    );
     render(<TerminalWorkspace />);
     await screen.findByRole("tab", { name: "t17" });
 
     fireEvent.click(screen.getByRole("button", { name: "t17" }));
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Build" },
+    fireEvent.change(screen.getByLabelText("Move t17 to group"), {
+      target: { value: BUILD_GROUP_ID },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    const moveSelect = screen.getByLabelText("Move t17 to group") as HTMLSelectElement;
-    const buildId = Array.from(moveSelect.options).find(
-      (option) => option.textContent === "Build",
-    )?.value;
-    if (!buildId) {
-      throw new Error("Build group option is missing");
-    }
-    fireEvent.change(moveSelect, { target: { value: buildId } });
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith("PATCH", "/api/terminals/t17", {
+        group_id: BUILD_GROUP_ID,
+      }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
 
     await waitFor(() =>
@@ -229,8 +324,10 @@ describe("TerminalWorkspace", () => {
   });
 
   it("does not prompt before closing an idle shell", async () => {
-    mocks.apiGet.mockResolvedValue([record("t5")]);
-    mocks.apiSend.mockResolvedValue(record("t5", "shell", { state: "exited" }));
+    useServer(seed([terminalRecord("t5", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
+    mocks.apiSend.mockResolvedValue(
+      terminalRecord("t5", WORKSPACE_ID, DEFAULT_GROUP_ID, { state: "exited" }),
+    );
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<TerminalWorkspace />);
 
@@ -243,7 +340,7 @@ describe("TerminalWorkspace", () => {
   });
 
   it("does not force-close when busy confirmation is cancelled", async () => {
-    mocks.apiGet.mockResolvedValue([record("t6", "command")]);
+    useServer(seed([terminalRecord("t6", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     mocks.apiSend.mockRejectedValueOnce(new ApiError("terminal_busy", "busy", 409));
     vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<TerminalWorkspace />);
@@ -256,21 +353,21 @@ describe("TerminalWorkspace", () => {
   });
 
   it("detaches the selected terminal when the workspace unmounts", async () => {
-    mocks.apiSend.mockResolvedValue(record("t7"));
+    useServer(seed());
     const view = render(<TerminalWorkspace />);
     const newShell = screen.getByRole("button", { name: "New shell" });
     await waitFor(() => expect(newShell).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
-    await screen.findByRole("button", { name: "Close t7" });
+    fireEvent.click(newShell);
+    await screen.findByRole("button", { name: "Close t1" });
     useTerminalStore.getState().setConnection("open");
 
     view.unmount();
 
-    expect(mocks.ws.send).toHaveBeenLastCalledWith("terminal.detach", { id: "t7" });
+    expect(mocks.ws.send).toHaveBeenLastCalledWith("terminal.detach", { id: "t1" });
   });
 
   it("minimizes a terminal without terminating its session", async () => {
-    mocks.apiGet.mockResolvedValue([record("t9")]);
+    useServer(seed([terminalRecord("t9", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     render(<TerminalWorkspace />);
     await screen.findByRole("tab", { name: "t9" });
 
@@ -278,14 +375,11 @@ describe("TerminalWorkspace", () => {
 
     expect(screen.queryByRole("tab", { name: "t9" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Restore t9" })).toBeInTheDocument();
-    expect(mocks.apiSend).not.toHaveBeenCalledWith(
-      "DELETE",
-      "/api/terminals/t9",
-    );
+    expect(mocks.apiSend).not.toHaveBeenCalledWith("DELETE", "/api/terminals/t9");
   });
 
   it("restores a minimized terminal with the same session id", async () => {
-    mocks.apiGet.mockResolvedValue([record("t10")]);
+    useServer(seed([terminalRecord("t10", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     render(<TerminalWorkspace />);
     await screen.findByRole("tab", { name: "t10" });
 
@@ -296,44 +390,23 @@ describe("TerminalWorkspace", () => {
     expect(useTerminalStore.getState().records.t10).toBeDefined();
   });
 
-  it("restores groups, membership, and selected layout after reload", async () => {
-    mocks.apiGet.mockResolvedValue([record("t11"), record("t12")]);
-    const firstRender = render(<TerminalWorkspace />);
-    await screen.findByRole("tab", { name: "t11" });
-    await screen.findByRole("tab", { name: "t12" });
-
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Build" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    const groupSelect = screen.getByLabelText("Move t12 to group") as HTMLSelectElement;
-    const buildId = Array.from(groupSelect.options).find(
-      (option) => option.textContent === "Build",
-    )?.value;
-    if (!buildId) {
-      throw new Error("Build group option is missing");
-    }
-    fireEvent.change(screen.getByLabelText("Move t12 to group"), {
-      target: { value: buildId },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Build" }));
-    await screen.findByRole("tab", { name: "t12" });
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
-    fireEvent.click(screen.getByRole("button", { name: "Build" }));
-    await screen.findByRole("tab", { name: "t12" });
-    firstRender.unmount();
-
-    const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
-      groups: Array<{ id: string; name: string; terminalIds: string[] }>;
-      selectedGroupId: string;
-      minimizedIds: string[];
-    };
-    expect(saved.groups.find((group) => group.name === "Build")?.terminalIds).toContain("t12");
-    expect(saved.groups.find((group) => group.id === saved.selectedGroupId)?.name).toBe("Build");
-    expect(saved.minimizedIds).toContain("t11");
-
+  it("restores the selected group and minimized sessions after reload", async () => {
+    localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        selectedWorkspaceId: WORKSPACE_ID,
+        selectedGroupId: BUILD_GROUP_ID,
+        activeTerminalByGroup: {},
+        minimizedIds: ["t11"],
+      }),
+    );
+    useServer(
+      seed([
+        terminalRecord("t11", WORKSPACE_ID, DEFAULT_GROUP_ID),
+        terminalRecord("t12", WORKSPACE_ID, BUILD_GROUP_ID),
+      ]),
+    );
     render(<TerminalWorkspace />);
 
     expect(await screen.findByRole("button", { name: "Build" })).toHaveAttribute(
@@ -346,7 +419,7 @@ describe("TerminalWorkspace", () => {
     expect(await screen.findByRole("tab", { name: "t11" })).toBeInTheDocument();
   });
 
-  it("attaches restored sessions after reconciling them with the backend", async () => {
+  it("discards a stored state from the previous shape", async () => {
     localStorage.setItem(
       WORKSPACE_STORAGE_KEY,
       JSON.stringify({
@@ -354,26 +427,145 @@ describe("TerminalWorkspace", () => {
         groups: [{ id: "default", name: "Default", terminalIds: ["t13"] }],
         selectedGroupId: "default",
         activeTerminalByGroup: { default: "t13" },
-        minimizedIds: [],
-        dockLayouts: {},
+        minimizedIds: ["t13"],
       }),
     );
-    let resolveTerminals!: (records: TerminalRecord[]) => void;
-    mocks.apiGet.mockReturnValue(
-      new Promise<TerminalRecord[]>((resolve) => {
-        resolveTerminals = resolve;
+    useServer(seed([terminalRecord("t13", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
+    render(<TerminalWorkspace />);
+
+    expect(await screen.findByRole("tab", { name: "t13" })).toBeInTheDocument();
+    const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
+      version?: number;
+      groups?: unknown;
+      minimizedIds?: string[];
+    };
+    expect(saved.version).toBe(2);
+    expect(saved.groups).toBeUndefined();
+    expect(saved.minimizedIds).toEqual([]);
+  });
+
+  it("lists the workspaces and shows only the selected one's terminals", async () => {
+    const server = createFakeServer({
+      workspaces: [
+        {
+          id: WORKSPACE_ID,
+          name: "Alpha",
+          groups: [{ id: DEFAULT_GROUP_ID, name: "Default" }],
+        },
+        {
+          id: "ws_b",
+          name: "Beta",
+          groups: [{ id: "grp_b1", name: "Default" }],
+        },
+      ],
+      records: [
+        terminalRecord("t1", WORKSPACE_ID, DEFAULT_GROUP_ID),
+        terminalRecord("t2", "ws_b", "grp_b1"),
+      ],
+    });
+    mocks.apiGet.mockImplementation(server.apiGet);
+    mocks.apiSend.mockImplementation(server.apiSend);
+    render(<TerminalWorkspace />);
+
+    const select = screen.getByLabelText("ROS workspace") as HTMLSelectElement;
+    await waitFor(() =>
+      expect(Array.from(select.options).map((option) => option.textContent)).toEqual([
+        "Alpha",
+        "Beta",
+      ]),
+    );
+    expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t2" })).not.toBeInTheDocument();
+
+    fireEvent.change(select, { target: { value: "ws_b" } });
+
+    expect(await screen.findByRole("tab", { name: "t2" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "t1" })).not.toBeInTheDocument();
+  });
+
+  it("adds a workspace from the header form", async () => {
+    const server = useServer(seed());
+    render(<TerminalWorkspace />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "New shell" })).toBeEnabled(),
+    );
+
+    fireEvent.change(screen.getByLabelText("Workspace name"), {
+      target: { value: "Beta" },
+    });
+    fireEvent.change(screen.getByLabelText("Workspace path"), {
+      target: { value: "/tmp/beta" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add workspace" }));
+
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/workspaces", {
+        name: "Beta",
+        path: "/tmp/beta",
       }),
+    );
+    expect(server.workspaces.map((workspace) => workspace.name)).toEqual([
+      "Alpha",
+      "Beta",
+    ]);
+    const select = screen.getByLabelText("ROS workspace") as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe("ws1"));
+  });
+
+  it("deletes the selected workspace", async () => {
+    useServer(seed());
+    render(<TerminalWorkspace />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "New shell" })).toBeEnabled(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete workspace" }));
+
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith(
+        "DELETE",
+        `/api/workspaces/${WORKSPACE_ID}`,
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "New shell" })).toBeDisabled(),
+    );
+  });
+
+  it("disables session creation while no workspace exists", async () => {
+    useServer({ workspaces: [] });
+    render(<TerminalWorkspace />);
+
+    await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledWith("/api/terminals"));
+    expect(screen.getByRole("button", { name: "New shell" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run command" })).toBeDisabled();
+  });
+
+  it("attaches restored sessions after reconciling them with the backend", async () => {
+    let resolveTerminals!: (records: TerminalRecord[]) => void;
+    const server = createFakeServer(
+      seed([terminalRecord("t13", WORKSPACE_ID, DEFAULT_GROUP_ID)]),
+    );
+    mocks.apiGet.mockImplementation((path: string) =>
+      path === "/api/terminals"
+        ? new Promise<TerminalRecord[]>((resolve) => {
+            resolveTerminals = resolve;
+          })
+        : server.apiGet(path),
     );
     render(<TerminalWorkspace />);
 
     useTerminalStore.getState().setConnection("open");
+    await waitFor(() =>
+      expect(mocks.apiGet).toHaveBeenCalledWith("/api/terminals"),
+    );
 
     expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
       id: "t13",
       after_sequence: 0,
     });
 
-    resolveTerminals([record("t13")]);
+    resolveTerminals([terminalRecord("t13", WORKSPACE_ID, DEFAULT_GROUP_ID)]);
     await waitFor(() =>
       expect(mocks.ws.send).toHaveBeenCalledWith("terminal.attach", {
         id: "t13",
@@ -382,42 +574,48 @@ describe("TerminalWorkspace", () => {
     );
   });
 
-  it("removes stale sessions from persisted groups", async () => {
-    mocks.apiGet.mockResolvedValue([record("stale")]);
-    const previous = render(<TerminalWorkspace />);
-    await screen.findByRole("tab", { name: "stale" });
-    previous.unmount();
-    useTerminalStore.setState({
-      records: {},
-      lastSequences: {},
-      outputChunks: {},
-      outputBytes: {},
-      visibleAttachments: {},
-      connection: "closed",
-    });
-    mocks.apiGet.mockResolvedValue([record("live")]);
+  it("drops minimized sessions that the backend no longer reports", async () => {
+    localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        selectedWorkspaceId: WORKSPACE_ID,
+        selectedGroupId: DEFAULT_GROUP_ID,
+        activeTerminalByGroup: {},
+        minimizedIds: ["stale"],
+      }),
+    );
+    useServer(seed([terminalRecord("live", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
 
     render(<TerminalWorkspace />);
 
     expect(await screen.findByRole("tab", { name: "live" })).toBeInTheDocument();
     await waitFor(() => {
       const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
-        groups: Array<{ terminalIds: string[] }>;
+        minimizedIds: string[];
       };
-      expect(saved.groups[0].terminalIds).toEqual(["live"]);
+      expect(saved.minimizedIds).toEqual([]);
     });
-    expect(screen.queryByRole("tab", { name: "stale" })).not.toBeInTheDocument();
   });
 
   it("reconciles sessions with the backend before reattaching after reconnect", async () => {
     let resolveAfterRestart!: (records: TerminalRecord[]) => void;
-    mocks.apiGet
-      .mockResolvedValueOnce([record("stale")])
-      .mockReturnValueOnce(
-        new Promise<TerminalRecord[]>((resolve) => {
-          resolveAfterRestart = resolve;
-        }),
-      );
+    const server = createFakeServer(
+      seed([terminalRecord("stale", WORKSPACE_ID, DEFAULT_GROUP_ID)]),
+    );
+    let call = 0;
+    mocks.apiGet.mockImplementation((path: string) => {
+      if (path !== "/api/terminals") {
+        return server.apiGet(path);
+      }
+      call += 1;
+      if (call === 1) {
+        return Promise.resolve([terminalRecord("stale", WORKSPACE_ID, DEFAULT_GROUP_ID)]);
+      }
+      return new Promise<TerminalRecord[]>((resolve) => {
+        resolveAfterRestart = resolve;
+      });
+    });
     render(<TerminalWorkspace />);
     await screen.findByRole("tab", { name: "stale" });
 
@@ -425,7 +623,7 @@ describe("TerminalWorkspace", () => {
     mocks.emitStatus("closed");
     mocks.emitStatus("open");
 
-    expect(mocks.apiGet).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(call).toBe(2));
     expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
       id: "stale",
       after_sequence: 0,
@@ -437,10 +635,6 @@ describe("TerminalWorkspace", () => {
       expect(screen.queryByRole("tab", { name: "stale" })).not.toBeInTheDocument();
       expect(useTerminalStore.getState().records).not.toHaveProperty("stale");
       expect(useTerminalStore.getState().visibleAttachments).not.toHaveProperty("stale");
-      const saved = JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
-        groups: Array<{ terminalIds: string[] }>;
-      };
-      expect(saved.groups[0].terminalIds).not.toContain("stale");
     });
     expect(mocks.ws.send).not.toHaveBeenCalledWith("terminal.attach", {
       id: "stale",
@@ -450,15 +644,20 @@ describe("TerminalWorkspace", () => {
 
   it("waits for the initial backend reconciliation before creating sessions", async () => {
     let resolveTerminals!: (records: TerminalRecord[]) => void;
-    mocks.apiGet.mockReturnValue(
-      new Promise<TerminalRecord[]>((resolve) => {
-        resolveTerminals = resolve;
-      }),
+    const server = createFakeServer(seed());
+    mocks.apiGet.mockImplementation((path: string) =>
+      path === "/api/terminals"
+        ? new Promise<TerminalRecord[]>((resolve) => {
+            resolveTerminals = resolve;
+          })
+        : server.apiGet(path),
     );
     render(<TerminalWorkspace />);
 
     expect(screen.getByRole("button", { name: "New shell" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Run command" })).toBeDisabled();
+    await waitFor(() =>
+      expect(mocks.apiGet).toHaveBeenCalledWith("/api/terminals"),
+    );
 
     resolveTerminals([]);
 

@@ -24,6 +24,8 @@ def test_terminal_record_serializes_each_lifecycle_state(state: TerminalState, v
             argv=("python", "-c", "print('hi')"),
             cwd=Path("/workspace"),
             env={"ROS_DOMAIN_ID": "7"},
+            workspace_id="ws_test",
+            group_id="grp_test",
         ),
         state=state,
         pid=4242,
@@ -43,6 +45,8 @@ def test_terminal_record_has_stable_json_contract_shape() -> None:
             argv=("echo", "hello"),
             cwd=Path("/workspace"),
             env={"ROS_DOMAIN_ID": "7"},
+            workspace_id="ws_test",
+            group_id="grp_test",
         ),
         state=TerminalState.RUNNING,
         pid=4242,
@@ -54,8 +58,8 @@ def test_terminal_record_has_stable_json_contract_shape() -> None:
     assert json.dumps(record.to_dict(), separators=(",", ":"), sort_keys=True) == (
         '{"error":null,"exit_code":null,"pid":4242,'
         '"spec":{"argv":["echo","hello"],"cwd":"/workspace",'
-        '"env":{"ROS_DOMAIN_ID":"7"},"id":"t_0123456789abcdef",'
-        '"kind":"command"},"started_at":"2026-11-18T10:00:00Z",'
+        '"env":{"ROS_DOMAIN_ID":"7"},"group_id":"grp_test","id":"t_0123456789abcdef",'
+        '"kind":"command","workspace_id":"ws_test"},"started_at":"2026-11-18T10:00:00Z",'
         '"state":"running"}'
     )
 
@@ -69,6 +73,8 @@ def test_terminal_spec_copies_argv_and_freezes_environment() -> None:
         argv=argv,
         cwd=Path("/workspace"),
         env=env,
+        workspace_id="ws_test",
+        group_id="grp_test",
     )
 
     env["ROS_DOMAIN_ID"] = "9"

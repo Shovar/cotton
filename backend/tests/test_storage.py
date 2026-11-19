@@ -13,7 +13,7 @@ def test_migrates_to_head_version_with_settings(tmp_path: Path) -> None:
 
     db.migrate()
 
-    assert db.user_version() == 4
+    assert db.user_version() == 6
     assert "settings" in tables(db)
     assert db.connection().execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     db.close()
@@ -32,7 +32,7 @@ def test_migrate_drops_the_removed_process_tables(tmp_path: Path) -> None:
 
     db.migrate()
 
-    assert db.user_version() == 4
+    assert db.user_version() == 6
     assert not {"process_registry", "profiles"} & tables(db)
     assert "settings" in tables(db)
     db.close()
@@ -44,7 +44,7 @@ def test_migrate_is_idempotent_and_creates_parent_directory(tmp_path: Path) -> N
     db.migrate()
     db.migrate()
 
-    assert db.user_version() == 4
+    assert db.user_version() == 6
     assert (tmp_path / "nested").is_dir()
     db.close()
 
@@ -57,5 +57,5 @@ def test_close_is_idempotent_and_reopening_keeps_version(tmp_path: Path) -> None
     db.close()
 
     reopened = Database(path)
-    assert reopened.user_version() == 4
+    assert reopened.user_version() == 6
     reopened.close()

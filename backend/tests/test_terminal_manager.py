@@ -10,8 +10,17 @@ import pytest
 
 from cotton.events import Event, EventBus
 from cotton.terminals.manager import TerminalBusy, TerminalManager, TerminalNotFound
-from cotton.terminals.models import TerminalChunk, TerminalState
+from cotton.terminals.models import TerminalChunk, TerminalRecord, TerminalState
 from cotton.terminals.ports import PtySession
+
+WS = "ws_test"
+GRP = "grp_test"
+
+
+async def start(
+    manager: TerminalManager, argv: Sequence[str] | None = None, **kwargs: object
+) -> TerminalRecord:
+    return await manager.start(argv, workspace_id=WS, group_id=GRP, **kwargs)
 
 
 class FakePtySession:
@@ -102,7 +111,7 @@ async def test_default_start_uses_shell_and_inherits_environment(tmp_path: Path)
     spawner = FakePtySpawner()
     manager = TerminalManager(bus, spawner)
 
-    record = await manager.start(cwd=tmp_path)
+    record = await start(manager, cwd=tmp_path)
 
     assert record.spec.kind == "shell"
     assert record.spec.argv == (os.environ.get("SHELL") or "/bin/sh",)
@@ -121,8 +130,8 @@ async def test_shutdown_continues_after_terminal_close_permission_error(
         ]
     )
     manager = TerminalManager(EventBus(), spawner)
-    failed = await manager.start(["python", "-c", "pass"], cwd=tmp_path)
-    closed = await manager.start(["python", "-c", "pass"], cwd=tmp_path)
+    failed = await start(manager, ["python", "-c", "pass"], cwd=tmp_path)
+    closed = await start(manager, ["python", "-c", "pass"], cwd=tmp_path)
 
     await manager.shutdown()
 
@@ -138,8 +147,8 @@ async def test_command_start_preserves_argv_and_environment_overrides(
     spawner = FakePtySpawner()
     manager = TerminalManager(EventBus(), spawner)
 
-    record = await manager.start(
-        ["python", "-c", "print('hi')"], cwd=tmp_path, env={"COTTON_TEST_CHILD": "set"}
+    record = await start(
+        manager, ["python", "-c", "print('hi')"], cwd=tmp_path, env={"COTTON_TEST_CHILD": "set"}
     )
 
     assert record.spec.kind == "command"
@@ -159,7 +168,7 @@ async def test_start_publishes_lifecycle_and_ordered_output_events() -> None:
     spawner = FakePtySpawner(FakePtySession([b"first", b"second"], exit_code=3))
     manager = TerminalManager(bus, spawner)
 
-    record = await manager.start(["command"])
+    record = await start(manager, ["command"])
     await wait_for_exit(manager, record.spec.id)
 
     events = events_from(queue)
@@ -181,7 +190,7 @@ async def test_spawn_failure_is_retained_and_published() -> None:
     queue = bus.subscribe()
     manager = TerminalManager(bus, FakePtySpawner(error=FileNotFoundError("not found")))
 
-    record = await manager.start(["missing-terminal"])
+    record = await start(manager, ["missing-terminal"])
 
     assert record.state is TerminalState.FAILED
     assert record.error is not None
@@ -195,7 +204,7 @@ async def test_output_buffer_does_not_exceed_configured_byte_limit() -> None:
         FakePtySpawner(FakePtySession([b"a" * 40000, b"b" * 40000])),
     )
 
-    record = await manager.start(["command"])
+    record = await start(manager, ["command"])
     await wait_for_exit(manager, record.spec.id)
 
     retained = manager.output_since(record.spec.id, 0)
@@ -206,7 +215,7 @@ async def test_output_buffer_keeps_newest_suffix_of_oversized_chunk() -> None:
     output = b"a" * 65536 + b"latest"
     manager = TerminalManager(EventBus(), FakePtySpawner(FakePtySession([output, b"!"])))
 
-    record = await manager.start(["command"])
+    record = await start(manager, ["command"])
     await wait_for_exit(manager, record.spec.id)
 
     retained = manager.output_since(record.spec.id, 0)
@@ -219,7 +228,7 @@ async def test_output_buffer_keeps_newest_suffix_of_oversized_chunk() -> None:
 async def test_input_and_resize_are_forwarded_to_the_pty() -> None:
     session = FakePtySession(wait_for_close=True)
     manager = TerminalManager(EventBus(), FakePtySpawner(session))
-    record = await manager.start()
+    record = await start(manager)
 
     await manager.write_input(record.spec.id, b"hello")
     await manager.resize(record.spec.id, 81, 25)
@@ -233,7 +242,7 @@ async def test_input_and_resize_are_forwarded_to_the_pty() -> None:
 async def test_resize_rejects_dimensions_outside_supported_range(cols: int, rows: int) -> None:
     session = FakePtySession(wait_for_close=True)
     manager = TerminalManager(EventBus(), FakePtySpawner(session))
-    record = await manager.start()
+    record = await start(manager)
 
     with pytest.raises(ValueError):
         await manager.resize(record.spec.id, cols, rows)
@@ -257,7 +266,7 @@ async def test_unknown_terminal_ids_are_rejected_for_control_operations() -> Non
 async def test_idle_shell_can_close_without_confirmation() -> None:
     session = FakePtySession(wait_for_close=True)
     manager = TerminalManager(EventBus(), FakePtySpawner(session))
-    record = await manager.start()
+    record = await start(manager)
 
     closed = await manager.close(record.spec.id)
 
@@ -268,7 +277,7 @@ async def test_idle_shell_can_close_without_confirmation() -> None:
 async def test_active_command_requires_force_before_close() -> None:
     session = FakePtySession(wait_for_close=True)
     manager = TerminalManager(EventBus(), FakePtySpawner(session))
-    record = await manager.start(["command"])
+    record = await start(manager, ["command"])
 
     with pytest.raises(TerminalBusy):
         await manager.close(record.spec.id)
@@ -293,7 +302,7 @@ async def test_shell_with_foreground_job_or_unknown_status_requires_force(
         foreground_error=foreground_error,
     )
     manager = TerminalManager(EventBus(), FakePtySpawner(session))
-    record = await manager.start()
+    record = await start(manager)
 
     with pytest.raises(TerminalBusy):
         await manager.close(record.spec.id)
@@ -307,9 +316,31 @@ async def test_shutdown_stops_every_live_session() -> None:
         FakePtySession(wait_for_close=True),
     ]
     manager = TerminalManager(EventBus(), FakePtySpawner(sessions=sessions))
-    records = [await manager.start(), await manager.start()]
+    records = [await start(manager), await start(manager)]
 
     await manager.shutdown()
 
     assert all(session.closed for session in sessions)
     assert all(manager.get(record.spec.id).state is TerminalState.EXITED for record in records)
+
+
+async def test_list_filters_by_workspace_and_assign_moves_the_group() -> None:
+    bus = EventBus()
+    queue = bus.subscribe()
+    sessions = [FakePtySession(wait_for_close=True), FakePtySession(wait_for_close=True)]
+    manager = TerminalManager(bus, FakePtySpawner(sessions=sessions))
+    first = await manager.start(workspace_id="ws_a", group_id="grp_a")
+    second = await manager.start(workspace_id="ws_b", group_id="grp_b")
+    events_from(queue)
+
+    assert manager.list("ws_a") == [first]
+    assert manager.list() == [first, second]
+    assert first.spec.to_dict()["workspace_id"] == "ws_a"
+    assert first.spec.to_dict()["group_id"] == "grp_a"
+
+    moved = await manager.assign(first.spec.id, "grp_other")
+
+    assert moved.spec.group_id == "grp_other"
+    assert moved.spec.workspace_id == "ws_a"
+    assert manager.get(first.spec.id).spec.group_id == "grp_other"
+    assert [event.data["spec"]["group_id"] for event in events_from(queue)] == ["grp_other"]

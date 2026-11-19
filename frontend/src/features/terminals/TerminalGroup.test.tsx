@@ -1,8 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TerminalRecord } from "../../api/types";
+import {
+  createFakeServer,
+  terminalRecord,
+  type FakeServerSeed,
+} from "../../test/fakeWorkspaceServer";
 
 const mocks = vi.hoisted(() => ({
   apiGet: vi.fn(),
@@ -30,15 +34,31 @@ vi.mock("./TerminalView", () => ({
 import { useTerminalStore } from "./terminalStore";
 import { TerminalWorkspace } from "./TerminalWorkspace";
 
-function record(id: string): TerminalRecord {
+const WORKSPACE_ID = "ws_a";
+const DEFAULT_GROUP_ID = "grp_a1";
+const BUILD_GROUP_ID = "grp_a2";
+
+function seed(records: TerminalRecord[] = []): FakeServerSeed {
   return {
-    spec: { id, kind: "shell", argv: ["/bin/sh"], cwd: "/tmp", env: {} },
-    state: "running",
-    pid: 10,
-    started_at: null,
-    exit_code: null,
-    error: null,
+    workspaces: [
+      {
+        id: WORKSPACE_ID,
+        name: "Alpha",
+        groups: [
+          { id: DEFAULT_GROUP_ID, name: "Default" },
+          { id: BUILD_GROUP_ID, name: "Build" },
+        ],
+      },
+    ],
+    records,
   };
+}
+
+function useServer(options: FakeServerSeed) {
+  const server = createFakeServer(options);
+  mocks.apiGet.mockImplementation(server.apiGet);
+  mocks.apiSend.mockImplementation(server.apiSend);
+  return server;
 }
 
 function visibleTerminalIds(container: HTMLElement): string[] {
@@ -49,7 +69,7 @@ function visibleTerminalIds(container: HTMLElement): string[] {
 
 beforeEach(() => {
   localStorage.clear();
-  mocks.apiGet.mockReset().mockResolvedValue([]);
+  mocks.apiGet.mockReset();
   mocks.apiSend.mockReset();
   mocks.ws.send.mockReset();
   mocks.ws.subscribe.mockReset();
@@ -66,31 +86,25 @@ beforeEach(() => {
 });
 
 describe("terminal groups", () => {
-  it("renders every group session as a tab with its session id", async () => {
-    mocks.apiGet.mockResolvedValue([record("t1"), record("t2")]);
+  it("renders the groups served by the api with their sessions", async () => {
+    useServer(seed([terminalRecord("t1", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
 
     render(<TerminalWorkspace />);
 
     expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "t2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Build" })).toBeInTheDocument();
   });
 
   it("shows only the selected group's active terminal and keeps the others mounted", async () => {
-    localStorage.setItem(
-      "cotton-terminal-workspace",
-      JSON.stringify({
-        version: 1,
-        groups: [
-          { id: "default", name: "Default", terminalIds: ["t1"] },
-          { id: "build", name: "Build", terminalIds: ["t2"] },
-        ],
-        selectedGroupId: "default",
-        activeTerminalByGroup: {},
-        minimizedIds: [],
-      }),
+    useServer(
+      seed([
+        terminalRecord("t1", WORKSPACE_ID, DEFAULT_GROUP_ID),
+        terminalRecord("t2", WORKSPACE_ID, BUILD_GROUP_ID),
+      ]),
     );
-    mocks.apiGet.mockResolvedValue([record("t1"), record("t2")]);
     const view = render(<TerminalWorkspace />);
+
 
     await screen.findByRole("tab", { name: "t1" });
     expect(visibleTerminalIds(view.container)).toEqual(["t1"]);
@@ -102,24 +116,24 @@ describe("terminal groups", () => {
   });
 
   it("keeps a terminal mounted when it moves to another group", async () => {
-    mocks.apiGet.mockResolvedValue([record("t1"), record("t2")]);
+    useServer(
+      seed([
+        terminalRecord("t1", WORKSPACE_ID, DEFAULT_GROUP_ID),
+        terminalRecord("t2", WORKSPACE_ID, DEFAULT_GROUP_ID),
+      ]),
+    );
     const view = render(<TerminalWorkspace />);
     await screen.findByRole("tab", { name: "t1" });
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Build" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
 
     const retained = view.container.querySelector('[data-terminal-id="t1"]');
     const moveSelect = screen.getByLabelText("Move t1 to group") as HTMLSelectElement;
-    const destination = Array.from(moveSelect.options).find(
-      (option) => option.textContent === "Build",
-    )?.value;
-    fireEvent.change(moveSelect, {
-      target: { value: destination },
-    });
+    fireEvent.change(moveSelect, { target: { value: BUILD_GROUP_ID } });
 
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith("PATCH", "/api/terminals/t1", {
+        group_id: BUILD_GROUP_ID,
+      }),
+    );
     expect(view.container.querySelector('[data-terminal-id="t1"]')).toBe(retained);
     expect(visibleTerminalIds(view.container)).toEqual(["t2"]);
 
@@ -128,157 +142,100 @@ describe("terminal groups", () => {
     expect(visibleTerminalIds(view.container)).toEqual(["t1"]);
   });
 
-  it("creates a group and puts new terminals in the selected group", async () => {
-    mocks.apiSend.mockResolvedValue(record("t1"));
+  it("creates a group in the selected workspace and puts new shells in it", async () => {
+    const server = useServer(seed());
     render(<TerminalWorkspace />);
+    await screen.findByRole("button", { name: "Default" });
+
     fireEvent.change(screen.getByLabelText("New group"), {
       target: { value: "ROS" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create group" }));
 
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith(
+        "POST",
+        `/api/workspaces/${WORKSPACE_ID}/groups`,
+        { name: "ROS" },
+      ),
+    );
+    const created = server.groups.find((group) => group.name === "ROS");
+    expect(created).toBeDefined();
+
     const newShell = screen.getByRole("button", { name: "New shell" });
     await waitFor(() => expect(newShell).toBeEnabled());
     fireEvent.click(newShell);
-    expect(await screen.findByRole("tab", { name: "t1" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    expect(screen.queryByRole("tab", { name: "t1" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "ROS" }));
-    expect(screen.getByRole("tab", { name: "t1" })).toBeInTheDocument();
-  });
-
-  it("keeps a new terminal in its selected group if state arrives before create returns", async () => {
-    let resolveCreate: (value: TerminalRecord) => void = () => {};
-    mocks.apiSend.mockReturnValue(
-      new Promise<TerminalRecord>((resolve) => {
-        resolveCreate = resolve;
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/terminals", {
+        workspace_id: WORKSPACE_ID,
+        group_id: created?.id,
       }),
     );
-    render(<TerminalWorkspace />);
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "ROS" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    const newShell = screen.getByRole("button", { name: "New shell" });
-    await waitFor(() => expect(newShell).toBeEnabled());
-    fireEvent.click(newShell);
 
-    act(() => {
-      useTerminalStore.getState().applyServerEvent({
-        type: "terminal.state",
-        data: record("t8"),
-      });
-    });
-    await act(async () => resolveCreate(record("t8")));
-    expect(await screen.findByRole("tab", { name: "t8" })).toBeInTheDocument();
-
+    const terminalId = server.records[0].spec.id;
+    await screen.findByRole("tab", { name: terminalId });
     fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    expect(screen.queryByRole("tab", { name: "t8" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: terminalId })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ROS" }));
+    expect(screen.getByRole("tab", { name: terminalId })).toBeInTheDocument();
   });
 
-  it("renames a group", () => {
+  it("renames a group through the api", async () => {
+    useServer(seed());
     render(<TerminalWorkspace />);
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "ROS" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rename ROS" }));
+    await screen.findByRole("button", { name: "Build" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename Build" }));
     fireEvent.change(screen.getByLabelText("Group name"), {
       target: { value: "Navigation" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save group name" }));
 
-    expect(screen.getByRole("button", { name: "Navigation" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "ROS" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Navigation" }),
+    ).toBeInTheDocument();
+    expect(mocks.apiSend).toHaveBeenCalledWith(
+      "PATCH",
+      `/api/terminal-groups/${BUILD_GROUP_ID}`,
+      { name: "Navigation" },
+    );
   });
 
-  it("moves a terminal to another group", async () => {
-    mocks.apiSend.mockResolvedValue(record("t2"));
+  it("deletes an empty group through the api", async () => {
+    useServer(seed());
     render(<TerminalWorkspace />);
-    const newShell = screen.getByRole("button", { name: "New shell" });
-    await waitFor(() => expect(newShell).toBeEnabled());
-    fireEvent.click(newShell);
-    await screen.findByRole("tab", { name: "t2" });
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Build" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    const destination = screen.getByRole("option", { name: "Build" }).getAttribute("value");
-    fireEvent.change(screen.getByLabelText("Move t2 to group"), {
-      target: { value: destination },
-    });
+    await screen.findByRole("button", { name: "Build" });
 
-    expect(screen.queryByRole("tab", { name: "t2" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    expect(screen.queryByRole("tab", { name: "t2" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Build" }));
-    expect(screen.getByRole("tab", { name: "t2" })).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByRole("button", { name: "Delete Build" }));
 
-  it("deletes an empty group", () => {
-    render(<TerminalWorkspace />);
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Temporary" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Delete Temporary" }));
-
-    expect(screen.queryByRole("button", { name: "Temporary" })).not.toBeInTheDocument();
-  });
-
-  it("keeps a group usable after all its terminals move away", async () => {
-    mocks.apiGet.mockResolvedValue([record("t19")]);
-    mocks.apiSend.mockResolvedValue(record("t20"));
-    render(<TerminalWorkspace />);
-    await screen.findByRole("tab", { name: "t19" });
-
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Build" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
-    const moveSelect = screen.getByLabelText("Move t19 to group") as HTMLSelectElement;
-    const buildId = Array.from(moveSelect.options).find(
-      (option) => option.textContent === "Build",
-    )?.value;
-    if (!buildId) {
-      throw new Error("Build group option is missing");
-    }
-    fireEvent.change(moveSelect, { target: { value: buildId } });
-
-    const newShell = screen.getByRole("button", { name: "New shell" });
-    await waitFor(() => expect(newShell).toBeEnabled());
-    fireEvent.click(newShell);
-    expect(await screen.findByRole("tab", { name: "t20" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Build" }));
-    expect(await screen.findByRole("tab", { name: "t19" })).toBeInTheDocument();
-  });
-
-  it("allows the group sidebar to be resized", () => {
-    render(<TerminalWorkspace />);
-
-    expect(screen.getByRole("complementary", { name: "Groups" }).className).toContain(
-      "resize-x",
+    await waitFor(() =>
+      expect(mocks.apiSend).toHaveBeenCalledWith(
+        "DELETE",
+        `/api/terminal-groups/${BUILD_GROUP_ID}`,
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Build" })).not.toBeInTheDocument(),
     );
   });
 
   it("rejects deletion of a non-empty group", async () => {
-    mocks.apiSend.mockResolvedValue(record("t3"));
+    useServer(seed([terminalRecord("t3", WORKSPACE_ID, DEFAULT_GROUP_ID)]));
     render(<TerminalWorkspace />);
-    const newShell = screen.getByRole("button", { name: "New shell" });
-    await waitFor(() => expect(newShell).toBeEnabled());
-    fireEvent.click(newShell);
-    await waitFor(() => expect(screen.getByRole("tab", { name: "t3" })).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText("New group"), {
-      target: { value: "Other" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create group" }));
-    fireEvent.click(screen.getByRole("button", { name: "Default" }));
+    await screen.findByRole("tab", { name: "t3" });
 
     expect(screen.getByRole("button", { name: "Delete Default" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Delete Other" })).toBeEnabled();
-    expect(screen.getByRole("tab", { name: "t3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete Build" })).toBeEnabled();
+  });
+
+  it("allows the group sidebar to be resized", async () => {
+    useServer(seed());
+    render(<TerminalWorkspace />);
+    await screen.findByRole("button", { name: "Default" });
+
+    expect(screen.getByRole("complementary", { name: "Groups" }).className).toContain(
+      "resize-x",
+    );
   });
 });

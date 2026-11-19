@@ -11,6 +11,8 @@ import { useTerminalStore } from "./terminalStore";
 const record: TerminalRecord = {
   spec: {
     id: "t1",
+    workspace_id: "ws_a",
+    group_id: "grp_a1",
     kind: "command",
     argv: ["echo", "hello"],
     cwd: "/tmp",

@@ -15,6 +15,33 @@ _MIGRATIONS = {
         DROP TABLE IF EXISTS process_registry;
         DROP TABLE IF EXISTS profiles;
     """,
+    5: """
+        CREATE TABLE workspaces (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            path TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE terminal_groups (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            position INTEGER NOT NULL
+        );
+        CREATE INDEX terminal_groups_by_workspace ON terminal_groups(workspace_id, position);
+    """,
+    6: """
+        CREATE TABLE workspace_commands (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            label TEXT NOT NULL,
+            body TEXT NOT NULL,
+            is_startup INTEGER NOT NULL DEFAULT 0,
+            position INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX workspace_commands_one_startup
+            ON workspace_commands(workspace_id) WHERE is_startup = 1;
+    """,
 }
 
 

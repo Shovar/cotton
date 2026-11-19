@@ -57,11 +57,36 @@ export interface PluginRecord {
   manifest: PluginManifest;
 }
 
+export interface Workspace {
+  id: string;
+  name: string;
+  path: string;
+  created_at: string;
+}
+
+export interface TerminalGroup {
+  id: string;
+  workspace_id: string;
+  name: string;
+  position: number;
+}
+
+export interface WorkspaceCommand {
+  id: string;
+  workspace_id: string;
+  label: string;
+  body: string;
+  is_startup: boolean;
+  position: number;
+}
+
 export type TerminalKind = "shell" | "command";
 export type TerminalState = "starting" | "running" | "exited" | "failed";
 
 export interface TerminalSpec {
   id: string;
+  workspace_id: string;
+  group_id: string;
   kind: TerminalKind;
   argv: string[];
   cwd: string;

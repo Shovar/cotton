@@ -24,6 +24,8 @@ class TerminalSpec:
     argv: tuple[str, ...]
     cwd: Path
     env: Mapping[str, str]
+    workspace_id: str
+    group_id: str
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "argv", tuple(self.argv))
@@ -36,6 +38,8 @@ class TerminalSpec:
             "argv": list(self.argv),
             "cwd": str(self.cwd),
             "env": dict(sorted(self.env.items())),
+            "workspace_id": self.workspace_id,
+            "group_id": self.group_id,
         }
 
 

@@ -35,7 +35,15 @@ import { useTerminalStore } from "./terminalStore";
 
 function record(id: string): TerminalRecord {
   return {
-    spec: { id, kind: "shell", argv: ["/bin/sh"], cwd: "/tmp", env: {} },
+    spec: {
+      id,
+      workspace_id: "ws_a",
+      group_id: "grp_a1",
+      kind: "shell",
+      argv: ["/bin/sh"],
+      cwd: "/tmp",
+      env: {},
+    },
     state: "running",
     pid: 10,
     started_at: null,

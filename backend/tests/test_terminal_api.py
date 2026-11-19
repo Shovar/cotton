@@ -13,6 +13,8 @@ from cotton.app import create_app
 from cotton.services import Services
 from cotton.terminals.manager import TerminalManager, TerminalNotFound
 from cotton.terminals.ports import PtySession
+from cotton.workspaces.models import Workspace
+from cotton.workspaces.repository import SqliteWorkspaceRepository
 
 
 class FakePtySession:
@@ -57,15 +59,27 @@ class FakePtySpawner:
         return self.session
 
 
+@pytest.fixture
+def workspaces(services: Services) -> SqliteWorkspaceRepository:
+    services.db.migrate()
+    return SqliteWorkspaceRepository(services.db)
+
+
+@pytest.fixture
+def workspace(workspaces: SqliteWorkspaceRepository, tmp_path: Path) -> Workspace:
+    return workspaces.create("ws", str(tmp_path))
+
+
 def build_client(services: Services, spawner: FakePtySpawner) -> tuple[TerminalManager, TestClient]:
+    services.db.migrate()
     manager = TerminalManager(services.bus, spawner)
-    services.routers.append(create_router(manager))
+    services.routers.append(create_router(manager, SqliteWorkspaceRepository(services.db)))
     services.shutdown.append(manager.shutdown)
     return manager, TestClient(create_app(services))
 
 
 def test_list_create_default_shell_and_close(
-    services: Services, auth_headers: dict[str, str], tmp_path: Path
+    services: Services, auth_headers: dict[str, str], workspace: Workspace
 ) -> None:
     spawner = FakePtySpawner()
     manager, client = build_client(services, spawner)
@@ -73,7 +87,7 @@ def test_list_create_default_shell_and_close(
         assert client.get("/api/terminals", headers=auth_headers).json() == []
         created = client.post(
             "/api/terminals",
-            json={"cwd": str(tmp_path)},
+            json={"workspace_id": workspace.id},
             headers=auth_headers,
         )
         terminal_id = created.json()["spec"]["id"]
@@ -84,6 +98,8 @@ def test_list_create_default_shell_and_close(
     assert created.status_code == 201
     assert created.json()["spec"]["kind"] == "shell"
     assert created.json()["spec"]["argv"] == [os.environ.get("SHELL") or "/bin/sh"]
+    assert created.json()["spec"]["workspace_id"] == workspace.id
+    assert spawner.calls[0][1] == workspace.path
     assert [record["spec"]["id"] for record in listed.json()] == [terminal_id]
     assert closed.status_code == 200
     assert closed.json()["state"] == "exited"
@@ -94,7 +110,7 @@ def test_list_create_default_shell_and_close(
 
 
 def test_command_string_uses_shlex_without_shell_evaluation(
-    services: Services, auth_headers: dict[str, str], tmp_path: Path
+    services: Services, auth_headers: dict[str, str], workspace: Workspace, tmp_path: Path
 ) -> None:
     spawner = FakePtySpawner(wait_for_close=True)
     _, client = build_client(services, spawner)
@@ -103,7 +119,7 @@ def test_command_string_uses_shlex_without_shell_evaluation(
     with client:
         response = client.post(
             "/api/terminals",
-            json={"command": command},
+            json={"workspace_id": workspace.id, "command": command},
             headers=auth_headers,
         )
 
@@ -113,30 +129,96 @@ def test_command_string_uses_shlex_without_shell_evaluation(
 
 
 @pytest.mark.parametrize(
-    "body",
+    ("field", "value"),
     [
-        {"command": ""},
-        {"command": []},
-        {"command": [""]},
-        {"command": "echo\x00bad"},
-        {"command": ["echo", "\x00bad"]},
-        {"env": {"BAD-KEY": "value"}},
-        {"env": {"KEY": "bad\x00value"}},
-        {"env": {"KEY": 7}},
-        {"cwd": "/path/that/does/not/exist"},
+        ("command", ""),
+        ("command", []),
+        ("command", [""]),
+        ("command", "echo\x00bad"),
+        ("command", ["echo", "\x00bad"]),
+        ("env", {"BAD-KEY": "value"}),
+        ("env", {"KEY": "bad\x00value"}),
+        ("env", {"KEY": 7}),
+        ("cwd", "/path/that/does/not/exist"),
     ],
 )
 def test_invalid_terminal_request_is_rejected_without_spawning(
-    services: Services, auth_headers: dict[str, str], body: dict[str, object]
+    services: Services,
+    auth_headers: dict[str, str],
+    workspace: Workspace,
+    field: str,
+    value: object,
 ) -> None:
     spawner = FakePtySpawner()
     _, client = build_client(services, spawner)
+    body = {"workspace_id": workspace.id, field: value}
     with client:
         response = client.post("/api/terminals", json=body, headers=auth_headers)
 
     assert response.status_code == 422
     assert response.json()["code"] == "validation_error"
     assert spawner.calls == []
+
+
+def test_missing_or_unknown_workspace_is_rejected(
+    services: Services, auth_headers: dict[str, str], workspace: Workspace
+) -> None:
+    spawner = FakePtySpawner()
+    _, client = build_client(services, spawner)
+    with client:
+        missing = client.post("/api/terminals", json={}, headers=auth_headers)
+        unknown = client.post(
+            "/api/terminals", json={"workspace_id": "ws_unknown"}, headers=auth_headers
+        )
+        group = client.post(
+            "/api/terminals",
+            json={"workspace_id": workspace.id, "group_id": "grp_unknown"},
+            headers=auth_headers,
+        )
+
+    assert (missing.status_code, missing.json()["code"]) == (422, "workspace_required")
+    assert (unknown.status_code, unknown.json()["code"]) == (404, "workspace_not_found")
+    assert (group.status_code, group.json()["code"]) == (422, "group_not_found")
+    assert spawner.calls == []
+
+
+def test_terminals_are_scoped_and_can_move_between_groups(
+    services: Services, auth_headers: dict[str, str], workspace: Workspace, tmp_path: Path
+) -> None:
+    other_path = tmp_path / "other"
+    other_path.mkdir()
+    repository = SqliteWorkspaceRepository(services.db)
+    other = repository.create("other", str(other_path))
+    group_id = repository.create_group(workspace.id, "Second").id
+    spawner = FakePtySpawner(wait_for_close=True)
+    _, client = build_client(services, spawner)
+    with client:
+        created = client.post(
+            "/api/terminals", json={"workspace_id": workspace.id}, headers=auth_headers
+        )
+        terminal_id = created.json()["spec"]["id"]
+        here = client.get(
+            f"/api/terminals?workspace_id={workspace.id}", headers=auth_headers
+        ).json()
+        there = client.get(f"/api/terminals?workspace_id={other.id}", headers=auth_headers).json()
+        moved = client.patch(
+            f"/api/terminals/{terminal_id}", json={"group_id": group_id}, headers=auth_headers
+        )
+        foreign = client.patch(
+            f"/api/terminals/{terminal_id}",
+            json={"group_id": repository.list_groups(other.id)[0].id},
+            headers=auth_headers,
+        )
+        ghost = client.patch(
+            "/api/terminals/ghost", json={"group_id": group_id}, headers=auth_headers
+        )
+
+    assert [record["spec"]["id"] for record in here] == [terminal_id]
+    assert there == []
+    assert moved.status_code == 200
+    assert moved.json()["spec"]["group_id"] == group_id
+    assert (foreign.status_code, foreign.json()["code"]) == (422, "group_not_found")
+    assert (ghost.status_code, ghost.json()["code"]) == (404, "terminal_not_found")
 
 
 def test_terminal_api_requires_bearer_token(services: Services) -> None:
@@ -152,14 +234,14 @@ def test_terminal_api_requires_bearer_token(services: Services) -> None:
 
 
 def test_busy_terminal_requires_confirmation_and_force_closes(
-    services: Services, auth_headers: dict[str, str]
+    services: Services, auth_headers: dict[str, str], workspace: Workspace
 ) -> None:
     spawner = FakePtySpawner(wait_for_close=True)
     _, client = build_client(services, spawner)
     with client:
         created = client.post(
             "/api/terminals",
-            json={"command": ["python", "-c", "pass"]},
+            json={"workspace_id": workspace.id, "command": ["python", "-c", "pass"]},
             headers=auth_headers,
         )
         terminal_id = created.json()["spec"]["id"]
@@ -188,7 +270,7 @@ def test_unknown_terminal_delete_returns_not_found(
 
 
 def test_close_permission_error_is_reported_and_marks_terminal_failed(
-    services: Services, auth_headers: dict[str, str]
+    services: Services, auth_headers: dict[str, str], workspace: Workspace
 ) -> None:
     spawner = FakePtySpawner()
     spawner.session = PermissionDeniedPtySession()
@@ -196,7 +278,7 @@ def test_close_permission_error_is_reported_and_marks_terminal_failed(
     with client:
         created = client.post(
             "/api/terminals",
-            json={"command": ["python", "-c", "pass"]},
+            json={"workspace_id": workspace.id, "command": ["python", "-c", "pass"]},
             headers=auth_headers,
         )
         terminal_id = created.json()["spec"]["id"]

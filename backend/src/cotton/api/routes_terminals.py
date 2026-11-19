@@ -17,33 +17,69 @@ from cotton.terminals.manager import (
     TerminalManager,
     TerminalNotFound,
 )
+from cotton.terminals.shell_input import compose_initial_input
+from cotton.workspaces.commands import CommandRepository
+from cotton.workspaces.errors import GroupNotFound, WorkspaceNotFound
+from cotton.workspaces.models import Workspace
+from cotton.workspaces.repository import WorkspaceRepository
 
 _ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class TerminalCreateRequest(BaseModel):
+    workspace_id: str | None = None
+    group_id: str | None = None
     command: str | list[str] | None = None
     cwd: str | None = None
     env: dict[str, str] = Field(default_factory=dict)
 
 
-def create_router(manager: TerminalManager) -> APIRouter:
+class TerminalGroupRequest(BaseModel):
+    group_id: str
+
+
+def create_router(
+    manager: TerminalManager,
+    workspaces: WorkspaceRepository,
+    commands: CommandRepository | None = None,
+) -> APIRouter:
     router = APIRouter(prefix="/api", tags=["terminals"])
 
     @router.get("/terminals")
-    async def list_terminals() -> list[dict[str, Any]]:
-        return [record.to_dict() for record in manager.list()]
+    async def list_terminals(workspace_id: str | None = None) -> list[dict[str, Any]]:
+        return [record.to_dict() for record in manager.list(workspace_id)]
 
     @router.post("/terminals", status_code=201)
     async def create_terminal(body: TerminalCreateRequest) -> dict[str, Any]:
         try:
+            if body.workspace_id is None:
+                raise ApiError(422, "workspace_required", "workspace_id is required")
+            workspace = _workspace(workspaces, body.workspace_id)
+            group_id = _group_id(workspaces, workspace.id, body.group_id)
             argv = _command_argv(body.command)
-            cwd = _working_directory(body.cwd)
+            cwd = _working_directory(body.cwd) or workspace.path
             _validate_environment(body.env)
-            record = await manager.start(argv, cwd=cwd, env=body.env)
+            startup = commands.startup_for(workspace.id) if commands and argv is None else None
+            record = await manager.start(
+                argv,
+                workspace_id=workspace.id,
+                group_id=group_id,
+                cwd=cwd,
+                env=body.env,
+                initial_input=compose_initial_input(startup.body if startup else None, None),
+            )
         except ValueError as exc:
             raise ApiError(422, "validation_error", str(exc)) from exc
         return record.to_dict()
+
+    @router.patch("/terminals/{terminal_id}")
+    async def move_terminal(terminal_id: str, body: TerminalGroupRequest) -> dict[str, Any]:
+        try:
+            record = manager.get(terminal_id)
+        except TerminalNotFound as exc:
+            raise ApiError(404, "terminal_not_found", str(exc)) from exc
+        group = _group_id(workspaces, record.spec.workspace_id, body.group_id)
+        return (await manager.assign(terminal_id, group)).to_dict()
 
     @router.delete("/terminals/{terminal_id}")
     async def close_terminal(terminal_id: str, force: bool = False) -> dict[str, Any]:
@@ -89,6 +125,26 @@ def _terminal_channel(manager: TerminalManager, name: str) -> Channel | None:
             and event.data.get("id") == terminal_id
         ),
     )
+
+
+def _workspace(workspaces: WorkspaceRepository, workspace_id: str) -> Workspace:
+    try:
+        return workspaces.get(workspace_id)
+    except WorkspaceNotFound as exc:
+        raise ApiError(404, "workspace_not_found", str(exc)) from exc
+
+
+def _group_id(workspaces: WorkspaceRepository, workspace_id: str, group_id: str | None) -> str:
+    groups = workspaces.list_groups(workspace_id)
+    if group_id is None:
+        return groups[0].id
+    try:
+        group = workspaces.get_group(group_id)
+    except GroupNotFound as exc:
+        raise ApiError(422, "group_not_found", str(exc)) from exc
+    if group.workspace_id != workspace_id:
+        raise ApiError(422, "group_not_found", f"group {group_id} belongs to another workspace")
+    return group.id
 
 
 def _command_argv(command: str | list[str] | None) -> list[str] | None:

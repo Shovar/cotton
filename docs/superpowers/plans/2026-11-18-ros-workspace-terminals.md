@@ -66,7 +66,7 @@
 - Produces errors `WorkspaceError(ValueError)`, `InvalidWorkspace(WorkspaceError)`, `WorkspaceNotFound(WorkspaceError)`, `WorkspaceExists(WorkspaceError)`, `GroupNotFound(WorkspaceError)`.
 - `to_dict()` on both dataclasses returns `path` as `str` for workspaces.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_workspace_path_is_canonicalized(tmp_path: Path) -> None:
@@ -87,21 +87,21 @@ def test_invalid_workspace_names_are_rejected(name: str) -> None:
 
 Add one assertion that `to_dict()` emits `{"path": str(path), ...}` and one that `new_group("ws_1", "Default", 0)` produces `grp_` ids.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_workspace_models.py -q`
 Expected: FAIL, `ModuleNotFoundError: No module named 'cotton.workspaces'`.
 
-- [ ] **Step 3: Implement the models and errors**
+- [x] **Step 3: Implement the models and errors**
 
 Keep the module free of FastAPI, SQLite and `Path.cwd()`. `validate_path` calls `Path(raw).resolve()` inside `try/except (OSError, RuntimeError)` and raises `InvalidWorkspace` with the offending path in the message.
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_workspace_models.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/cotton/workspaces backend/tests/test_workspace_models.py
@@ -138,7 +138,7 @@ CREATE TABLE terminal_groups (
 - `create` inserts the workspace and its `Default` group (`position = 0`) in one transaction; a duplicate canonical path raises `WorkspaceExists`; a non-existent `workspace_id` on `create_group` raises `WorkspaceNotFound`. Duplicate detection compares `os.path.normcase(str(path))` so a case-insensitive filesystem cannot be used to bypass the unique index; there is no portable test for the case-folded variant, so it is covered by review and by the `normcase` comparison itself.
 - `create_group` appends at `max(position) + 1`; `delete_group` raises `GroupNotFound` when missing; `list_groups` order is `position, name`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Use a `Database(tmp_path / "state.db")` with `migrate()` and assert:
 - `create("ws", str(tmp_path))` returns a workspace whose `list_groups(...)` is exactly one group named `Default`.
@@ -146,21 +146,21 @@ Use a `Database(tmp_path / "state.db")` with `migrate()` and assert:
 - `rename` changes the name; `delete` removes the workspace and its groups (`get_group` raises `GroupNotFound`).
 - `get` of an unknown id raises `WorkspaceNotFound`.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_workspace_repository.py -q`
 Expected: FAIL on the missing table or missing class.
 
-- [ ] **Step 3: Implement the migration and repository**
+- [x] **Step 3: Implement the migration and repository**
 
 Follow `SettingsRepository`'s use of `Database.connection()`; wrap multi-statement writes in `with connection:` so the workspace and its default group commit together.
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_workspace_repository.py backend/tests/test_storage.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/cotton/storage/db.py backend/src/cotton/workspaces/repository.py backend/tests/test_workspace_repository.py
@@ -187,25 +187,25 @@ git commit -m "feat: persist ros workspaces and terminal groups"
 - `PATCH /api/terminals/{terminal_id}` body `{"group_id": str}` → `200` record; `404 terminal_not_found`; `422 group_not_found` when the group belongs to another workspace.
 - `create_router(manager: TerminalManager, workspaces: WorkspaceRepository) -> APIRouter`; `cli.py` builds `SqliteWorkspaceRepository(database)`, keeps it in a local variable, and passes it to both this router and (Task 4) the workspaces router.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Update `test_terminal_api.py`'s fixture to create a workspace first. Add tests: create without `workspace_id` returns 422 and spawns nothing; the spawner receives the workspace path as `cwd`; two workspaces produce disjoint `GET /api/terminals?workspace_id=` results; `PATCH` moves a terminal and publishes one `terminal.state`; `PATCH` with another workspace's group returns 422. Add a manager test that `list(workspace_id="...")` filters.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_terminal_api.py backend/tests/test_terminal_manager.py -q`
 Expected: FAIL on the new `workspace_id` parameter and required field.
 
-- [ ] **Step 3: Implement the model, manager and route changes**
+- [x] **Step 3: Implement the model, manager and route changes**
 
 Keep `shlex.split` for `command` untouched. Resolve the workspace and group in the route through `WorkspaceRepository` before calling `manager.start`.
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_terminal_api.py backend/tests/test_terminal_manager.py backend/tests/test_terminal_ws.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Document and commit**
+- [x] **Step 5: Document and commit**
 
 ```bash
 git add backend/src/cotton/terminals backend/src/cotton/api/routes_terminals.py backend/src/cotton/cli.py backend/tests/test_terminal_api.py backend/tests/test_terminal_manager.py docs/contracts/api.md
@@ -229,23 +229,23 @@ git commit -m "feat: scope terminal sessions to workspaces and groups"
 - Error codes follow `ApiError(status, code, message)`; `WorkspaceError` subclasses are translated in the route, not in the domain.
 - With `manager is None` the delete guard is skipped, so the router can be tested from the repository alone.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Build the client like `test_terminal_api.py` does, appending `create_router(repository, manager)`, and assert: create returns the canonicalized path; duplicate path returns `409 workspace_exists`; a file path returns `422 validation_error`; deleting a workspace with a live fake terminal returns `409 workspace_has_terminals`; an unauthenticated request returns `401`.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_workspace_api.py -q`
 Expected: FAIL, `404` for `/api/workspaces`.
 
-- [ ] **Step 3: Implement the routes and wire them in `cli.py`**
+- [x] **Step 3: Implement the routes and wire them in `cli.py`**
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_workspace_api.py backend/tests/test_cli.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Document and commit**
+- [x] **Step 5: Document and commit**
 
 Add the four routes and their error codes to `docs/contracts/api.md`.
 
@@ -270,23 +270,23 @@ git commit -m "feat: expose ros workspaces over the api"
   - `DELETE /api/terminal-groups/{group_id}` → `200 {"id": str}`; `409 group_not_empty` if any record's `spec.group_id` matches; `409 group_is_last` if the workspace has one group
 - All errors: `404 workspace_not_found` / `group_not_found`, `422 validation_error`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Cover create/rename/delete of an empty group, `409 group_not_empty` with a fake terminal in the group, `409 group_is_last` for the default group, and `404` for an unknown workspace.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_terminal_group_api.py -q`
 Expected: FAIL, routes not found.
 
-- [ ] **Step 3: Implement the router and add it in `cli.py`**
+- [x] **Step 3: Implement the router and add it in `cli.py`**
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_terminal_group_api.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Document and commit**
+- [x] **Step 5: Document and commit**
 
 ```bash
 git add backend/src/cotton/api/routes_terminal_groups.py backend/src/cotton/cli.py backend/tests/test_terminal_group_api.py docs/contracts/api.md
@@ -311,25 +311,25 @@ git commit -m "feat: manage terminal groups per workspace"
 - `WORKSPACE_STORAGE_KEY` keeps its name with shape `{version: 2, selectedWorkspaceId, selectedGroupId, activeTerminalByGroup, minimizedIds}`; anything else falls back to defaults, and a legacy value is removed with `localStorage.removeItem` before the first v2 write so the old group membership cannot reappear after a reload.
 - Header gains a workspace `<select aria-label="ROS workspace">`, an add form (`name`, `path`, submit "Add workspace"), and "Delete workspace". "New shell" posts `{workspace_id: selectedWorkspaceId, group_id: selectedGroupId}` and is disabled when no workspace exists.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Mock `apiGet`/`apiSend` as the existing suite does and assert: workspaces render in the select; creating a terminal posts `workspace_id` and `group_id`; switching workspace shows only that workspace's terminals; moving a terminal calls `PATCH /api/terminals/{id}` and does not rewrite local membership; a `version: 1` stored state is discarded; the add form posts the typed name and path.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `cd frontend && npm test -- src/features/terminals/TerminalWorkspace.test.tsx`
 Expected: FAIL on the missing workspace select and the new request body.
 
-- [ ] **Step 3: Implement the API module and rework `TerminalWorkspace`**
+- [x] **Step 3: Implement the API module and rework `TerminalWorkspace`**
 
 Group creation/renaming/deletion call the API and refetch `listGroups`; keep the existing "no delete when occupied or last" behavior in the UI, backed by the 409s. Reconciliation keeps attaching only terminals of the selected workspace.
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `cd frontend && npm test -- src/features/terminals`
 Expected: all pass, including the `TerminalBody` and `TerminalGroup` suites.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/api/types.ts frontend/src/features/terminals
@@ -366,23 +366,23 @@ CREATE UNIQUE INDEX workspace_commands_one_startup
 - `SqliteCommandRepository(db: Database)` validates with `validate_label` and with `validate_startup_body` when `is_startup` is set (`validate_body` otherwise) before writing; a second startup command raises `StartupCommandExists`; ordering is `position, label`.
 - `is_startup=False` on update clears the previous startup flag of that workspace in the same transaction. Promoting another command clears the current one first, inside that same transaction, so the partial unique index never sees two startups and the request does not fail with `StartupCommandExists`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Assert: create/list/update/delete round trip; `list` is scoped to one workspace; a second startup command created on a workspace that already has one raises `StartupCommandExists`; one `update` moving the flag from command A to command B leaves exactly one startup and does not raise; `startup_for` returns `None` when unset; bodies with `&&`, `$(...)`, quotes and multiple lines are stored verbatim after strip; a startup body containing a newline raises `InvalidCommand`; empty and over-long bodies raise `InvalidCommand`.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_workspace_commands.py -q`
 Expected: FAIL, module missing.
 
-- [ ] **Step 3: Implement the command domain and SQLite repository**
+- [x] **Step 3: Implement the command domain and SQLite repository**
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_workspace_commands.py backend/tests/test_workspace_repository.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/cotton/storage/db.py backend/src/cotton/workspaces/commands.py backend/tests/test_workspace_commands.py
@@ -414,25 +414,25 @@ git commit -m "feat: persist saved commands per workspace"
 - The run endpoint starts a shell in the workspace with `initial_input = compose_initial_input(startup_body, command.body)` (one write, no separate body write) and returns the created terminal.
 - `/run` requires the Bearer token like every other router route; no new auth path, no `shell=True`, no `shlex` on stored bodies.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Assert: CRUD round trip; an invalid body returns 422 without touching the manager; the run endpoint spawns one shell and the fake session receives one write, `startup && {\n<body>\n}` followed by a newline, when a startup command exists, and `body` alone otherwise; `POST /api/terminals` in that workspace also injects the startup line; `POST /api/terminals` with `command` does not; `/run` and `POST /api/workspaces` without a token return 401. For the readiness rule, use a fake session that emits a prompt chunk: the write happens only after that chunk, and a silent shell gets the write once the grace timeout expires. Add unit tests for `compose_initial_input` covering both-empty, startup-only, body-only and multi-line body cases.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `python -m pytest backend/tests/test_workspace_command_api.py -q`
 Expected: FAIL, routes not found.
 
-- [ ] **Step 3: Implement the router, the manager write and the startup lookup**
+- [x] **Step 3: Implement the router, the manager write and the startup lookup**
 
 The body is written as PTY input, never executed through `shlex` or `shell=True`.
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `python -m pytest backend/tests/test_shell_input.py backend/tests/test_workspace_command_api.py backend/tests/test_terminal_api.py backend/tests/test_terminal_manager.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Document and commit**
+- [x] **Step 5: Document and commit**
 
 ```bash
 git add backend/src/cotton/api/routes_workspace_commands.py backend/src/cotton/api/routes_terminals.py backend/src/cotton/terminals/shell_input.py backend/src/cotton/terminals/manager.py backend/src/cotton/cli.py backend/tests/test_workspace_command_api.py backend/tests/test_shell_input.py docs/contracts/api.md
@@ -456,23 +456,23 @@ git commit -m "feat: run saved workspace commands and inject the startup command
 - `onRun` calls the API, applies the returned record to the terminal store, and selects it in the current group.
 - `TerminalWorkspace` refetches commands on workspace switch and after each mutation.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `CommandBar.test.tsx`: renders labels; `Run` calls `onRun` with the id; `Insert` calls `onInsert` with the body; the startup checkbox calls `onUpdate(id, {is_startup: true})`; an empty body blocks submit. `TerminalWorkspace.test.tsx`: commands load for the selected workspace; insert sends `terminal.input` with base64 of the body and no trailing newline.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `cd frontend && npm test -- src/features/terminals/CommandBar.test.tsx`
 Expected: FAIL, component missing.
 
-- [ ] **Step 3: Implement the API module, `CommandBar` and the wiring**
+- [x] **Step 3: Implement the API module, `CommandBar` and the wiring**
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `cd frontend && npm test -- src/features/terminals`
 Expected: all pass.
 
-- [ ] **Step 5: Check the notes match and commit**
+- [x] **Step 5: Check the notes match and commit**
 
 No documentation edit is expected: `docs/workspace-commands.md` already states workspace-only scope, the single-line startup rule and its relation to the graph, and `docs/known-limitations.md` already records that no environment is captured. Change them only if the implementation ended up diverging.
 
@@ -487,7 +487,7 @@ git commit -m "feat: add workspace command bar with quick commands and startup"
 - Modify: the tracker file referenced by `tasks.md` with the completed blocks
 - Test: whole suite
 
-- [ ] **Step 1: Run backend checks**
+- [x] **Step 1: Run backend checks**
 
 ```bash
 ruff check backend
@@ -498,7 +498,7 @@ pytest -m "not integration" --cov=cotton --cov-fail-under=80
 
 Expected: all pass; the new modules are covered by the tests added in Tasks 1–8.
 
-- [ ] **Step 2: Run frontend checks**
+- [x] **Step 2: Run frontend checks**
 
 ```bash
 cd frontend
@@ -509,13 +509,44 @@ npm test -- --coverage
 
 Expected: all pass.
 
-- [ ] **Step 3: Record the plan as executed**
+- [x] **Step 3: Record the plan as executed**
 
 Mark the plan's checkboxes and add the completed task blocks with their `Hecho:` evidence to the tracker referenced by `tasks.md`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs
 git commit -m "docs: record workspace terminals and commands as implemented"
 ```
+
+## Registro de ejecución
+
+Ejecutado el 2026-11-18 sobre la rama `feat/commands`.
+
+| Tarea | Commit | Evidencia |
+| --- | --- | --- |
+| 1 Modelos | `33042aa` | `backend/tests/test_workspace_models.py`, 13 tests |
+| 2 Persistencia | `f82bd9c` | migración 5 y `test_workspace_repository.py` |
+| 3 Scope de terminales | `de4ab7b` | `test_terminal_api.py` y `test_terminal_manager.py` |
+| 4 API de workspaces | `5cdc874` | `test_workspace_api.py`, 6 tests |
+| 5 API de grupos | `4c5c2d0` | `test_terminal_group_api.py`, 5 tests |
+| 6 Frontend de workspaces | `c027024` | `TerminalWorkspace.test.tsx`, `TerminalGroup.test.tsx` |
+| 7 Comandos persistidos | `8d5ef5a` | migración 6 y `test_workspace_commands.py` |
+| 8 API de comandos y arranque | `3994acf` | `test_workspace_command_api.py`, `test_shell_input.py` |
+| 9 Barra de comandos | `823de69` | `CommandBar.test.tsx` y tests de inserción/ejecución |
+
+Verificación final:
+
+```
+ruff check backend                          All checks passed
+ruff format --check backend                 93 files already formatted
+mypy backend/src                            Success: no issues found in 50 source files
+pytest -m "not integration" --cov=cotton     294 passed, 6 deselected, 86.82 % coverage
+npm run lint / typecheck                    clean
+npm test -- --coverage                      168 passed, thresholds reached
+```
+
+Divergencias: `TerminalGroup.tsx` no necesitó cambios porque ya recibía los
+registros de grupo como vista; el estado guardado pasa a `version: 2` y el
+anterior se descarta con `removeItem`.
