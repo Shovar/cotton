@@ -4,6 +4,10 @@ A workspace can carry a list of commands the user saves once and reuses. As in
 Orca, the same stored command can be launched on demand as a quick command, and
 can optionally run automatically when a terminal opens.
 
+> The terminal panel currently exposes only plain shells. The command API below
+> is implemented and kept for the next UI pass, but the panel does not list,
+> create or run stored commands.
+
 ## Rules
 
 - **The user registers them.** No discovery of `launch` files, packages or

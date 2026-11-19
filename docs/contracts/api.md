@@ -180,6 +180,7 @@ otherwise.
 | GET | `/api/terminals?workspace_id=<id>` | 200 | `TerminalRecord[]`, optionally filtered by workspace |
 | POST | `/api/terminals` | 201 | Body `{"workspace_id": string, "group_id"?: string, "command"?: string \| string[], "cwd"?: string, "env"?: object}`; omitted command starts the default shell in the workspace path; 422 `workspace_required` / `group_not_found` / `validation_error`; 404 `workspace_not_found` |
 | PATCH | `/api/terminals/{id}` | 200 | Body `{"group_id": string}`; moves the session to another group of its own workspace; 404 `terminal_not_found`; 422 `group_not_found` |
+| GET | `/api/folders?path=<dir>` | 200 | `{"path": string, "parent": string \| null, "folders": [{"name": string, "path": string}]}`; only directories, sorted by name, defaults to the home of the backend user; 422 `validation_error` when the path is not an existing directory |
 | GET | `/api/workspaces` | 200 | `Workspace[]` |
 | POST | `/api/workspaces` | 201 | Body `{"name": string, "path": string}`; the path is stored resolved; 409 `workspace_exists`; 422 `validation_error` |
 | PATCH | `/api/workspaces/{id}` | 200 | Body `{"name": string}`; 404 `workspace_not_found`; 422 `validation_error` |

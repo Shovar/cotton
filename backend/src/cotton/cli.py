@@ -12,6 +12,7 @@ from platformdirs import user_cache_dir, user_config_dir
 
 from cotton.api import (
     routes_commands,
+    routes_fs,
     routes_graph,
     routes_params,
     routes_plugins,
@@ -76,6 +77,7 @@ def build_services(
     services.channels.register(routes_graph.graph_channel(watcher))
     services.routers.append(routes_params.create_router(ros, ThreadParamsSource(ros)))
     services.routers.append(routes_topics.create_router(ros, ThreadRateSource(ros)))
+    services.routers.append(routes_fs.create_router())
 
     workspaces = SqliteWorkspaceRepository(database)
     terminal_manager = TerminalManager(bus, PosixPtySpawner())

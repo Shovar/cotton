@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 
 import type { TerminalRecord } from "../../api/types";
-import type { TerminalGroupRecord } from "./TerminalGroup";
 
 const STATE_LABELS = {
   starting: "Starting",
@@ -11,32 +10,26 @@ const STATE_LABELS = {
 } as const;
 
 export function TerminalList({
-  groupId,
   records,
-  groups,
   activeTerminalId,
   minimizedIds,
   onSelect,
   onRestore,
   onClose,
-  onMove,
 }: {
-  groupId: string;
   records: TerminalRecord[];
-  groups: TerminalGroupRecord[];
   activeTerminalId: string | null;
   minimizedIds: string[];
-  onSelect: (groupId: string, terminalId: string) => void;
+  onSelect: (terminalId: string) => void;
   onRestore: (terminalId: string) => void;
   onClose: (record: TerminalRecord) => void;
-  onMove: (terminalId: string, groupId: string) => void;
 }) {
   if (records.length === 0) {
     return <p className="px-1 text-xs text-muted-foreground">No terminals</p>;
   }
 
   return (
-    <ul className="space-y-1" aria-label={`Terminals in group ${groupId}`}>
+    <ul className="space-y-1">
       {records.map((record) => {
         const id = record.spec.id;
         const minimized = minimizedIds.includes(id);
@@ -53,7 +46,7 @@ export function TerminalList({
                 variant={id === activeTerminalId ? "secondary" : "ghost"}
                 aria-pressed={id === activeTerminalId}
                 className="h-7 min-w-0 flex-1 justify-start truncate px-1 text-xs"
-                onClick={() => (minimized ? onRestore(id) : onSelect(groupId, id))}
+                onClick={() => (minimized ? onRestore(id) : onSelect(id))}
               >
                 {id}
               </Button>
@@ -77,20 +70,6 @@ export function TerminalList({
                 >
                   Restore
                 </Button>
-              )}
-              {groups.length > 1 && (
-                <select
-                  aria-label={`Move ${id} to group`}
-                  value={groupId}
-                  onChange={(event) => onMove(id, event.target.value)}
-                  className="h-7 rounded-md border border-input bg-background px-1 text-xs"
-                >
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
               )}
               <Button
                 type="button"

@@ -38,10 +38,10 @@ function record(id: string): TerminalRecord {
     spec: {
       id,
       workspace_id: "ws_a",
-      group_id: "grp_a1",
+      group_id: "ws_a_default",
       kind: "shell",
       argv: ["/bin/sh"],
-      cwd: "/tmp",
+      cwd: "/tmp/ws_a",
       env: {},
     },
     state: "running",
@@ -52,15 +52,10 @@ function record(id: string): TerminalRecord {
   };
 }
 
-const DEFAULT_GROUP = { id: "default", name: "Default", terminalIds: ["t1"] };
-const BUILD_GROUP = { id: "build", name: "Build", terminalIds: ["t2"] };
-
 function bodyProps(overrides: Partial<TerminalBodyProps> = {}): TerminalBodyProps {
   return {
-    groups: [DEFAULT_GROUP, BUILD_GROUP],
-    selectedGroupId: "default",
-    records: { t1: record("t1"), t2: record("t2") },
-    activeTerminalByGroup: {},
+    records: [record("t1"), record("t2")],
+    activeTerminalId: null,
     minimizedIds: [],
     onSelect: vi.fn(),
     ...overrides,
@@ -83,7 +78,7 @@ beforeEach(() => {
 });
 
 describe("TerminalBody", () => {
-  it("mounts terminals from every group and shows only the selected group's active one", () => {
+  it("shows the first terminal and keeps the rest mounted but hidden", () => {
     const { container } = render(<TerminalBody {...bodyProps()} />);
 
     expect(pane(container, "t1")).toHaveAttribute("data-terminal-visible", "true");
@@ -92,71 +87,26 @@ describe("TerminalBody", () => {
     expect(pane(container, "t2")).toHaveAttribute("inert");
   });
 
-  it("keeps the same terminal mounted when it moves to another group", () => {
-    const { container, rerender } = render(<TerminalBody {...bodyProps()} />);
-    const retained = pane(container, "t1");
-
-    rerender(
-      <TerminalBody
-        {...bodyProps({
-          groups: [
-            { ...DEFAULT_GROUP, terminalIds: [] },
-            { ...BUILD_GROUP, terminalIds: ["t2", "t1"] },
-          ],
-          selectedGroupId: "build",
-          activeTerminalByGroup: { build: "t1" },
-        })}
-      />,
-    );
-
-    expect(pane(container, "t1")).toBe(retained);
-    expect(pane(container, "t1")).toHaveAttribute("data-terminal-visible", "true");
-    expect(pane(container, "t2")).toHaveAttribute("data-terminal-visible", "false");
-  });
-
-  it("shows the active terminal of the selected group and falls back to the first", () => {
+  it("shows the active terminal and falls back to the first when it disappears", () => {
     const { container, rerender } = render(
-      <TerminalBody
-        {...bodyProps({
-          groups: [{ ...DEFAULT_GROUP, terminalIds: ["t1", "t3"] }],
-          records: { t1: record("t1"), t3: record("t3") },
-          activeTerminalByGroup: { default: "t3" },
-        })}
-      />,
+      <TerminalBody {...bodyProps({ activeTerminalId: "t2" })} />,
     );
 
-    expect(pane(container, "t3")).toHaveAttribute("data-terminal-visible", "true");
+    expect(pane(container, "t2")).toHaveAttribute("data-terminal-visible", "true");
     expect(pane(container, "t1")).toHaveAttribute("data-terminal-visible", "false");
 
-    rerender(
-      <TerminalBody
-        {...bodyProps({
-          groups: [{ ...DEFAULT_GROUP, terminalIds: ["t1", "t3"] }],
-          records: { t1: record("t1"), t3: record("t3") },
-          activeTerminalByGroup: { default: "gone" },
-        })}
-      />,
-    );
+    rerender(<TerminalBody {...bodyProps({ activeTerminalId: "gone" })} />);
 
     expect(pane(container, "t1")).toHaveAttribute("data-terminal-visible", "true");
   });
 
-  it("lists the selected group's terminals as tabs and selects on click", () => {
+  it("lists the terminals as tabs and selects on click", () => {
     const onSelect = vi.fn();
-    render(
-      <TerminalBody
-        {...bodyProps({
-          groups: [{ ...DEFAULT_GROUP, terminalIds: ["t1", "t3"] }],
-          records: { t1: record("t1"), t3: record("t3") },
-          activeTerminalByGroup: { default: "t3" },
-          onSelect,
-        })}
-      />,
-    );
+    render(<TerminalBody {...bodyProps({ activeTerminalId: "t2", onSelect })} />);
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((tab) => tab.textContent)).toEqual(["t1", "t3"]);
-    expect(screen.getByRole("tab", { name: "t3" })).toHaveAttribute(
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["t1", "t2"]);
+    expect(screen.getByRole("tab", { name: "t2" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -176,11 +126,7 @@ describe("TerminalBody", () => {
   });
 
   it("sends terminal input and resize for the owning terminal", () => {
-    render(
-      <TerminalBody
-        {...bodyProps({ groups: [DEFAULT_GROUP], records: { t1: record("t1") } })}
-      />,
-    );
+    render(<TerminalBody {...bodyProps({ records: [record("t1")] })} />);
     const view = views.current;
     if (!view) {
       throw new Error("TerminalView was not mounted");

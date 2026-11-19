@@ -1,53 +1,22 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import { ApiError, apiGet, apiSend } from "../../api/client";
-import type {
-  TerminalGroup,
-  TerminalRecord,
-  ServerEvent,
-  Workspace,
-  WorkspaceCommand,
-} from "../../api/types";
+import type { ServerEvent, TerminalRecord, Workspace } from "../../api/types";
 import { ws, type ConnectionStatus } from "../../api/ws";
 import { useStore } from "../../state/store";
-import { CommandBar } from "./CommandBar";
-import { TerminalGroup as TerminalGroupPanel, type TerminalGroupRecord } from "./TerminalGroup";
 import { TerminalBody } from "./TerminalBody";
+import { TerminalSidebar } from "./TerminalSidebar";
+import { WorkspaceDialog } from "./WorkspaceDialog";
 import { useTerminalStore } from "./terminalStore";
-import {
-  createCommand,
-  deleteCommand,
-  listCommands,
-  runCommand as runSavedCommand,
-  updateCommand,
-  type CommandPatch,
-} from "./workspaceCommandsApi";
-import {
-  createGroup,
-  createWorkspace,
-  deleteGroup,
-  deleteWorkspace,
-  listGroups,
-  listWorkspaces,
-  moveTerminal,
-  renameGroup,
-} from "./workspacesApi";
+import { deleteWorkspace, listWorkspaces } from "./workspacesApi";
 
 const WORKSPACE_STORAGE_KEY = "cotton-terminal-workspace";
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 interface TerminalWorkspaceState {
   selectedWorkspaceId: string | null;
-  selectedGroupId: string | null;
-  activeTerminalByGroup: Record<string, string | null>;
+  activeTerminalId: string | null;
   minimizedIds: string[];
 }
 
@@ -55,45 +24,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function createDefaultWorkspaceState(): TerminalWorkspaceState {
-  return {
-    selectedWorkspaceId: null,
-    selectedGroupId: null,
-    activeTerminalByGroup: {},
-    minimizedIds: [],
-  };
+function createDefaultState(): TerminalWorkspaceState {
+  return { selectedWorkspaceId: null, activeTerminalId: null, minimizedIds: [] };
 }
 
-function readWorkspaceState(): TerminalWorkspaceState {
+function readState(): TerminalWorkspaceState {
   try {
     const stored = localStorage.getItem(WORKSPACE_STORAGE_KEY);
     if (!stored) {
-      return createDefaultWorkspaceState();
+      return createDefaultState();
     }
     const value: unknown = JSON.parse(stored);
     if (!isRecord(value) || value.version !== STORAGE_VERSION) {
       localStorage.removeItem(WORKSPACE_STORAGE_KEY);
-      return createDefaultWorkspaceState();
+      return createDefaultState();
     }
     return {
       selectedWorkspaceId:
         typeof value.selectedWorkspaceId === "string" ? value.selectedWorkspaceId : null,
-      selectedGroupId:
-        typeof value.selectedGroupId === "string" ? value.selectedGroupId : null,
-      activeTerminalByGroup: isRecord(value.activeTerminalByGroup)
-        ? Object.fromEntries(
-            Object.entries(value.activeTerminalByGroup).filter(
-              (entry): entry is [string, string | null] =>
-                entry[1] === null || typeof entry[1] === "string",
-            ),
-          )
-        : {},
+      activeTerminalId:
+        typeof value.activeTerminalId === "string" ? value.activeTerminalId : null,
       minimizedIds: Array.isArray(value.minimizedIds)
         ? [...new Set(value.minimizedIds.filter((id): id is string => typeof id === "string"))]
         : [],
     };
   } catch {
-    return createDefaultWorkspaceState();
+    return createDefaultState();
   }
 }
 
@@ -105,39 +61,22 @@ function startedAt(record: TerminalRecord): string {
   return record.started_at ?? "";
 }
 
-function encodeBase64(value: string): string {
-  const bytes = new TextEncoder().encode(value);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
-
 export function TerminalWorkspace() {
   const records = useTerminalStore((state) => state.records);
-  const [initialWorkspaceState] = useState(readWorkspaceState);
+  const [initialState] = useState(readState);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
-    initialWorkspaceState.selectedWorkspaceId,
+    initialState.selectedWorkspaceId,
   );
-  const [groups, setGroups] = useState<TerminalGroup[]>([]);
-  const [commands, setCommands] = useState<WorkspaceCommand[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(
-    initialWorkspaceState.selectedGroupId,
+  const [activeTerminalId, setActiveTerminalId] = useState<string | null>(
+    initialState.activeTerminalId,
   );
-  const [activeTerminalByGroup, setActiveTerminalByGroup] = useState(
-    initialWorkspaceState.activeTerminalByGroup,
-  );
-  const [minimizedIds, setMinimizedIds] = useState(initialWorkspaceState.minimizedIds);
+  const [minimizedIds, setMinimizedIds] = useState(initialState.minimizedIds);
   const [sessionsReconciled, setSessionsReconciled] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("");
-  const [workspacePath, setWorkspacePath] = useState("");
-  const attachedTerminalIds = useRef(new Set<string>());
-  const groupsGeneration = useRef(0);
-  const reconciliationGeneration = useRef(0);
-  const [command, setCommand] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const attachedTerminalIds = useRef(new Set<string>());
+  const reconciliationGeneration = useRef(0);
 
   const removeTerminal = useCallback((terminalId: string) => {
     const store = useTerminalStore.getState();
@@ -145,13 +84,7 @@ export function TerminalWorkspace() {
     store.remove(terminalId);
     attachedTerminalIds.current.delete(terminalId);
     setMinimizedIds((ids) => ids.filter((id) => id !== terminalId));
-    setActiveTerminalByGroup((current) =>
-      Object.values(current).includes(terminalId)
-        ? Object.fromEntries(
-            Object.entries(current).filter(([, id]) => id !== terminalId),
-          )
-        : current,
-    );
+    setActiveTerminalId((id) => (id === terminalId ? null : id));
   }, []);
 
   const reconcileSessions = useCallback(async (connection?: ConnectionStatus) => {
@@ -164,11 +97,7 @@ export function TerminalWorkspace() {
       const liveIds = new Set(current.map((record) => record.spec.id));
       useTerminalStore.getState().reconcile(current);
       setMinimizedIds((ids) => ids.filter((id) => liveIds.has(id)));
-      setActiveTerminalByGroup((currentActive) =>
-        Object.fromEntries(
-          Object.entries(currentActive).filter(([, id]) => id === null || liveIds.has(id)),
-        ),
-      );
+      setActiveTerminalId((id) => (id === null || liveIds.has(id) ? id : null));
       if (connection) {
         useTerminalStore.getState().setConnection(connection);
       }
@@ -214,12 +143,11 @@ export function TerminalWorkspace() {
           return;
         }
         setWorkspaces(available);
-        setSelectedWorkspaceId((current) => {
-          if (current && available.some((workspace) => workspace.id === current)) {
-            return current;
-          }
-          return available[0]?.id ?? null;
-        });
+        setSelectedWorkspaceId((current) =>
+          current && available.some((workspace) => workspace.id === current)
+            ? current
+            : (available[0]?.id ?? null),
+        );
         setError(null);
       })
       .catch((caught: unknown) => {
@@ -241,109 +169,34 @@ export function TerminalWorkspace() {
     };
   }, [reconcileSessions, removeTerminal]);
 
-  useEffect(() => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    let active = true;
-    const generation = ++groupsGeneration.current;
-    listGroups(selectedWorkspaceId)
-      .then((loaded) => {
-        if (!active || generation !== groupsGeneration.current) {
-          return;
-        }
-        setGroups(loaded);
-        setSelectedGroupId((current) =>
-          current && loaded.some((group) => group.id === current)
-            ? current
-            : (loaded[0]?.id ?? null),
-        );
-      })
-      .catch((caught: unknown) => {
-        if (active) {
-          setError(errorMessage(caught));
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [selectedWorkspaceId]);
-
-  useEffect(() => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    let active = true;
-    listCommands(selectedWorkspaceId)
-      .then((loaded) => {
-        if (active) {
-          setCommands(loaded);
-        }
-      })
-      .catch((caught: unknown) => {
-        if (active) {
-          setError(errorMessage(caught));
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [selectedWorkspaceId]);
-
-  const refreshCommands = useCallback(async (workspaceId: string) => {
-    setCommands(await listCommands(workspaceId));
-  }, []);
-
-  const refreshGroups = useCallback(async (workspaceId: string) => {
-    const generation = ++groupsGeneration.current;
-    const loaded = await listGroups(workspaceId);
-    if (generation !== groupsGeneration.current) {
-      return;
-    }
-    setGroups(loaded);
-    setSelectedGroupId((current) =>
-      current && loaded.some((group) => group.id === current)
-        ? current
-        : (loaded[0]?.id ?? null),
-    );
-  }, []);
-
-  const viewGroups = useMemo<TerminalGroupRecord[]>(() => {
-    const workspaceRecords = Object.values(records)
-      .filter((record) => record.spec.workspace_id === selectedWorkspaceId)
-      .sort((left, right) => startedAt(left).localeCompare(startedAt(right)));
-    return groups.map((group) => ({
-      id: group.id,
-      name: group.name,
-      terminalIds: workspaceRecords
-        .filter((record) => record.spec.group_id === group.id)
-        .map((record) => record.spec.id),
-    }));
-  }, [groups, records, selectedWorkspaceId]);
-
-  const selectedGroup = viewGroups.find((group) => group.id === selectedGroupId);
-  const selectedGroupTerminalIds = selectedGroup?.terminalIds ?? [];
-  const activeSelectedId = selectedGroupId
-    ? (activeTerminalByGroup[selectedGroupId] ?? null)
-    : null;
-  const selectedId =
-    activeSelectedId && selectedGroupTerminalIds.includes(activeSelectedId)
-      ? activeSelectedId
-      : (selectedGroupTerminalIds[0] ?? null);
-  const minimizedSet = useMemo(() => new Set(minimizedIds), [minimizedIds]);
-  const attachedTargetIds = useMemo(
+  const workspaceRecords = useMemo(
     () =>
-      viewGroups.flatMap((group) =>
-        group.terminalIds.filter((id) => !minimizedSet.has(id)),
-      ),
-    [minimizedSet, viewGroups],
+      Object.values(records)
+        .filter((record) => record.spec.workspace_id === selectedWorkspaceId)
+        .sort((left, right) => startedAt(left).localeCompare(startedAt(right))),
+    [records, selectedWorkspaceId],
+  );
+  const minimizedSet = useMemo(() => new Set(minimizedIds), [minimizedIds]);
+  const mountedIds = useMemo(
+    () =>
+      workspaceRecords
+        .filter((record) => !minimizedSet.has(record.spec.id))
+        .map((record) => record.spec.id),
+    [minimizedSet, workspaceRecords],
+  );
+  const selectedId =
+    activeTerminalId && mountedIds.includes(activeTerminalId)
+      ? activeTerminalId
+      : (mountedIds[0] ?? null);
+  const selectedWorkspace = workspaces.find(
+    (workspace) => workspace.id === selectedWorkspaceId,
   );
 
   useEffect(() => {
     if (!sessionsReconciled) {
       return;
     }
-    const nextIds = new Set(attachedTargetIds);
+    const nextIds = new Set(mountedIds);
     for (const id of attachedTerminalIds.current) {
       if (!nextIds.has(id)) {
         useTerminalStore.getState().detach(id);
@@ -355,7 +208,7 @@ export function TerminalWorkspace() {
       }
     }
     attachedTerminalIds.current = nextIds;
-  }, [attachedTargetIds, sessionsReconciled]);
+  }, [mountedIds, sessionsReconciled]);
 
   useEffect(
     () => () => {
@@ -366,37 +219,31 @@ export function TerminalWorkspace() {
     [],
   );
 
-  const selectTerminal = (groupId: string, terminalId: string) => {
-    setSelectedGroupId(groupId);
-    setActiveTerminalByGroup((current) => ({ ...current, [groupId]: terminalId }));
-  };
+  useEffect(() => {
+    localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        version: STORAGE_VERSION,
+        selectedWorkspaceId,
+        activeTerminalId,
+        minimizedIds,
+      }),
+    );
+  }, [activeTerminalId, minimizedIds, selectedWorkspaceId]);
 
-  const createTerminal = async (terminalCommand?: string) => {
-    if (!selectedWorkspaceId || !selectedGroupId) {
+  const createTerminal = async () => {
+    if (!selectedWorkspaceId) {
       return;
     }
-    const workspaceId = selectedWorkspaceId;
-    const targetGroupId = selectedGroupId;
     try {
       const record = await apiSend<TerminalRecord>("POST", "/api/terminals", {
-        workspace_id: workspaceId,
-        group_id: targetGroupId,
-        ...(terminalCommand ? { command: terminalCommand } : {}),
+        workspace_id: selectedWorkspaceId,
       });
       useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: record });
-      selectTerminal(targetGroupId, record.spec.id);
+      setActiveTerminalId(record.spec.id);
       setError(null);
-      setCommand("");
     } catch (caught) {
       setError(errorMessage(caught));
-    }
-  };
-
-  const runCommand = (event: FormEvent) => {
-    event.preventDefault();
-    const trimmed = command.trim();
-    if (trimmed) {
-      void createTerminal(trimmed);
     }
   };
 
@@ -438,261 +285,42 @@ export function TerminalWorkspace() {
 
   const restoreTerminal = (terminalId: string) => {
     setMinimizedIds((current) => current.filter((id) => id !== terminalId));
-    const record = records[terminalId];
-    if (record) {
-      selectTerminal(record.spec.group_id, terminalId);
-    }
+    setActiveTerminalId(terminalId);
   };
 
-  const addWorkspace = async (event: FormEvent) => {
-    event.preventDefault();
-    const name = workspaceName.trim();
-    const path = workspacePath.trim();
-    if (!name || !path) {
-      return;
-    }
+  const removeWorkspace = async (workspaceId: string) => {
     try {
-      const created = await createWorkspace(name, path);
-      setWorkspaces((current) => [...current, created]);
-      setSelectedWorkspaceId(created.id);
-      setWorkspaceName("");
-      setWorkspacePath("");
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const removeWorkspace = async () => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      await deleteWorkspace(selectedWorkspaceId);
-      const remaining = workspaces.filter(
-        (workspace) => workspace.id !== selectedWorkspaceId,
-      );
+      await deleteWorkspace(workspaceId);
+      const remaining = workspaces.filter((workspace) => workspace.id !== workspaceId);
       setWorkspaces(remaining);
-      setSelectedWorkspaceId(remaining[0]?.id ?? null);
-      setGroups([]);
-      setSelectedGroupId(null);
+      if (workspaceId === selectedWorkspaceId) {
+        setSelectedWorkspaceId(remaining[0]?.id ?? null);
+      }
       setError(null);
     } catch (caught) {
       setError(errorMessage(caught));
     }
   };
 
-  const addGroup = async (name: string) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      const created = await createGroup(selectedWorkspaceId, name);
-      await refreshGroups(selectedWorkspaceId);
-      setSelectedGroupId(created.id);
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
+  const addWorkspace = (created: Workspace) => {
+    setWorkspaces((current) => [...current, created]);
+    setSelectedWorkspaceId(created.id);
+    setDialogOpen(false);
+    setError(null);
   };
 
-  const renameSelectedGroup = async (groupId: string, name: string) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      await renameGroup(groupId, name);
-      await refreshGroups(selectedWorkspaceId);
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const removeGroup = async (groupId: string) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      await deleteGroup(groupId);
-      await refreshGroups(selectedWorkspaceId);
-      setActiveTerminalByGroup((current) => {
-        const next = { ...current };
-        delete next[groupId];
-        return next;
-      });
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const moveGroupTerminal = async (terminalId: string, targetGroupId: string) => {
-    const record = records[terminalId];
-    if (!record || record.spec.group_id === targetGroupId) {
-      return;
-    }
-    try {
-      const moved = await moveTerminal(terminalId, targetGroupId);
-      useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: moved });
-      setActiveTerminalByGroup((current) => {
-        const next = { ...current, [targetGroupId]: terminalId };
-        if (next[record.spec.group_id] === terminalId) {
-          delete next[record.spec.group_id];
-        }
-        return next;
-      });
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const addCommand = async (label: string, body: string, isStartup: boolean) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      await createCommand(selectedWorkspaceId, label, body, isStartup);
-      await refreshCommands(selectedWorkspaceId);
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const patchCommand = async (commandId: string, patch: CommandPatch) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      await updateCommand(commandId, patch);
-      await refreshCommands(selectedWorkspaceId);
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const removeCommand = async (commandId: string) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      await deleteCommand(commandId);
-      await refreshCommands(selectedWorkspaceId);
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const executeCommand = async (commandId: string) => {
-    if (!selectedWorkspaceId) {
-      return;
-    }
-    try {
-      const record = await runSavedCommand(
-        selectedWorkspaceId,
-        commandId,
-        selectedGroupId,
-      );
-      useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: record });
-      selectTerminal(record.spec.group_id, record.spec.id);
-      setError(null);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    }
-  };
-
-  const insertCommand = (body: string) => {
-    if (!selectedId) {
-      return;
-    }
-    ws.send("terminal.input", { id: selectedId, data: encodeBase64(body) });
-  };
-
-  useEffect(() => {
-    localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify({
-        version: STORAGE_VERSION,
-        selectedWorkspaceId,
-        selectedGroupId,
-        activeTerminalByGroup,
-        minimizedIds,
-      }),
-    );
-  }, [activeTerminalByGroup, minimizedIds, selectedGroupId, selectedWorkspaceId]);
-
-  const canCreate = sessionsReconciled && Boolean(selectedWorkspaceId && selectedGroupId);
+  const canCreate = sessionsReconciled && Boolean(selectedWorkspaceId);
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3 p-3" aria-label="Terminal workspace">
       <header className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto text-sm font-semibold">Terminals</h2>
-        <label className="sr-only" htmlFor="terminal-workspace">
-          ROS workspace
-        </label>
-        <select
-          id="terminal-workspace"
-          aria-label="ROS workspace"
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-          value={selectedWorkspaceId ?? ""}
-          onChange={(event) => setSelectedWorkspaceId(event.target.value || null)}
-        >
-          {workspaces.length === 0 && <option value="">No workspace</option>}
-          {workspaces.map((workspace) => (
-            <option key={workspace.id} value={workspace.id}>
-              {workspace.name}
-            </option>
-          ))}
-        </select>
-        <form className="flex items-center gap-2" onSubmit={addWorkspace}>
-          <label className="sr-only" htmlFor="workspace-name">
-            Workspace name
-          </label>
-          <input
-            id="workspace-name"
-            value={workspaceName}
-            onChange={(event) => setWorkspaceName(event.target.value)}
-            placeholder="Workspace name"
-            className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-          />
-          <label className="sr-only" htmlFor="workspace-path">
-            Workspace path
-          </label>
-          <input
-            id="workspace-path"
-            value={workspacePath}
-            onChange={(event) => setWorkspacePath(event.target.value)}
-            placeholder="/path/to/workspace"
-            className="h-8 w-56 rounded-md border border-input bg-background px-2 text-sm"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            variant="outline"
-            disabled={!workspaceName.trim() || !workspacePath.trim()}
-          >
-            Add workspace
-          </Button>
-        </form>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={!selectedWorkspaceId}
-          onClick={() => void removeWorkspace()}
-        >
-          Delete workspace
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!canCreate}
-          onClick={() => void createTerminal()}
-        >
+        <h2 className="text-sm font-semibold">Terminals</h2>
+        {selectedWorkspace && (
+          <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+            {selectedWorkspace.path}
+          </p>
+        )}
+        <Button type="button" size="sm" disabled={!canCreate} onClick={() => void createTerminal()}>
           New shell
         </Button>
         <Button
@@ -704,63 +332,32 @@ export function TerminalWorkspace() {
         >
           Minimize terminal
         </Button>
-        <form className="flex items-center gap-2" onSubmit={runCommand}>
-          <label className="sr-only" htmlFor="terminal-command">
-            Command
-          </label>
-          <input
-            id="terminal-command"
-            value={command}
-            onChange={(event) => setCommand(event.target.value)}
-            placeholder="Command to run"
-            className="h-8 min-w-48 rounded-md border border-input bg-background px-2 text-sm"
-          />
-          <Button type="submit" size="sm" variant="outline" disabled={!canCreate}>
-            Run command
-          </Button>
-        </form>
       </header>
-      <CommandBar
-        commands={commands.filter(
-          (command) => command.workspace_id === selectedWorkspaceId,
-        )}
-        onCreate={(label, body, isStartup) => void addCommand(label, body, isStartup)}
-        onUpdate={(id, patch) => void patchCommand(id, patch)}
-        onDelete={(id) => void removeCommand(id)}
-        onRun={(id) => void executeCommand(id)}
-        onInsert={insertCommand}
-        disabled={!selectedWorkspaceId}
-      />
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="flex min-h-0 flex-1 gap-3">
-        <TerminalGroupPanel
-          groups={viewGroups}
-          selectedGroupId={selectedGroupId ?? ""}
-          records={records}
-          activeTerminalByGroup={activeTerminalByGroup}
+        <TerminalSidebar
+          workspaces={workspaces}
+          selectedWorkspaceId={selectedWorkspaceId}
+          records={workspaceRecords}
+          activeTerminalId={selectedId}
           minimizedIds={minimizedIds}
-          onSelect={setSelectedGroupId}
-          onCreate={(name) => void addGroup(name)}
-          onRename={(id, name) => void renameSelectedGroup(id, name)}
-          onDelete={(id) => void removeGroup(id)}
-          onSelectTerminal={selectTerminal}
+          onSelectWorkspace={setSelectedWorkspaceId}
+          onAddWorkspace={() => setDialogOpen(true)}
+          onDeleteWorkspace={(id) => void removeWorkspace(id)}
+          onSelectTerminal={setActiveTerminalId}
           onRestoreTerminal={restoreTerminal}
           onCloseTerminal={(record) => void closeTerminal(record)}
-          onMoveTerminal={(terminalId, groupId) =>
-            void moveGroupTerminal(terminalId, groupId)
-          }
         />
         <TerminalBody
-          groups={viewGroups}
-          selectedGroupId={selectedGroupId ?? ""}
-          records={records}
-          activeTerminalByGroup={activeTerminalByGroup}
+          records={workspaceRecords}
+          activeTerminalId={selectedId}
           minimizedIds={minimizedIds}
-          onSelect={(terminalId) =>
-            selectedGroupId && selectTerminal(selectedGroupId, terminalId)
-          }
+          onSelect={setActiveTerminalId}
         />
       </div>
+      {dialogOpen && (
+        <WorkspaceDialog onClose={() => setDialogOpen(false)} onCreated={addWorkspace} />
+      )}
     </section>
   );
 }

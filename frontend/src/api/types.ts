@@ -64,22 +64,6 @@ export interface Workspace {
   created_at: string;
 }
 
-export interface TerminalGroup {
-  id: string;
-  workspace_id: string;
-  name: string;
-  position: number;
-}
-
-export interface WorkspaceCommand {
-  id: string;
-  workspace_id: string;
-  label: string;
-  body: string;
-  is_startup: boolean;
-  position: number;
-}
-
 export type TerminalKind = "shell" | "command";
 export type TerminalState = "starting" | "running" | "exited" | "failed";
 
