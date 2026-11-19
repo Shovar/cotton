@@ -124,8 +124,8 @@ RoboStack so the resolvedor does not mix two builds of the same library. If the
 resolvedor still complains about duplicate dependencies, install the wheel with
 `pip install --no-deps` and keep the conda-forge versions.
 
-This path was validated in stage 0 (`docs/etapa-0-mediciones.md`, S4): the wheel
-installs, `import rclpy` works and `cotton --help` prints its usage.
+This path was validated: the wheel installs, `import rclpy` works and
+`cotton --help` prints its usage.
 
 ## apt (Ubuntu 22.04 and 24.04)
 
