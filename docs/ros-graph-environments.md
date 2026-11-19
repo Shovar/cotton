@@ -3,10 +3,10 @@
 How Cotton should show ROS graphs when terminals belong to different workspaces,
 and why the graph is keyed by ROS environment instead of by workspace.
 
-Status: design only. Nothing here is implemented, and the current implementation
-still shows the graph of Cotton's own process (see
-`docs/known-limitations.md`). The phase 1 step described below is independent of
-the workspace terminals plan.
+Status: phase 1 is implemented — the graph panel names the ROS environment it
+shows. Phases 2 and 3 (sidecar per environment and environment tabs) are not
+implemented, so the graph still describes Cotton's own process (see
+`docs/known-limitations.md`).
 
 ## 1. The key is the ROS environment, not the workspace
 
