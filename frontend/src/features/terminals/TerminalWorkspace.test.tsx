@@ -41,6 +41,7 @@ vi.mock("../../api/ws", () => ({ ws: mocks.ws }));
 vi.mock("./TerminalView", () => ({ TerminalView: () => null }));
 
 import { ApiError } from "../../api/client";
+import type { LayoutNode } from "./layout";
 import { useTerminalStore } from "./terminalStore";
 import { TerminalWorkspace } from "./TerminalWorkspace";
 
@@ -56,6 +57,14 @@ function useServer(options: FakeServerSeed) {
   mocks.apiGet.mockImplementation(server.apiGet);
   mocks.apiSend.mockImplementation(server.apiSend);
   return server;
+}
+
+function dockEdge(container: HTMLElement, side: string): HTMLElement {
+  const edge = container.querySelector(`[data-dock-side="${side}"]`);
+  if (!(edge instanceof HTMLElement)) {
+    throw new Error(`Missing dock edge ${side}`);
+  }
+  return edge;
 }
 
 beforeEach(() => {
@@ -214,7 +223,7 @@ describe("TerminalWorkspace", () => {
     localStorage.setItem(
       WORKSPACE_STORAGE_KEY,
       JSON.stringify({
-        version: 3,
+        version: 4,
         selectedWorkspaceId: "ws_b",
         activeTerminalId: "t12",
         minimizedIds: ["t11"],
@@ -263,7 +272,7 @@ describe("TerminalWorkspace", () => {
       selectedGroupId?: unknown;
       minimizedIds?: string[];
     };
-    expect(saved.version).toBe(3);
+    expect(saved.version).toBe(4);
     expect(saved.selectedGroupId).toBeUndefined();
     expect(saved.minimizedIds).toEqual([]);
   });
@@ -327,6 +336,43 @@ describe("TerminalWorkspace", () => {
     );
   });
 
+  it("docks a dragged terminal on a side and back into the tab bar", async () => {
+    useServer(
+      seed([terminalRecord("t1", WORKSPACE_ID), terminalRecord("t2", WORKSPACE_ID)]),
+    );
+    const { container } = render(<TerminalWorkspace />);
+    await screen.findByRole("tab", { name: "t1" });
+    const dataTransfer = { setData: vi.fn(), effectAllowed: "move" } as unknown as DataTransfer;
+    const shape = (node: LayoutNode): unknown =>
+      node.type === "pane"
+        ? node.tabs
+        : { [node.direction]: node.children.map(shape), sizes: node.sizes };
+    const visiblePanes = () =>
+      container.querySelectorAll('[data-terminal-visible="true"]').length;
+    const savedLayout = () =>
+      shape(
+        (
+          JSON.parse(localStorage.getItem(WORKSPACE_STORAGE_KEY) ?? "{}") as {
+            panes: Record<string, LayoutNode>;
+          }
+        ).panes[WORKSPACE_ID],
+      );
+
+    fireEvent.dragStart(screen.getByRole("tab", { name: "t2" }), { dataTransfer });
+    fireEvent.drop(dockEdge(container, "right"));
+
+    await waitFor(() => expect(visiblePanes()).toBe(2));
+    await waitFor(() =>
+      expect(savedLayout()).toEqual({ row: [["t1"], ["t2"]], sizes: [1, 1] }),
+    );
+
+    fireEvent.dragStart(screen.getByRole("tab", { name: "t2" }), { dataTransfer });
+    fireEvent.drop(screen.getAllByRole("tablist")[0]);
+
+    await waitFor(() => expect(visiblePanes()).toBe(1));
+    await waitFor(() => expect(savedLayout()).toEqual(["t1", "t2"]));
+  });
+
   it("attaches restored sessions after reconciling them with the backend", async () => {
     let resolveTerminals!: (records: TerminalRecord[]) => void;
     const server = createFakeServer(seed([terminalRecord("t13", WORKSPACE_ID)]));
@@ -360,7 +406,7 @@ describe("TerminalWorkspace", () => {
     localStorage.setItem(
       WORKSPACE_STORAGE_KEY,
       JSON.stringify({
-        version: 3,
+        version: 4,
         selectedWorkspaceId: WORKSPACE_ID,
         activeTerminalId: null,
         minimizedIds: ["stale"],

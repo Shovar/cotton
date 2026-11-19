@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import type { GraphSnapshot } from "../../api/types";
+import { GraphCanvas } from "./GraphCanvas";
+import { buildGraph, type GraphSelection } from "./model";
 import { NodeParams } from "./NodeParams";
 import { TopicDetail } from "./TopicDetail";
-import { TopicGraph } from "./TopicGraph";
 
 export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
   const [search, setSearch] = useState("");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+
   const needle = search.trim().toLowerCase();
   const services = Object.entries(snapshot.services).filter(([name]) =>
     name.toLowerCase().includes(needle),
@@ -18,6 +20,19 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
     name.toLowerCase().includes(needle),
   );
   const topic = snapshot.topics.find((candidate) => candidate.name === selectedTopic);
+
+  const selection = useMemo<GraphSelection | null>(() => {
+    if (selectedNode) return { kind: "node", name: selectedNode };
+    if (selectedTopic) return { kind: "topic", name: selectedTopic };
+    return null;
+  }, [selectedNode, selectedTopic]);
+
+  const model = useMemo(() => buildGraph(snapshot, { search }), [snapshot, search]);
+
+  const select = (next: GraphSelection | null) => {
+    setSelectedNode(next?.kind === "node" ? next.name : null);
+    setSelectedTopic(next?.kind === "topic" ? next.name : null);
+  };
 
   return (
     <section className="graph-view" aria-label="ROS graph">
@@ -32,15 +47,14 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
         <p className="graph-legend">
           <span className="graph-legend-node">Node</span>
           <span className="graph-legend-topic">Topic</span>
+          <span className="graph-legend-service">Service</span>
+          <span className="graph-legend-action">Action</span>
         </p>
       </div>
-      <TopicGraph
-        snapshot={snapshot}
-        search={search}
-        selectedNode={selectedNode}
-        selectedTopic={selectedTopic}
-        onSelectNode={setSelectedNode}
-        onSelectTopic={setSelectedTopic}
+      <GraphCanvas
+        model={model}
+        selectedId={selection ? `${selection.kind}:${selection.name}` : null}
+        onSelect={select}
       />
       <div className="graph-columns">
         <div className="graph-column">

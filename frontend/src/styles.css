@@ -147,6 +147,55 @@
   font-family: var(--font-sans);
 }
 
+.graph-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+.graph-environment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.graph-environment-title {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.graph-environment-chip {
+  padding: 0.0625rem 0.4375rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.graph-environment-path {
+  max-width: 22rem;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-environment-note {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+
 .graph-view {
   display: grid;
   gap: 0.75rem;
@@ -289,14 +338,53 @@
   font-size: 0.8125rem;
 }
 
-.topic-graph {
-  display: block;
-  width: 100%;
-  /* Definite height so the grid row is sized before the SVG paints. */
+.graph-canvas {
+  position: relative;
   height: min(34rem, 62.5cqw);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
+  overflow: hidden;
+}
+
+.graph-canvas-surface {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.graph-canvas-surface:active {
+  cursor: grabbing;
+}
+
+.graph-canvas-hint {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.375rem;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  pointer-events: none;
+}
+
+.graph-canvas-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: var(--card);
+}
+
+.graph-items {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .graph-legend {
@@ -329,62 +417,92 @@
   border: 2px solid var(--primary);
 }
 
-.graph-link {
-  stroke: var(--muted-foreground);
-  stroke-width: 1;
-  opacity: 0.7;
+.graph-legend-service::before {
+  background: #e8a33d;
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
-.graph-arrow {
-  fill: var(--muted-foreground);
+.graph-legend-action::before {
+  background: #b267e6;
+  border-radius: 1px;
 }
 
-.graph-point {
-  cursor: pointer;
-}
-
-.graph-point-node circle {
-  fill: var(--primary);
-  stroke: var(--card);
-  stroke-width: 1.5;
-}
-
-.graph-point-topic circle {
-  fill: var(--card);
-  stroke: var(--primary);
-  stroke-width: 2;
-}
-
-.graph-point[aria-pressed="true"] circle,
-.graph-point:focus-visible circle {
-  stroke: var(--foreground);
-  stroke-width: 3;
-}
-
-.graph-point text {
-  fill: var(--foreground);
-  font-size: 11px;
-  text-anchor: middle;
-  paint-order: stroke;
-  stroke: var(--card);
-  stroke-width: 3px;
-}
-
-.param-row {
+.node-params-header {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
-.param-row input[type="text"],
-.param-row input[type="number"] {
+.node-params-hint {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+
+.param-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1.1fr) 3.25rem minmax(6rem, 2fr) 4.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.8125rem;
+}
+
+.param-row:hover {
+  background: var(--accent);
+}
+
+.param-name {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.param-kind {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.param-control {
+  display: flex;
+  min-width: 0;
+}
+
+.param-control input[type="text"],
+.param-control input[type="number"] {
+  width: 100%;
   padding: 0.125rem 0.375rem;
   border: 1px solid var(--border);
   border-radius: 0.25rem;
   background: var(--background);
   color: inherit;
   font: inherit;
+}
+
+.param-control input:focus-visible {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.param-toggle {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+}
+
+.param-status {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  text-align: right;
+}
+
+.param-error {
+  grid-column: 1 / -1;
+  color: var(--destructive);
+  font-size: 0.6875rem;
 }
 
 .graph-empty {

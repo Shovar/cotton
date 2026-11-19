@@ -50,8 +50,11 @@ wheel build and troubleshooting.
 
 - **Graph** — nodes, topics, services and actions, kept in sync with the ROS
   graph and filterable from the UI.
-- **Terminals** — open interactive shells or command sessions in groups, switch
-  between group tabs, and minimize or restore sessions without stopping them.
+- **Terminals** — open interactive shells or command sessions per workspace in
+  tabs. Drag a tab to any edge of a terminal to split the panel (left, right,
+  top or bottom), drag it onto another tab bar to rejoin the tabs, drag the
+  divider between two panes to resize them, and close a session from its own
+  tab. Minimized sessions keep running.
 - **Plugins** — the Foxglove/Lichtblick viewer and extra panels, with their
   assets checked and served locally.
 
@@ -74,12 +77,6 @@ recovered afterward.
 ## Documentation
 
 - [Installation](docs/install.md)
-- [Product spec](docs/Spec%20IDE%20local%20para%20ROS%202.md)
-- [Design](docs/superpowers/specs/2026-11-06-ros-studio-design.md)
-- [Implementation plan](docs/superpowers/plans/2026-11-06-ros-studio-mvp.md)
-- [Task list](docs/superpowers/tasks/2026-11-06-ros-studio-design.md)
-- [Cotton rename design](docs/superpowers/specs/2026-11-16-cotton-rename-design.md)
-- [Cotton rename plan](docs/superpowers/plans/2026-11-16-cotton-rename.md)
 - [REST and WebSocket contract](docs/contracts/api.md)
 - [Plugin manifests and Lichtblick assets](docs/plugins.md)
 

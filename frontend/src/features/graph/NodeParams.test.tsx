@@ -11,12 +11,16 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function stubFetch(values: unknown, putResponse: () => Response) {
+function stubFetch(values: unknown, putResponse: () => Response = () => new Response(null, { status: 204 })) {
   const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) =>
     init?.method === "PUT" ? putResponse() : jsonResponse(values),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+function putCalls(fetchMock: ReturnType<typeof stubFetch>) {
+  return fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT");
 }
 
 function renderParams() {
@@ -33,26 +37,22 @@ afterEach(() => {
 });
 
 describe("NodeParams", () => {
-  it("saves a boolean parameter", async () => {
-    const fetchMock = stubFetch({ use_sim_time: false }, () => new Response(null, { status: 204 }));
+  it("saves a boolean as soon as it is toggled", async () => {
+    const fetchMock = stubFetch({ use_sim_time: false });
     renderParams();
 
     fireEvent.click(await screen.findByRole("checkbox", { name: "use_sim_time" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save use_sim_time" }));
 
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/nodes/%2Ftalker/params/use_sim_time",
-        expect.objectContaining({ method: "PUT", body: JSON.stringify({ value: true }) }),
-      ),
-    );
+    await waitFor(() => expect(putCalls(fetchMock)).toHaveLength(1));
+    const [path, init] = putCalls(fetchMock)[0];
+    expect(path).toBe("/api/nodes/%2Ftalker/params/use_sim_time");
+    expect(JSON.parse(String(init?.body))).toEqual({ value: true });
+    expect(await screen.findByText("Saved")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Save/ })).not.toBeInTheDocument();
   });
 
-  it("converts numbers, strings and arrays to the declared type", async () => {
-    const fetchMock = stubFetch(
-      { retries: 3, frame: "/odom", ids: [1, 2] },
-      () => new Response(null, { status: 204 }),
-    );
+  it("saves numbers, strings and arrays while typing, without a save button", async () => {
+    const fetchMock = stubFetch({ retries: 3, frame: "/odom", ids: [1, 2] });
     renderParams();
 
     fireEvent.change(await screen.findByRole("spinbutton", { name: "retries" }), {
@@ -64,39 +64,46 @@ describe("NodeParams", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "ids" }), {
       target: { value: "[3]" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save retries" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save frame" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save ids" }));
 
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/nodes/%2Ftalker/params/ids",
-        expect.objectContaining({ body: JSON.stringify({ value: [3] }) }),
-      ),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/nodes/%2Ftalker/params/retries",
-      expect.objectContaining({ body: JSON.stringify({ value: 5 }) }),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/nodes/%2Ftalker/params/frame",
-      expect.objectContaining({ body: JSON.stringify({ value: "/scan" }) }),
-    );
+    await waitFor(() => expect(putCalls(fetchMock)).toHaveLength(3), { timeout: 2000 });
+    const values = putCalls(fetchMock).map(([, init]) => JSON.parse(String(init?.body)).value);
+    expect(values).toEqual(expect.arrayContaining([5, "/scan", [3]]));
   });
 
-  it("rejects an array that is not valid JSON", async () => {
-    const fetchMock = stubFetch({ ids: [1, 2] }, () => new Response(null, { status: 204 }));
+  it("saves immediately on Enter", async () => {
+    const fetchMock = stubFetch({ frame: "/odom" });
+    renderParams();
+
+    const input = await screen.findByRole("textbox", { name: "frame" });
+    fireEvent.change(input, { target: { value: "/map" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(putCalls(fetchMock)).toHaveLength(1));
+    expect(JSON.parse(String(putCalls(fetchMock)[0][1]?.body))).toEqual({ value: "/map" });
+  });
+
+  it("rejects a value that does not parse to the parameter type", async () => {
+    const fetchMock = stubFetch({ ids: [1, 2], retries: 3 });
     renderParams();
 
     fireEvent.change(await screen.findByRole("textbox", { name: "ids" }), {
       target: { value: "[1," },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save ids" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid value");
-    expect(
-      fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT"),
-    ).toHaveLength(0);
+    expect(putCalls(fetchMock)).toHaveLength(0);
+  });
+
+  it("rejects an empty number instead of saving zero", async () => {
+    const fetchMock = stubFetch({ retries: 3 });
+    renderParams();
+
+    fireEvent.change(await screen.findByRole("spinbutton", { name: "retries" }), {
+      target: { value: "" },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid value");
+    expect(putCalls(fetchMock)).toHaveLength(0);
   });
 
   it("shows the API error when saving fails", async () => {
@@ -109,23 +116,32 @@ describe("NodeParams", () => {
     fireEvent.change(await screen.findByRole("spinbutton", { name: "speed" }), {
       target: { value: "2" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save speed" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("speed is read-only");
   });
 
+  it("labels each parameter with its kind", async () => {
+    stubFetch({ retries: 3, speed: 1.5, frame: "/odom", ids: [1], use_sim_time: true });
+    renderParams();
+
+    await screen.findByRole("spinbutton", { name: "retries" });
+    const kinds = screen.getAllByText(/^(bool|int|float|string|array)$/).map((cell) => cell.textContent);
+    expect(kinds).toEqual(["int", "float", "string", "array", "bool"]);
+  });
+
   it("marks unsupported parameter types as not editable", async () => {
-    stubFetch({ weird: null }, () => new Response(null, { status: 204 }));
+    stubFetch({ weird: null });
     renderParams();
 
     expect(await screen.findByText("Not editable")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save weird" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "weird" })).not.toBeInTheDocument();
   });
 
   it("shows an empty state for a node without parameters", async () => {
-    stubFetch({}, () => new Response(null, { status: 204 }));
+    stubFetch({});
     renderParams();
 
     expect(await screen.findByText("No parameters")).toBeInTheDocument();
+    expect(screen.getByText("Changes save as you type")).toBeInTheDocument();
   });
 });
