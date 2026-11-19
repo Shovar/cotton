@@ -106,12 +106,12 @@ describe("Workbench", () => {
     expect(logo).toHaveClass("brightness-0", "dark:invert");
   });
 
-  it("opens the three shell sections in the dock", () => {
+  it("opens the two shell sections in the dock", () => {
     registerShellPanels();
 
     render(<Workbench />);
 
-    expect(fake.api.addPanel).toHaveBeenCalledTimes(3);
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(2);
     expect(fake.api.addPanel).toHaveBeenNthCalledWith(1, {
       id: "graph",
       component: "graph",
@@ -120,11 +120,24 @@ describe("Workbench", () => {
     });
     expect(screen.getByTestId("dockview")).toHaveAttribute(
       "data-components",
-      "graph,processes,plugins",
+      "graph,plugins",
     );
-    for (const name of ["Graph", "Processes", "Plugins"]) {
+    for (const name of ["Graph", "Plugins"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
+  });
+
+  it("orders the terminals tab before plugins", () => {
+    registerShellPanels();
+    registerPanel({ id: "terminals", title: "Terminals", component: ProbePanel });
+
+    render(<Workbench />);
+
+    expect(fake.api.addPanel.mock.calls.map(([options]) => options.id)).toEqual([
+      "graph",
+      "terminals",
+      "plugins",
+    ]);
   });
 
   it("shows a panel registered by a feature without editing Workbench", () => {
@@ -143,7 +156,7 @@ describe("Workbench", () => {
 
   it("restores a saved dock layout", () => {
     const layout = { grid: { root: "saved" } };
-    savePreferences({ theme: "light", layout });
+    savePreferences({ theme: "light", layout, layoutRevision: 2 });
 
     render(<Workbench />);
 
@@ -153,14 +166,14 @@ describe("Workbench", () => {
 
   it("falls back to the default layout when the saved one is corrupt", () => {
     registerShellPanels();
-    savePreferences({ theme: "light", layout: { grid: {} } });
+    savePreferences({ theme: "light", layout: { grid: {} }, layoutRevision: 2 });
     fake.api.fromJSON.mockImplementationOnce(() => {
       throw new Error("corrupt layout");
     });
 
     render(<Workbench />);
 
-    expect(fake.api.addPanel).toHaveBeenCalledTimes(3);
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(2);
   });
 
   it("activates an open panel from the activity bar", () => {
@@ -203,12 +216,22 @@ describe("Workbench", () => {
     registerShellPanels();
     render(<Workbench />);
 
-    act(() => fake.fireActivePanel("processes"));
+    act(() => fake.fireActivePanel("plugins"));
 
-    expect(screen.getByRole("button", { name: "Processes" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Plugins" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
+  });
+
+  it("rebuilds the default layout when the saved layout is from an older UI revision", () => {
+    registerShellPanels();
+    savePreferences({ theme: "light", layout: { grid: { root: "saved" } } });
+
+    render(<Workbench />);
+
+    expect(fake.api.fromJSON).not.toHaveBeenCalled();
+    expect(fake.api.addPanel).toHaveBeenCalledTimes(2);
   });
 
   it("disposes dockview listeners on unmount", () => {

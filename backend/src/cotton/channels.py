@@ -31,7 +31,7 @@ class ChannelRegistry:
         self._channels[channel.name] = channel
 
     def register_family(self, prefix: str, build: ChannelBuilder) -> None:
-        """Resolve dynamic channels such as ``logs:<id>``; a None build means unknown."""
+        """Resolve dynamic channels such as ``terminal:<id>``; a None build means unknown."""
         self._families.append((prefix, build))
 
     def get(self, name: str) -> Channel | None:

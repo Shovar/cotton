@@ -12,12 +12,15 @@ from platformdirs import user_cache_dir, user_config_dir
 
 from cotton.api import (
     routes_commands,
+    routes_fs,
     routes_graph,
     routes_params,
     routes_plugins,
-    routes_processes,
-    routes_profiles,
+    routes_terminal_groups,
+    routes_terminals,
     routes_topics,
+    routes_workspace_commands,
+    routes_workspaces,
 )
 from cotton.app import create_app
 from cotton.channels import ChannelRegistry
@@ -27,8 +30,6 @@ from cotton.plugins.assets import AssetError, LichtblickAssets
 from cotton.plugins.loader import BUILTIN_PLUGINS_DIR, PluginLoader
 from cotton.plugins.manager import PluginManager
 from cotton.plugins.settings import SettingsRepository
-from cotton.processes.manager import ProcessManager
-from cotton.processes.profiles import ProfileRepository
 from cotton.ros.graph import ThreadGraphSource
 from cotton.ros.params import ThreadParamsSource
 from cotton.ros.rate import ThreadRateSource
@@ -37,7 +38,10 @@ from cotton.ros.watcher import GraphWatcher
 from cotton.security import Auth, generate_token
 from cotton.services import Services
 from cotton.storage.db import Database
-from cotton.storage.process_registry import ProcessRegistry
+from cotton.terminals.manager import TerminalManager
+from cotton.terminals.posix import PosixPtySpawner
+from cotton.workspaces.commands import SqliteCommandRepository
+from cotton.workspaces.repository import SqliteWorkspaceRepository
 
 
 def allowed_origins(port: int, extra: list[str] | None = None) -> set[str]:
@@ -73,15 +77,24 @@ def build_services(
     services.channels.register(routes_graph.graph_channel(watcher))
     services.routers.append(routes_params.create_router(ros, ThreadParamsSource(ros)))
     services.routers.append(routes_topics.create_router(ros, ThreadRateSource(ros)))
-    manager = ProcessManager(bus, database.path.parent / "logs", registry=ProcessRegistry(database))
-    services.routers.append(routes_processes.create_router(manager))
-    services.routers.append(routes_profiles.create_router(manager, ProfileRepository(database)))
-    routes_processes.register_process_channels(services.channels, manager)
+    services.routers.append(routes_fs.create_router())
+
+    workspaces = SqliteWorkspaceRepository(database)
+    terminal_manager = TerminalManager(bus, PosixPtySpawner())
+    services.terminal_manager = terminal_manager
+    commands = SqliteCommandRepository(database)
+    services.routers.append(routes_terminals.create_router(terminal_manager, workspaces, commands))
+    services.routers.append(routes_workspaces.create_router(workspaces, terminal_manager))
+    services.routers.append(routes_terminal_groups.create_router(workspaces, terminal_manager))
+    services.routers.append(
+        routes_workspace_commands.create_router(workspaces, commands, terminal_manager)
+    )
+    routes_terminals.register_terminal_channels(services.channels, terminal_manager)
+    services.shutdown.append(terminal_manager.shutdown)
 
     plugins = PluginManager(
         PluginLoader(BUILTIN_PLUGINS_DIR, Path(user_config_dir("cotton")) / "plugins"),
         SettingsRepository(database),
-        manager,
         bus,
     )
     services.routers.append(routes_plugins.create_router(plugins))
@@ -89,19 +102,14 @@ def build_services(
     viewer_assets = LichtblickAssets(Path(user_cache_dir("cotton")) / "lichtblick")
     services.viewer_dir = viewer_assets.path
 
-    async def recover() -> None:
-        await manager.recover()
-
     async def prepare_viewer() -> None:
         try:
             await viewer_assets.ensure()
         except AssetError as exc:
             logging.getLogger(__name__).warning("Lichtblick assets unavailable: %s", exc)
 
-    services.startup.append(recover)
     services.startup.append(plugins.restore)
     services.startup.append(prepare_viewer)
-    services.shutdown.append(manager.shutdown)
     services.shutdown.append(plugins.shutdown)
     services.startup.append(watcher.start)
     services.shutdown.append(watcher.stop)

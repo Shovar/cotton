@@ -3,7 +3,6 @@ import { registerPanel } from "./panelRegistry";
 
 const SHELL_PANELS = [
   { id: "graph", title: "Graph" },
-  { id: "processes", title: "Processes" },
   { id: "plugins", title: "Plugins" },
 ] as const;
 

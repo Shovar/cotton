@@ -6,6 +6,8 @@ export type Theme = "light" | "dark";
 export interface Preferences {
   theme: Theme;
   layout: unknown | null;
+  /** Bumped when the dock layout defaults change, so old layouts are rebuilt. */
+  layoutRevision?: number;
 }
 
 export const PREFERENCES_STORAGE_KEY = "cotton-preferences";
@@ -23,6 +25,8 @@ function normalize(value: unknown): Preferences {
   return {
     theme: value.theme === "dark" ? "dark" : "light",
     layout: isRecord(value.layout) ? value.layout : null,
+    layoutRevision:
+      typeof value.layoutRevision === "number" ? value.layoutRevision : undefined,
   };
 }
 

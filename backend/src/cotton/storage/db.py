@@ -5,28 +5,42 @@ import threading
 from pathlib import Path
 
 _MIGRATIONS = {
-    1: """
-        CREATE TABLE process_registry (
-            id TEXT PRIMARY KEY,
-            spec_json TEXT NOT NULL,
-            pid INTEGER NOT NULL,
-            pgid INTEGER NOT NULL,
-            started_at TEXT NOT NULL,
-            exit_code INTEGER
-        );
-    """,
-    2: """
-        CREATE TABLE profiles (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            processes_json TEXT NOT NULL
-        );
-    """,
     3: """
         CREATE TABLE settings (
             key TEXT PRIMARY KEY,
             value_json TEXT NOT NULL
         );
+    """,
+    4: """
+        DROP TABLE IF EXISTS process_registry;
+        DROP TABLE IF EXISTS profiles;
+    """,
+    5: """
+        CREATE TABLE workspaces (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            path TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE terminal_groups (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            position INTEGER NOT NULL
+        );
+        CREATE INDEX terminal_groups_by_workspace ON terminal_groups(workspace_id, position);
+    """,
+    6: """
+        CREATE TABLE workspace_commands (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            label TEXT NOT NULL,
+            body TEXT NOT NULL,
+            is_startup INTEGER NOT NULL DEFAULT 0,
+            position INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX workspace_commands_one_startup
+            ON workspace_commands(workspace_id) WHERE is_startup = 1;
     """,
 }
 

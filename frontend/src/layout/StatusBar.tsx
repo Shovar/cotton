@@ -9,12 +9,7 @@ const THEMES: Theme[] = ["light", "dark"];
 export function StatusBar() {
   const env = useStore((state) => state.env);
   const rosConnected = useStore((state) => state.rosConnected);
-  const processes = useStore((state) => state.processes);
   const [theme, setTheme] = useState<Theme>(() => loadPreferences().theme);
-  const running = Object.values(processes).filter(
-    (record) => record.state === "starting" || record.state === "running",
-  ).length;
-  const failed = Object.values(processes).filter((record) => record.state === "failed").length;
 
   const changeTheme = (next: Theme) => {
     setTheme(next);
@@ -27,7 +22,6 @@ export function StatusBar() {
       <span>ROS {env?.distro ?? "—"}</span>
       <span>Domain {env?.domain_id ?? "—"}</span>
       <span>Workspace {env?.workspace ?? "—"}</span>
-      <span>Processes {running}</span>
       <span
         className={
           rosConnected
@@ -38,7 +32,6 @@ export function StatusBar() {
         <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
         {rosConnected ? "ROS connected" : "ROS disconnected"}
       </span>
-      {failed > 0 && <span className="text-destructive">Errors {failed}</span>}
       <div
         className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5"
         role="group"

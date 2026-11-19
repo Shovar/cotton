@@ -16,7 +16,6 @@ const PLUGIN: PluginRecord = {
     name: "foxglove",
     version: "0.1.0",
     description: "viewer",
-    processes: [],
     panels: [],
     permissions: [],
   },

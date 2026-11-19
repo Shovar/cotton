@@ -59,6 +59,12 @@ def test_build_services_uses_cotton_data_directories(
     assert cache_names == ["cotton"]
     assert services.db.path == tmp_path / "cotton" / "state.db"
     assert services.viewer_dir == tmp_path / "cotton" / "lichtblick"
+    assert services.terminal_manager is not None
+    assert services.terminal_manager.shutdown in services.shutdown
+    assert any(
+        route.path == "/api/terminals" for router in services.routers for route in router.routes
+    )
+    assert services.channels.get("terminals") is not None
 
 
 def test_default_origins_cover_loopback_and_extra() -> None:

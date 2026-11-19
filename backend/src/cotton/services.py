@@ -12,6 +12,7 @@ from cotton.events import EventBus
 from cotton.ros.thread import RosThread
 from cotton.security import Auth
 from cotton.storage.db import Database
+from cotton.terminals.manager import TerminalManager
 
 LifecycleHook = Callable[[], Awaitable[None]]
 
@@ -31,3 +32,4 @@ class Services:
     viewer_dir: Path | None = None
     startup: list[LifecycleHook] = field(default_factory=list)
     shutdown: list[LifecycleHook] = field(default_factory=list)
+    terminal_manager: TerminalManager | None = None

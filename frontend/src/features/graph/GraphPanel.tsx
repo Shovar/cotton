@@ -17,7 +17,7 @@ export function GraphPanel() {
   });
 
   if (!graph) {
-    return <p className="graph-empty">Waiting for the graph…</p>;
+    return <p className="panel-message">Waiting for the graph…</p>;
   }
   return <GraphView snapshot={graph} />;
 }

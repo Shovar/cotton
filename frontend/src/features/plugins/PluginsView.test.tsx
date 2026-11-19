@@ -21,7 +21,6 @@ function pluginRecord(overrides: Partial<PluginRecord> = {}): PluginRecord {
       name: "foxglove",
       version: "0.1.0",
       description: "Foxglove bridge with the local Lichtblick viewer",
-      processes: [],
       panels: [
         {
           id: "viewer",
@@ -30,7 +29,7 @@ function pluginRecord(overrides: Partial<PluginRecord> = {}): PluginRecord {
           url: "http://{hostname}:8000/lichtblick/index.html",
         },
       ],
-      permissions: ["process", "network"],
+      permissions: ["network"],
     },
     ...overrides,
   };
@@ -60,18 +59,18 @@ describe("PluginsView", () => {
     apiGet.mockResolvedValue([
       pluginRecord({
         state: "error",
-        error: "invalid manifest: missing argv",
+        error: "healthcheck failed",
         manifest: {
           ...pluginRecord().manifest!,
-          permissions: ["process", "network"],
+          permissions: ["network"],
         },
       }),
     ]);
 
     renderView();
 
-    expect(await screen.findByText("invalid manifest: missing argv")).toBeInTheDocument();
-    expect(screen.getByText(/process, network/)).toBeInTheDocument();
+    expect(await screen.findByText("healthcheck failed")).toBeInTheDocument();
+    expect(screen.getByText(/network/)).toBeInTheDocument();
     expect(screen.getByText("State: Error")).toBeInTheDocument();
   });
 

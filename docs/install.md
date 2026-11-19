@@ -211,8 +211,8 @@ pytest -m integration -v
 ```
 
 The E2E flow drives the browser against a running stack (compose or `docker
-run`): token, start `turtlesim`, see `/turtlesim` in the graph, measure
-`/turtle1/pose`, stop the process and activate the Foxglove plugin.
+run`): token, start `turtlesim` in a terminal, see `/turtlesim` in the graph,
+measure `/turtle1/pose`, close the terminal and activate the Foxglove plugin.
 
 ```bash
 cd frontend
@@ -228,7 +228,7 @@ npm run e2e
 ## Changing `ROS_DOMAIN_ID`
 
 Cotton reads `ROS_DOMAIN_ID` when it starts, and every node must agree on
-it. After changing the variable, restart Cotton **and** the processes it
+it. After changing the variable, restart Cotton **and** the terminals it
 launches, and clear the ROS 2 daemon cache:
 
 ```bash

@@ -21,17 +21,19 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
 
   return (
     <section className="graph-view" aria-label="ROS graph">
-      <Input
-        type="search"
-        aria-label="Search graph"
-        placeholder="Search"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-      />
-      <p className="graph-legend">
-        <span className="graph-legend-node">Node</span>
-        <span className="graph-legend-topic">Topic</span>
-      </p>
+      <div className="graph-toolbar">
+        <Input
+          type="search"
+          aria-label="Search graph"
+          placeholder="Search nodes, topics, services…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <p className="graph-legend">
+          <span className="graph-legend-node">Node</span>
+          <span className="graph-legend-topic">Topic</span>
+        </p>
+      </div>
       <TopicGraph
         snapshot={snapshot}
         search={search}
@@ -42,13 +44,16 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
       />
       <div className="graph-columns">
         <div className="graph-column">
-          <h2>Services</h2>
+          <header className="graph-column-header">
+            <h2>Services</h2>
+            <span className="graph-count">{services.length}</span>
+          </header>
           {services.length === 0 ? (
-            <p>No services</p>
+            <p className="graph-empty-row">No services</p>
           ) : (
             <ul>
               {services.map(([name, types]) => (
-                <li key={name}>
+                <li key={name} title={types.join(", ")}>
                   <code>{name}</code> <span>{types.join(", ")}</span>
                 </li>
               ))}
@@ -56,13 +61,16 @@ export function GraphView({ snapshot }: { snapshot: GraphSnapshot }) {
           )}
         </div>
         <div className="graph-column">
-          <h2>Actions</h2>
+          <header className="graph-column-header">
+            <h2>Actions</h2>
+            <span className="graph-count">{actions.length}</span>
+          </header>
           {actions.length === 0 ? (
-            <p>No actions</p>
+            <p className="graph-empty-row">No actions</p>
           ) : (
             <ul>
               {actions.map(([name, types]) => (
-                <li key={name}>
+                <li key={name} title={types.join(", ")}>
                   <code>{name}</code> <span>{types.join(", ")}</span>
                 </li>
               ))}

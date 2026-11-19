@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { ProcessRecord } from "../api/types";
 import { loadPreferences } from "../state/preferences";
 import { useStore } from "../state/store";
 import { StatusBar } from "./StatusBar";
@@ -15,22 +14,8 @@ const ENV = {
   app_version: "0.1.0",
 };
 
-function processRecord(id: string, state: ProcessRecord["state"]): ProcessRecord {
-  return {
-    id,
-    spec: { id, argv: ["ros2", "run"], cwd: null, env: {}, plugin: null, autostart: false },
-    state,
-    pid: null,
-    pgid: null,
-    started_at: null,
-    exit_code: null,
-    error: null,
-    recovered: false,
-  };
-}
-
 beforeEach(() => {
-  useStore.setState({ env: ENV, rosConnected: false, processes: {} });
+  useStore.setState({ env: ENV, rosConnected: false });
 });
 
 describe("StatusBar", () => {
@@ -72,20 +57,5 @@ describe("StatusBar", () => {
       "aria-pressed",
       "true",
     );
-  });
-
-  it("counts running processes and failed ones", () => {
-    useStore.setState({
-      processes: {
-        a: processRecord("a", "running"),
-        b: processRecord("b", "starting"),
-        c: processRecord("c", "failed"),
-      },
-    });
-
-    render(<StatusBar />);
-
-    expect(screen.getByText("Processes 2")).toBeInTheDocument();
-    expect(screen.getByText("Errors 1")).toBeInTheDocument();
   });
 });

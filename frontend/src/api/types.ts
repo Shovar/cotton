@@ -1,5 +1,3 @@
-export type LogLevel = "debug" | "info" | "warn" | "error" | null;
-
 export interface EnvironmentInfo {
   distro: string;
   domain_id: number;
@@ -33,43 +31,6 @@ export interface GraphSnapshot {
   revision: number;
 }
 
-export type ProcessState = "starting" | "running" | "stopping" | "exited" | "failed";
-
-export interface ProcessSpec {
-  id: string;
-  argv: string[];
-  cwd: string | null;
-  env: Record<string, string>;
-  plugin: string | null;
-  autostart: boolean;
-}
-
-export interface ProcessRecord {
-  id: string;
-  spec: ProcessSpec;
-  state: ProcessState;
-  pid: number | null;
-  pgid: number | null;
-  started_at: string | null;
-  exit_code: number | null;
-  error: string | null;
-  recovered: boolean;
-}
-
-export interface Profile {
-  id: string;
-  name: string;
-  processes: ProcessSpec[];
-}
-
-export interface LogLine {
-  id: string;
-  stream: "stdout" | "stderr";
-  level: LogLevel;
-  ts: string;
-  text: string;
-}
-
 export type PluginState = "discovered" | "active" | "stopped" | "error";
 
 export type PluginPanelType = "iframe" | "stream" | "native";
@@ -85,7 +46,6 @@ export interface PluginManifest {
   name: string;
   version: string;
   description: string;
-  processes: ProcessSpec[];
   panels: PluginPanelSpec[];
   permissions: string[];
 }
@@ -96,6 +56,47 @@ export interface PluginRecord {
   error: string | null;
   manifest: PluginManifest;
 }
+
+export interface Workspace {
+  id: string;
+  name: string;
+  path: string;
+  created_at: string;
+}
+
+export type TerminalKind = "shell" | "command";
+export type TerminalState = "starting" | "running" | "exited" | "failed";
+
+export interface TerminalSpec {
+  id: string;
+  workspace_id: string;
+  group_id: string;
+  kind: TerminalKind;
+  argv: string[];
+  cwd: string;
+  env: Record<string, string>;
+}
+
+export interface TerminalRecord {
+  spec: TerminalSpec;
+  state: TerminalState;
+  pid: number | null;
+  started_at: string | null;
+  exit_code: number | null;
+  error: string | null;
+}
+
+export interface TerminalOutput {
+  id: string;
+  sequence: number;
+  data: string;
+}
+
+export type TerminalControlMessage =
+  | { type: "terminal.attach"; data: { id: string; after_sequence: number } }
+  | { type: "terminal.detach"; data: { id: string } }
+  | { type: "terminal.input"; data: { id: string; data: string } }
+  | { type: "terminal.resize"; data: { id: string; cols: number; rows: number } };
 
 export interface ErrorData {
   code: string;
@@ -114,8 +115,8 @@ export interface RateResult {
 export type ServerEvent =
   | { type: "graph.update"; data: GraphSnapshot }
   | { type: "ros.status"; data: { connected: boolean; error: string | null } }
-  | { type: "process.state"; data: ProcessRecord }
-  | { type: "process.removed"; data: { id: string } }
-  | { type: "process.log"; data: LogLine }
   | { type: "plugin.state"; data: PluginRecord }
+  | { type: "terminal.state"; data: TerminalRecord }
+  | { type: "terminal.output"; data: TerminalOutput }
+  | { type: "terminal.removed"; data: { id: string } }
   | { type: "error"; data: ErrorData };

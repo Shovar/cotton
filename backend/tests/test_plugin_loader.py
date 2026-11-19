@@ -8,11 +8,7 @@ from cotton.plugins.loader import BUILTIN_PLUGINS_DIR, PluginLoader
 
 
 def write_plugin(root: Path, name: str, **overrides: object) -> Path:
-    data: dict[str, object] = {
-        "name": name,
-        "version": "0.1.0",
-        "processes": [{"id": "bridge", "argv": ["ros2", "run", "demo", "bridge"]}],
-    }
+    data: dict[str, object] = {"name": name, "version": "0.1.0"}
     data.update(overrides)
     directory = root / name
     directory.mkdir(parents=True, exist_ok=True)
@@ -21,7 +17,7 @@ def write_plugin(root: Path, name: str, **overrides: object) -> Path:
     return path
 
 
-def test_discovers_a_valid_manifest_with_argv(tmp_path: Path) -> None:
+def test_discovers_a_valid_manifest(tmp_path: Path) -> None:
     write_plugin(tmp_path / "builtin", "demo")
 
     plugins = PluginLoader(tmp_path / "builtin", tmp_path / "user").discover()
@@ -29,7 +25,7 @@ def test_discovers_a_valid_manifest_with_argv(tmp_path: Path) -> None:
     assert [plugin.name for plugin in plugins] == ["demo"]
     assert plugins[0].error is None
     assert plugins[0].manifest is not None
-    assert plugins[0].manifest.processes[0].argv == ["ros2", "run", "demo", "bridge"]
+    assert plugins[0].manifest.version == "0.1.0"
 
 
 def test_missing_requirement_is_recorded_without_dropping_others(tmp_path: Path) -> None:

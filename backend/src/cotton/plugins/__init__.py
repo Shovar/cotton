@@ -8,7 +8,6 @@ from cotton.plugins.manager import (
     PluginError,
     PluginManager,
     PluginNotFound,
-    ProcessPort,
     check_health,
 )
 from cotton.plugins.models import (
@@ -16,7 +15,6 @@ from cotton.plugins.models import (
     HealthcheckSpec,
     PanelSpec,
     PluginManifest,
-    PluginProcessSpec,
     PluginRecord,
     PluginState,
 )
@@ -36,10 +34,8 @@ __all__ = [
     "PluginManager",
     "PluginManifest",
     "PluginNotFound",
-    "PluginProcessSpec",
     "PluginRecord",
     "PluginState",
-    "ProcessPort",
     "SettingsRepository",
     "check_health",
 ]

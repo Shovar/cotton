@@ -1,29 +1,18 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import urllib.error
 import urllib.request
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Protocol
 from urllib.parse import urlsplit
 
 from cotton.events import EventBus
 from cotton.plugins.loader import PluginLoader
-from cotton.plugins.models import (
-    HealthcheckSpec,
-    PluginManifest,
-    PluginProcessSpec,
-    PluginRecord,
-)
+from cotton.plugins.models import HealthcheckSpec, PluginRecord
 from cotton.plugins.settings import SettingsRepository
-from cotton.processes.manager import ProcessConflict, ProcessNotFound
-from cotton.processes.models import ProcessRecord, ProcessSpec
 
 ACTIVE_KEY = "plugins.active"
-
-_log = logging.getLogger(__name__)
 
 
 class PluginNotFound(RuntimeError):
@@ -44,14 +33,6 @@ class Healthcheck:
     timeout_s: float = 5.0
     retries: int = 20
     delay_s: float = 0.25
-
-
-class ProcessPort(Protocol):
-    """The process capability the plugin manager needs; ProcessManager satisfies it."""
-
-    async def start(self, spec: ProcessSpec) -> ProcessRecord: ...
-
-    async def stop(self, process_id: str) -> ProcessRecord: ...
 
 
 async def check_health(check: Healthcheck) -> None:
@@ -91,12 +72,10 @@ class PluginManager:
         self,
         loader: PluginLoader,
         settings: SettingsRepository,
-        processes: ProcessPort,
         bus: EventBus,
         healthcheck: Callable[[Healthcheck], Awaitable[None]] = check_health,
     ) -> None:
         self._settings = settings
-        self._processes = processes
         self._bus = bus
         self._healthcheck = healthcheck
         self._records: dict[str, PluginRecord] = {}
@@ -120,7 +99,6 @@ class PluginManager:
             raise PluginError(record.error or f"plugin {name} is not usable")
 
         activated: list[str] = []
-        started: list[str] = []
         try:
             for plugin_name in self._order(name):
                 target = self._require(plugin_name)
@@ -129,7 +107,6 @@ class PluginManager:
                 manifest = target.manifest
                 if manifest is None:
                     raise PluginError(target.error or f"plugin {plugin_name} is not usable")
-                started.extend(await self._start_processes(plugin_name, manifest))
                 if manifest.healthcheck is not None:
                     await self._healthcheck(_healthcheck(manifest.healthcheck))
                 target.state = "active"
@@ -138,15 +115,7 @@ class PluginManager:
                 if plugin_name not in self._active_order:
                     self._active_order.append(plugin_name)
                 await self._publish(target)
-        except (
-            PluginError,
-            HealthcheckError,
-            ProcessConflict,
-            ProcessNotFound,
-            ValueError,
-            OSError,
-        ) as exc:
-            await self._rollback(started)
+        except (PluginError, HealthcheckError, ValueError, OSError) as exc:
             for plugin_name in activated:
                 target = self._records[plugin_name]
                 target.state = "stopped"
@@ -167,8 +136,6 @@ class PluginManager:
 
     async def deactivate(self, name: str) -> PluginRecord:
         record = self._require(name)
-        if record.state == "active" and record.manifest is not None:
-            await self._stop_processes(record.manifest)
         if name in self._active_order:
             self._active_order.remove(name)
         record.state = "stopped"
@@ -188,41 +155,14 @@ class PluginManager:
                 continue
 
     async def shutdown(self) -> None:
-        """Stop active plugin processes but keep ``plugins.active`` for the next start."""
+        """Mark active plugins stopped but keep ``plugins.active`` for the next start."""
         for name in reversed(list(self._active_order)):
             record = self._records.get(name)
-            if record is None or record.state != "active" or record.manifest is None:
+            if record is None or record.state != "active":
                 continue
-            await self._stop_processes(record.manifest)
             record.state = "stopped"
             await self._publish(record)
         self._active_order.clear()
-
-    async def _start_processes(self, plugin_name: str, manifest: PluginManifest) -> list[str]:
-        started: list[str] = []
-        for spec in manifest.processes:
-            process_id = _process_id(plugin_name, spec)
-            try:
-                await self._processes.start(_process_spec(plugin_name, spec))
-            except ProcessConflict:
-                # A process recovered from the previous run already holds this id.
-                _log.info("adopting recovered process %s", process_id)
-            started.append(process_id)
-        return started
-
-    async def _stop_processes(self, manifest: PluginManifest) -> None:
-        for spec in reversed(manifest.processes):
-            try:
-                await self._processes.stop(_process_id(manifest.name, spec))
-            except ProcessNotFound:
-                continue
-
-    async def _rollback(self, process_ids: list[str]) -> None:
-        for process_id in reversed(process_ids):
-            try:
-                await self._processes.stop(process_id)
-            except ProcessNotFound:
-                continue
 
     def _order(self, name: str) -> list[str]:
         order: list[str] = []
@@ -255,21 +195,6 @@ class PluginManager:
 
     async def _publish(self, record: PluginRecord) -> None:
         await self._bus.publish("plugin.state", record.to_dict())
-
-
-def _process_id(plugin_name: str, spec: PluginProcessSpec) -> str:
-    return f"{plugin_name}.{spec.id}"
-
-
-def _process_spec(plugin_name: str, spec: PluginProcessSpec) -> ProcessSpec:
-    return ProcessSpec(
-        id=_process_id(plugin_name, spec),
-        argv=list(spec.argv),
-        cwd=spec.cwd,
-        env=dict(spec.env),
-        plugin=plugin_name,
-        autostart=spec.autostart,
-    )
 
 
 def _healthcheck(spec: HealthcheckSpec) -> Healthcheck:

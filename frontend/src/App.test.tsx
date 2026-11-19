@@ -55,7 +55,6 @@ beforeEach(() => {
   useStore.setState({
     env: null,
     graph: null,
-    processes: {},
     plugins: {},
     rosConnected: false,
     connection: "closed",
@@ -70,7 +69,7 @@ describe("App", () => {
 
     await waitFor(() => expect(useStore.getState().env).toEqual(ENV));
     expect(apiGetMock).toHaveBeenCalledWith("/api/env");
-    expect(wsMock.subscribe).toHaveBeenCalledWith(["graph", "plugins", "processes"]);
+    expect(wsMock.subscribe).toHaveBeenCalledWith(["graph", "plugins"]);
     expect(wsMock.connect).toHaveBeenCalled();
 
     unmount();

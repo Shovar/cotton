@@ -127,8 +127,12 @@ class RosThread:
 
     def _spin_once(self, timeout: float) -> None:
         import rclpy
+        from rclpy.executors import ExternalShutdownException
 
-        rclpy.spin_once(self.node, timeout_sec=timeout)
+        try:
+            rclpy.spin_once(self.node, timeout_sec=timeout)
+        except ExternalShutdownException:
+            self._stopping.set()
 
     def _teardown(self) -> None:
         import rclpy

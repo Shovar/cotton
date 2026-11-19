@@ -26,18 +26,18 @@ def test_registry_resolves_channel_families() -> None:
     registry = ChannelRegistry()
 
     def build(name: str) -> Channel | None:
-        return Channel(name, matches=lambda event: True) if name != "logs:nope" else None
+        return Channel(name, matches=lambda event: True) if name != "terminal:nope" else None
 
-    registry.register_family("logs:", build)
+    registry.register_family("terminal:", build)
 
-    assert registry.get("logs:p1") is not None
-    assert registry.get("logs:nope") is None
+    assert registry.get("terminal:t1") is not None
+    assert registry.get("terminal:nope") is None
     assert registry.get("other") is None
     assert registry.names() == ()
 
 
 def test_channel_matches_events() -> None:
-    channel = Channel("logs:p1", matches=lambda event: event.data.get("id") == "p1")
+    channel = Channel("terminal:t1", matches=lambda event: event.data.get("id") == "t1")
 
-    assert channel.matches(Event("process.log", {"id": "p1"}))
-    assert not channel.matches(Event("process.log", {"id": "p2"}))
+    assert channel.matches(Event("terminal.output", {"id": "t1"}))
+    assert not channel.matches(Event("terminal.output", {"id": "t2"}))
