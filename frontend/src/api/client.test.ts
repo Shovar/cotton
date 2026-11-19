@@ -55,7 +55,7 @@ describe("apiSend", () => {
   it("serializes the body and sets the content type", async () => {
     const fetchMock = stubFetch(jsonResponse({ id: "p1" }, 201));
 
-    const result = await apiSend<{ id: string }>("POST", "/api/processes", {
+    const result = await apiSend<{ id: string }>("POST", "/api/terminals", {
       command: "sleep",
     });
 
@@ -69,7 +69,7 @@ describe("apiSend", () => {
   it("resolves undefined for 204 responses", async () => {
     stubFetch(new Response(null, { status: 204 }));
 
-    await expect(apiSend("DELETE", "/api/processes/p1")).resolves.toBeUndefined();
+    await expect(apiSend("DELETE", "/api/terminals/t1")).resolves.toBeUndefined();
   });
 });
 
@@ -94,17 +94,17 @@ describe("apiExists", () => {
 describe("ApiError", () => {
   it("exposes the error envelope", async () => {
     stubFetch(
-      jsonResponse({ code: "process_not_found", message: "Unknown process" }, 404),
+      jsonResponse({ code: "terminal_not_found", message: "Unknown terminal" }, 404),
     );
 
-    const error = await apiSend("DELETE", "/api/processes/nope").catch(
+    const error = await apiSend("DELETE", "/api/terminals/nope").catch(
       (caught: unknown) => caught,
     );
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({
-      code: "process_not_found",
-      message: "Unknown process",
+      code: "terminal_not_found",
+      message: "Unknown terminal",
       status: 404,
     });
   });

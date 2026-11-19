@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_graph import create_router, graph_channel
-from ros_studio.app import create_app
-from ros_studio.ros.models import GraphSnapshot, NodeInfo, TopicInfo
-from ros_studio.services import Services
+from cotton.api.routes_graph import create_router, graph_channel
+from cotton.app import create_app
+from cotton.ros.models import GraphSnapshot, NodeInfo, TopicInfo
+from cotton.services import Services
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"

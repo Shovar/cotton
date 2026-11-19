@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ros_studio.ros.params import coerce_value
+from cotton.ros.params import coerce_value
 
 
 @pytest.mark.parametrize(

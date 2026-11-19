@@ -22,22 +22,22 @@ RUN apt-get update \
       ros-jazzy-demo-nodes-cpp \
  && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/ros-studio
+WORKDIR /opt/cotton
 COPY pyproject.toml README.md LICENSE ./
 COPY backend ./backend
-COPY --from=web /src/frontend/dist ./backend/src/ros_studio/web
+COPY --from=web /src/frontend/dist ./backend/src/cotton/web
 
-RUN python3 -m venv --system-site-packages /opt/ros-studio/.venv \
- && /opt/ros-studio/.venv/bin/pip install --no-cache-dir . \
- && rm -rf /opt/ros-studio/backend /opt/ros-studio/pyproject.toml \
-           /opt/ros-studio/README.md /opt/ros-studio/LICENSE
+RUN python3 -m venv --system-site-packages /opt/cotton/.venv \
+ && /opt/cotton/.venv/bin/pip install --no-cache-dir . \
+ && rm -rf /opt/cotton/backend /opt/cotton/pyproject.toml \
+           /opt/cotton/README.md /opt/cotton/LICENSE
 
-COPY docker/entrypoint.sh /usr/local/bin/ros-studio-entrypoint
-RUN chmod +x /usr/local/bin/ros-studio-entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/cotton-entrypoint
+RUN chmod +x /usr/local/bin/cotton-entrypoint
 
 ENV ROS_DOMAIN_ID=0
-ENV PATH="/opt/ros-studio/.venv/bin:${PATH}"
+ENV PATH="/opt/cotton/.venv/bin:${PATH}"
 EXPOSE 8000 8765
 
-ENTRYPOINT ["/usr/local/bin/ros-studio-entrypoint"]
-CMD ["ros-studio", "--host", "0.0.0.0", "--no-browser", "--token", "test-token"]
+ENTRYPOINT ["/usr/local/bin/cotton-entrypoint"]
+CMD ["cotton", "--host", "0.0.0.0", "--no-browser", "--token", "test-token"]

@@ -1,7 +1,7 @@
 import pytest
 
-from ros_studio.errors import ApiError
-from ros_studio.security import Auth, generate_token
+from cotton.errors import ApiError
+from cotton.security import Auth, generate_token
 
 ORIGIN = "http://127.0.0.1:8000"
 

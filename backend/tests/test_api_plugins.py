@@ -1,56 +1,24 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-from ros_studio.api.routes_plugins import create_router, register_plugin_channel
-from ros_studio.app import create_app
-from ros_studio.plugins.loader import PluginLoader
-from ros_studio.plugins.manager import Healthcheck, HealthcheckError, PluginManager
-from ros_studio.plugins.settings import SettingsRepository
-from ros_studio.processes.models import ProcessRecord, ProcessSpec
-from ros_studio.services import Services
+from cotton.api.routes_plugins import create_router, register_plugin_channel
+from cotton.app import create_app
+from cotton.plugins.loader import PluginLoader
+from cotton.plugins.manager import Healthcheck, HealthcheckError, PluginManager
+from cotton.plugins.settings import SettingsRepository
+from cotton.services import Services
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"
 
 
-class FakeProcesses:
-    def __init__(self) -> None:
-        self.started: list[ProcessSpec] = []
-
-    async def start(self, spec: ProcessSpec) -> ProcessRecord:
-        self.started.append(spec)
-        return ProcessRecord(
-            id=spec.id,
-            spec=spec,
-            state="running",
-            pid=4242,
-            pgid=4242,
-            started_at=datetime.now(timezone.utc),
-        )
-
-    async def stop(self, process_id: str) -> ProcessRecord:
-        return ProcessRecord(
-            id=process_id,
-            spec=ProcessSpec(id=process_id, argv=["sleep", "1"]),
-            state="exited",
-            pid=None,
-            pgid=None,
-            started_at=datetime.now(timezone.utc),
-        )
-
-
 def write_plugin(root: Path, name: str, **overrides: object) -> None:
-    data: dict[str, object] = {
-        "name": name,
-        "version": "0.1.0",
-        "processes": [{"id": "bridge", "argv": ["sleep", "1"]}],
-    }
+    data: dict[str, object] = {"name": name, "version": "0.1.0"}
     data.update(overrides)
     directory = root / name
     directory.mkdir(parents=True, exist_ok=True)
@@ -73,7 +41,6 @@ def plugin_manager(services: Services, tmp_path: Path) -> PluginManager:
     manager = PluginManager(
         PluginLoader(tmp_path / "builtin", tmp_path / "user"),
         SettingsRepository(services.db),
-        FakeProcesses(),
         services.bus,
         healthcheck=healthcheck,
     )

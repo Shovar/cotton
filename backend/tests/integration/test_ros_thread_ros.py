@@ -14,7 +14,7 @@ pytest.importorskip("rclpy")
     reason="ROS 2 environment is not active",
 )
 def test_real_ros_thread_roundtrip() -> None:
-    from ros_studio.ros.thread import RosThread
+    from cotton.ros.thread import RosThread
 
     before = threading.active_count()
     thread = RosThread(poll_interval=0.01)

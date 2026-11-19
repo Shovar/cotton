@@ -9,7 +9,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette onAction={onAction} />);
 
     fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
-    fireEvent.click(screen.getByText("Abrir grafo"));
+    fireEvent.click(screen.getByText("Open graph"));
 
     expect(onAction).toHaveBeenCalledWith("open-graph");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -19,12 +19,12 @@ describe("CommandPalette", () => {
     render(<CommandPalette onAction={() => {}} />);
 
     fireEvent.keyDown(window, { key: "P", ctrlKey: true, shiftKey: true });
-    fireEvent.change(screen.getByPlaceholderText("Buscar acción"), {
+    fireEvent.change(screen.getByPlaceholderText("Search actions"), {
       target: { value: "plugins" },
     });
 
-    expect(screen.getByText("Abrir plugins")).toBeInTheDocument();
-    expect(screen.queryByText("Abrir grafo")).not.toBeInTheDocument();
+    expect(screen.getByText("Open plugins")).toBeInTheDocument();
+    expect(screen.queryByText("Open graph")).not.toBeInTheDocument();
   });
 
   it("closes with Escape", () => {

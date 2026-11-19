@@ -1,0 +1,15 @@
+name: foxglove
+version: 0.1.0
+description: Foxglove bridge with the locally served Lichtblick viewer
+permissions:
+  - network
+healthcheck:
+  url: tcp://127.0.0.1:8765
+  timeout_s: 5.0
+  retries: 40
+  delay_s: 0.5
+panels:
+  - id: viewer
+    title: Foxglove
+    type: iframe
+    url: "http://{host}/lichtblick/index.html?ds=foxglove-websocket&ds.url=ws://{hostname}:8765&layoutUrl=http://{host}/lichtblick/layout.json"

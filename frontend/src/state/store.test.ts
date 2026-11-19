@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type {
-  EnvironmentInfo,
-  GraphSnapshot,
-  LogLine,
-  PluginRecord,
-  ProcessRecord,
-} from "../api/types";
+import type { EnvironmentInfo, GraphSnapshot, PluginRecord } from "../api/types";
 import { addStoreSlice, useStore } from "./store";
 
 const ENV: EnvironmentInfo = {
@@ -26,24 +20,6 @@ const GRAPH: GraphSnapshot = {
   revision: 1,
 };
 
-function processRecord(id: string): ProcessRecord {
-  return {
-    id,
-    spec: { id, argv: ["sleep", "1"], cwd: null, env: {}, plugin: null, autostart: false },
-    state: "running",
-    pid: 1,
-    pgid: 1,
-    started_at: null,
-    exit_code: null,
-    error: null,
-    recovered: false,
-  };
-}
-
-function logLine(text: string): LogLine {
-  return { id: "p1", stream: "stdout", level: null, ts: "2026-11-06T12:00:00Z", text };
-}
-
 function pluginRecord(name: string): PluginRecord {
   return {
     name,
@@ -53,7 +29,6 @@ function pluginRecord(name: string): PluginRecord {
       name,
       version: "0.1.0",
       description: "",
-      processes: [],
       panels: [],
       permissions: [],
     },
@@ -64,9 +39,7 @@ beforeEach(() => {
   useStore.setState({
     env: null,
     graph: null,
-    processes: {},
     plugins: {},
-    logs: {},
     rosConnected: false,
     connection: "closed",
   });
@@ -78,9 +51,7 @@ describe("store", () => {
 
     expect(state.env).toBeNull();
     expect(state.graph).toBeNull();
-    expect(state.processes).toEqual({});
     expect(state.plugins).toEqual({});
-    expect(state.logs).toEqual({});
     expect(state.rosConnected).toBe(false);
     expect(state.connection).toBe("closed");
   });
@@ -100,22 +71,6 @@ describe("store", () => {
     expect(useStore.getState().rosConnected).toBe(true);
   });
 
-  it("upserts process state by id", () => {
-    useStore.getState().applyServerEvent({
-      type: "process.state",
-      data: processRecord("p1"),
-    });
-    useStore.getState().applyServerEvent({
-      type: "process.state",
-      data: { ...processRecord("p1"), state: "failed", exit_code: 2 },
-    });
-
-    const processes = useStore.getState().processes;
-    expect(Object.keys(processes)).toEqual(["p1"]);
-    expect(processes.p1.state).toBe("failed");
-    expect(processes.p1.exit_code).toBe(2);
-  });
-
   it("upserts plugin state by name", () => {
     useStore.getState().applyServerEvent({
       type: "plugin.state",
@@ -131,18 +86,7 @@ describe("store", () => {
       data: { code: "unknown_channel", message: "nope" },
     });
 
-    expect(useStore.getState().logs).toEqual({});
-  });
-
-  it("appends process logs and caps the buffer at 2000 lines", () => {
-    for (let index = 0; index < 2005; index += 1) {
-      useStore.getState().applyServerEvent({ type: "process.log", data: logLine(`line ${index}`) });
-    }
-
-    const logs = useStore.getState().logs.p1;
-    expect(logs).toHaveLength(2000);
-    expect(logs[0].text).toBe("line 5");
-    expect(logs[1999].text).toBe("line 2004");
+    expect(useStore.getState()).toMatchObject({ plugins: {}, rosConnected: false });
   });
 
   it("exposes setters for the shell slices", () => {
@@ -151,7 +95,6 @@ describe("store", () => {
     state.setGraph(GRAPH);
     state.setRosConnected(true);
     state.setConnection("open");
-    state.upsertProcess(processRecord("p2"));
     state.upsertPlugin(pluginRecord("viewer"));
 
     expect(useStore.getState()).toMatchObject({
@@ -160,7 +103,6 @@ describe("store", () => {
       rosConnected: true,
       connection: "open",
     });
-    expect(useStore.getState().processes.p2.id).toBe("p2");
     expect(useStore.getState().plugins.viewer.name).toBe("viewer");
   });
 

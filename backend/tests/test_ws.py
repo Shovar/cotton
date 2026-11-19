@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ros_studio.app import Services, create_app
-from ros_studio.channels import Channel
-from ros_studio.events import Event
+from cotton.app import Services, create_app
+from cotton.channels import Channel
+from cotton.events import Event
 
 TOKEN = "test-token"
 ORIGIN = "http://testserver"

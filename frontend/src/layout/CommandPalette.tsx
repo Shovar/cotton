@@ -1,9 +1,13 @@
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 const ACTIONS = [
-  { id: "open-graph", label: "Abrir grafo" },
-  { id: "open-processes", label: "Abrir procesos" },
-  { id: "open-plugins", label: "Abrir plugins" },
+  { id: "open-graph", label: "Open graph" },
+  { id: "open-plugins", label: "Open plugins" },
 ] as const;
 
 export function CommandPalette({ onAction }: { onAction: (action: string) => void }) {
@@ -39,24 +43,49 @@ export function CommandPalette({ onAction }: { onAction: (action: string) => voi
   };
 
   return (
-    <div className="command-palette" role="dialog" aria-label="Paleta de comandos">
-      <input
-        autoFocus
-        type="search"
-        aria-label="Buscar acción"
-        placeholder="Buscar acción"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
-      <ul>
-        {actions.map((action) => (
-          <li key={action.id}>
-            <button type="button" onClick={() => run(action.id)}>
-              {action.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setQuery("");
+        }
+      }}
+    >
+      <DialogContent
+        aria-label="Command palette"
+        aria-describedby={undefined}
+        showCloseButton={false}
+        className="top-[15%] translate-y-0 gap-2 p-2"
+      >
+        <DialogTitle className="sr-only">Command palette</DialogTitle>
+        <div className="flex items-center gap-2 border-b border-border px-1 pb-2">
+          <Search aria-hidden="true" className="size-4 text-muted-foreground" />
+          <Input
+            autoFocus
+            type="search"
+            aria-label="Search actions"
+            placeholder="Search actions"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="h-7 border-0 bg-transparent px-0 focus-visible:ring-0"
+          />
+        </div>
+        <ul className="grid max-h-64 gap-0.5 overflow-auto">
+          {actions.map((action) => (
+            <li key={action.id}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto w-full justify-start px-2 py-1.5 font-normal"
+                onClick={() => run(action.id)}
+              >
+                {action.label}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -50,7 +50,7 @@ function renderPanel() {
 
 beforeEach(() => {
   clearPanels();
-  useStore.setState({ graph: null });
+  useStore.setState({ graph: null, env: null });
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) =>
@@ -70,10 +70,33 @@ describe("GraphPanel", () => {
     expect(getPanel("graph")?.component).toBe(GraphPanel);
   });
 
-  it("waits for the first snapshot", () => {
+  it("states which ROS environment the graph belongs to", async () => {
+    useStore.setState({
+      env: {
+        distro: "jazzy",
+        domain_id: 3,
+        rmw: "rmw_fastrtps_cpp",
+        workspace: "/ws/cotton_ws",
+        ros_version: "2",
+        app_version: "0.1.0",
+      },
+    });
     renderPanel();
 
-    expect(screen.getByText("Esperando el grafo…")).toBeInTheDocument();
+    expect(await screen.findByText("ROS 2 jazzy")).toBeInTheDocument();
+    expect(screen.getByText("domain 3")).toBeInTheDocument();
+    expect(screen.getByText("rmw_fastrtps_cpp")).toBeInTheDocument();
+    expect(screen.getByText("/ws/cotton_ws")).toBeInTheDocument();
+    expect(screen.getByText("Cotton's environment · 1 nodes · 1 topics")).toBeInTheDocument();
+  });
+
+  it("waits for the first snapshot", async () => {
+    renderPanel();
+
+    expect(screen.getByText("Waiting for the graph…")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("group", { name: "Nodes and topics graph" }),
+    ).toBeInTheDocument();
   });
 
   it("loads the graph over REST and follows websocket updates", async () => {
@@ -108,8 +131,8 @@ describe("GraphPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: "/talker" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Parámetros de /talker" }),
+      await screen.findByRole("heading", { name: "Parameters of /talker" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Sin parámetros")).toBeInTheDocument();
+    expect(await screen.findByText("No parameters")).toBeInTheDocument();
   });
 });

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ros_studio.plugins.settings import SettingsRepository
-from ros_studio.storage.db import Database
+from cotton.plugins.settings import SettingsRepository
+from cotton.storage.db import Database
 
 
 def test_migration_creates_settings_table(tmp_path: Path) -> None:
     db = Database(tmp_path / "state.db")
     db.migrate()
 
-    assert db.user_version() == 3
+    assert db.user_version() == 6
     db.close()
 
 

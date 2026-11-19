@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
 import "dockview-react/dist/styles/dockview.css";
 import "./styles.css";
 
@@ -10,7 +12,7 @@ import { readTokenFromHash } from "./api/session";
 import "./layout/shellPanels";
 import "./features/graph/register";
 import "./features/plugins/register";
-import "./features/processes/register";
+import "./features/terminals/register";
 import { applyTheme, loadPreferences } from "./state/preferences";
 
 const { hash } = readTokenFromHash(window.location.hash);

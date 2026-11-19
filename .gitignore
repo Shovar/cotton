@@ -15,9 +15,20 @@ frontend/playwright-report/
 frontend/test-results/
 node_modules/
 coverage/
-backend/src/ros_studio/web/
+backend/src/cotton/web/
 *.db
 *.db-wal
 *.db-shm
 .env
 .DS_Store
+
+# Internal specs, plans, task trackers and design notes: kept locally, not published
+/docs/superpowers/
+/docs/Spec IDE local para ROS 2.md
+/docs/ros-graph-environments.md
+/docs/workspace-commands.md
+/docs/etapa-0-mediciones.md
+/docs/known-limitations.md
+/tasks.md
+/spikes/
+/graphify-out/

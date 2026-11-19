@@ -23,6 +23,19 @@ describe("preferences", () => {
     expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).toContain("dark");
   });
 
+  it("uses Cotton storage and ignores the ROS Studio key", () => {
+    localStorage.setItem(
+      "ros-studio-preferences",
+      JSON.stringify({ theme: "dark", layout: { grid: {} } }),
+    );
+
+    expect(loadPreferences()).toEqual({ theme: "light", layout: null });
+
+    savePreferences({ theme: "dark", layout: null });
+
+    expect(localStorage.getItem("cotton-preferences")).toContain("dark");
+  });
+
   it("ignores corrupt JSON", () => {
     localStorage.setItem(PREFERENCES_STORAGE_KEY, "{not json");
 
@@ -50,6 +63,20 @@ describe("applyTheme", () => {
     applyTheme("dark");
 
     expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+
+  it("uses the matching favicon for the selected theme", () => {
+    const favicon = document.createElement("link");
+    favicon.rel = "icon";
+    document.head.append(favicon);
+
+    try {
+      applyTheme("dark");
+
+      expect(favicon).toHaveAttribute("href", "/src/assets/cotton-favicon-dark.png");
+    } finally {
+      favicon.remove();
+    }
   });
 
   it("accepts an explicit root", () => {

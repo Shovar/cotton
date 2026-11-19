@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.ROS_STUDIO_URL ?? "http://127.0.0.1:8000";
+const baseURL = process.env.COTTON_URL ?? "http://127.0.0.1:8000";
 
 export default defineConfig({
   testDir: "./e2e",

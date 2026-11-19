@@ -23,9 +23,9 @@ describe("StatusBar", () => {
     render(<StatusBar />);
 
     expect(screen.getByText("ROS jazzy")).toBeInTheDocument();
-    expect(screen.getByText("Dominio 0")).toBeInTheDocument();
+    expect(screen.getByText("Domain 0")).toBeInTheDocument();
     expect(screen.getByText("Workspace /ws")).toBeInTheDocument();
-    expect(screen.getByText("ROS desconectado")).toBeInTheDocument();
+    expect(screen.getByText("ROS disconnected")).toBeInTheDocument();
   });
 
   it("shows the connected ROS state", () => {
@@ -33,7 +33,7 @@ describe("StatusBar", () => {
 
     render(<StatusBar />);
 
-    expect(screen.getByText("ROS conectado")).toBeInTheDocument();
+    expect(screen.getByText("ROS connected")).toBeInTheDocument();
   });
 
   it("shows placeholders before the environment arrives", () => {
@@ -42,18 +42,18 @@ describe("StatusBar", () => {
     render(<StatusBar />);
 
     expect(screen.getByText("ROS —")).toBeInTheDocument();
-    expect(screen.getByText("Dominio —")).toBeInTheDocument();
+    expect(screen.getByText("Domain —")).toBeInTheDocument();
     expect(screen.getByText("Workspace —")).toBeInTheDocument();
   });
 
   it("persists and applies the chosen theme", () => {
     render(<StatusBar />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Tema oscuro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dark theme" }));
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(loadPreferences().theme).toBe("dark");
-    expect(screen.getByRole("button", { name: "Tema oscuro" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Dark theme" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

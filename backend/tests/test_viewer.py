@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ros_studio.app import mount_spa, mount_viewer
+from cotton.app import mount_spa, mount_viewer
 
 
 def test_mount_viewer_serves_the_bundle_and_layout(tmp_path: Path) -> None:

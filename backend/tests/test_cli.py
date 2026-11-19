@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import pytest
 
-from ros_studio import cli
-from ros_studio.env import EnvironmentInfo, RosEnvironmentError
+from cotton import cli
+from cotton.env import EnvironmentInfo, RosEnvironmentError
 
 
 def environment() -> EnvironmentInfo:
@@ -23,6 +25,46 @@ def test_parse_defaults() -> None:
 def test_parse_overrides() -> None:
     args = cli.parse_args(["--host", "0.0.0.0", "--port", "9000", "--no-browser"])
     assert (args.host, args.port, args.no_browser) == ("0.0.0.0", 9000, True)
+
+
+def test_parse_args_help_identifies_cotton(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as error:
+        cli.parse_args(["--help"])
+
+    assert error.value.code == 0
+    assert "usage: cotton" in capsys.readouterr().out
+
+
+def test_build_services_uses_cotton_data_directories(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_names: list[str] = []
+    cache_names: list[str] = []
+    monkeypatch.setattr(
+        cli,
+        "user_config_dir",
+        lambda name: config_names.append(name) or str(tmp_path / name),
+    )
+    monkeypatch.setattr(
+        cli,
+        "user_cache_dir",
+        lambda name: cache_names.append(name) or str(tmp_path / name),
+    )
+
+    services = cli.build_services(environment(), "token", cli.allowed_origins(8000))
+
+    assert config_names == ["cotton", "cotton"]
+    assert cache_names == ["cotton"]
+    assert services.db.path == tmp_path / "cotton" / "state.db"
+    assert services.viewer_dir == tmp_path / "cotton" / "lichtblick"
+    assert services.terminal_manager is not None
+    assert services.terminal_manager.shutdown in services.shutdown
+    assert any(
+        route.path == "/api/terminals" for router in services.routers for route in router.routes
+    )
+    assert services.channels.get("terminals") is not None
 
 
 def test_default_origins_cover_loopback_and_extra() -> None:
@@ -51,7 +93,7 @@ def test_main_reports_missing_environment(
 def test_main_runs_uvicorn_with_parsed_options(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: dict[str, object] = {}
 
-    def run(app: object, host: str, port: int) -> None:
+    def run(app: object, host: str, port: int, **_kwargs: object) -> None:
         calls.update(app=app, host=host, port=port)
 
     monkeypatch.setattr(cli, "ensure_ros_environment", environment)
@@ -82,3 +124,16 @@ def test_main_opens_browser_with_fixed_token(monkeypatch: pytest.MonkeyPatch) ->
 
     assert cli.main(["--port", "9000", "--token", "fixed"]) == 0
     assert opened["url"] == "http://127.0.0.1:9000/#token=fixed"
+
+
+def test_main_disables_uvicorn_access_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    options: dict[str, object] = {}
+
+    def run(*_args: object, **kwargs: object) -> None:
+        options.update(kwargs)
+
+    monkeypatch.setattr(cli, "ensure_ros_environment", environment)
+    monkeypatch.setattr(cli.uvicorn, "run", run)
+
+    assert cli.main(["--no-browser"]) == 0
+    assert options["access_log"] is False

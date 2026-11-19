@@ -28,7 +28,7 @@ export function App() {
     const removeStatusHandler = ws.onStatus((connection) =>
       useStore.getState().setConnection(connection),
     );
-    ws.subscribe(["graph", "plugins", "processes"]);
+    ws.subscribe(["graph", "plugins"]);
     ws.connect();
     return () => {
       removeEventHandler();
@@ -38,7 +38,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className="grid h-full grid-rows-[1fr_auto]">
       <Workbench />
       <StatusBar />
     </div>

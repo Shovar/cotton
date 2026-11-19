@@ -16,7 +16,6 @@ const PLUGIN: PluginRecord = {
     name: "foxglove",
     version: "0.1.0",
     description: "viewer",
-    processes: [],
     panels: [],
     permissions: [],
   },
@@ -48,6 +47,26 @@ describe("PluginPanel", () => {
     );
   });
 
+  it("replaces {host} with host and port for a custom port", () => {
+    render(
+      <PluginPanel
+        plugin={PLUGIN}
+        panel={{
+          id: "viewer",
+          title: "Foxglove",
+          type: "iframe",
+          url: "http://{host}/lichtblick/index.html",
+        }}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByTitle("Foxglove")).toHaveAttribute(
+      "src",
+      `http://${location.host}/lichtblick/index.html`,
+    );
+  });
+
   it("shows the fallback when the viewer assets are missing", async () => {
     apiExists.mockResolvedValue(false);
 
@@ -65,8 +84,9 @@ describe("PluginPanel", () => {
     );
 
     expect(
-      await screen.findByText(/los assets del visor no están disponibles/i),
+      await screen.findByText(/the viewer assets are not available/i),
     ).toBeInTheDocument();
+    expect(await screen.findByText(/restart Cotton/i)).toBeInTheDocument();
     expect(apiExists).toHaveBeenCalledWith("/lichtblick/index.html");
     expect(screen.queryByTitle("Foxglove")).not.toBeInTheDocument();
   });
@@ -80,7 +100,7 @@ describe("PluginPanel", () => {
       />,
     );
 
-    expect(screen.getByText(/no se puede incrustar/i)).toBeInTheDocument();
+    expect(screen.getByText(/cannot be embedded/i)).toBeInTheDocument();
   });
 
   it("closes from the dialog button", () => {
@@ -94,7 +114,7 @@ describe("PluginPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Cerrar panel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
 
     expect(onClose).toHaveBeenCalled();
   });

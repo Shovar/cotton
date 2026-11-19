@@ -1,10 +1,13 @@
 import asyncio
+import os
+import sys
 import threading
 import time
+import types
 
 import pytest
 
-from ros_studio.ros.thread import RosCallError, RosCallTimeout, RosThread
+from cotton.ros.thread import RosCallError, RosCallTimeout, RosThread
 
 
 class FakeRosThread(RosThread):
@@ -73,3 +76,32 @@ def test_stop_leaves_no_threads() -> None:
     thread.stop()
     asyncio.run(asyncio.sleep(0))
     assert len(threading.enumerate()) == before
+
+
+def test_default_node_name_includes_the_pid() -> None:
+    assert RosThread().node_name == f"cotton_{os.getpid()}"
+
+
+def test_explicit_node_name_is_kept() -> None:
+    assert RosThread(node_name="cotton_7").node_name == "cotton_7"
+
+
+def test_external_rclpy_shutdown_stops_the_spin_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    class ExternalShutdownException(Exception):
+        pass
+
+    def shutdown_during_spin(*_args: object, **_kwargs: object) -> None:
+        raise ExternalShutdownException
+
+    rclpy = types.ModuleType("rclpy")
+    rclpy.__path__ = []  # type: ignore[attr-defined]
+    rclpy.spin_once = shutdown_during_spin  # type: ignore[attr-defined]
+    executors = types.ModuleType("rclpy.executors")
+    executors.ExternalShutdownException = ExternalShutdownException  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "rclpy", rclpy)
+    monkeypatch.setitem(sys.modules, "rclpy.executors", executors)
+
+    thread = RosThread()
+    thread._spin_once(0.01)
+
+    assert thread._stopping.is_set()

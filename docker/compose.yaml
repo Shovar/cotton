@@ -1,9 +1,9 @@
 services:
-  ros-studio:
+  cotton:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: ros-studio:local
+    image: cotton:local
     init: true
     ports:
       - "127.0.0.1:8000:8000"
@@ -13,9 +13,9 @@ services:
     volumes:
       - ${ROS_WORKSPACE:-./workspace}:/ws:ro
     command:
-      - ros-studio
+      - cotton
       - --host
       - 0.0.0.0
       - --no-browser
       - --token
-      - ${ROS_STUDIO_TOKEN:-test-token}
+      - ${COTTON_TOKEN:-test-token}
