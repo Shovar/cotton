@@ -7,16 +7,25 @@ import { useStore } from "../../state/store";
 import { TerminalBody } from "./TerminalBody";
 import { TerminalSidebar } from "./TerminalSidebar";
 import { WorkspaceDialog } from "./WorkspaceDialog";
+import {
+  moveIntoPane,
+  normalizeLayout,
+  setSizesAt,
+  splitPane,
+  type LayoutNode,
+  type PaneSide,
+} from "./layout";
 import { useTerminalStore } from "./terminalStore";
 import { deleteWorkspace, listWorkspaces } from "./workspacesApi";
 
 const WORKSPACE_STORAGE_KEY = "cotton-terminal-workspace";
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 4;
 
 interface TerminalWorkspaceState {
   selectedWorkspaceId: string | null;
   activeTerminalId: string | null;
   minimizedIds: string[];
+  panes: Record<string, LayoutNode>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -24,7 +33,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function createDefaultState(): TerminalWorkspaceState {
-  return { selectedWorkspaceId: null, activeTerminalId: null, minimizedIds: [] };
+  return {
+    selectedWorkspaceId: null,
+    activeTerminalId: null,
+    minimizedIds: [],
+    panes: {},
+  };
+}
+
+function isLayoutNode(value: unknown): value is LayoutNode {
+  if (!isRecord(value)) {
+    return false;
+  }
+  if (value.type === "pane") {
+    return (
+      typeof value.id === "string" &&
+      Array.isArray(value.tabs) &&
+      value.tabs.every((id) => typeof id === "string")
+    );
+  }
+  if (value.type === "split") {
+    return (
+      (value.direction === "row" || value.direction === "column") &&
+      Array.isArray(value.children) &&
+      value.children.every(isLayoutNode) &&
+      Array.isArray(value.sizes) &&
+      value.sizes.every((size) => typeof size === "number" && Number.isFinite(size) && size > 0)
+    );
+  }
+  return false;
+}
+
+function readPanes(value: unknown): Record<string, LayoutNode> {
+  if (!isRecord(value)) {
+    return {};
+  }
+  const panes: Record<string, LayoutNode> = {};
+  for (const [workspaceId, layout] of Object.entries(value)) {
+    if (isLayoutNode(layout)) {
+      panes[workspaceId] = layout;
+    }
+  }
+  return panes;
 }
 
 function readState(): TerminalWorkspaceState {
@@ -46,6 +96,7 @@ function readState(): TerminalWorkspaceState {
       minimizedIds: Array.isArray(value.minimizedIds)
         ? [...new Set(value.minimizedIds.filter((id): id is string => typeof id === "string"))]
         : [],
+      panes: readPanes(value.panes),
     };
   } catch {
     return createDefaultState();
@@ -71,6 +122,7 @@ export function TerminalWorkspace() {
     initialState.activeTerminalId,
   );
   const [minimizedIds, setMinimizedIds] = useState(initialState.minimizedIds);
+  const [panes, setPanes] = useState(initialState.panes);
   const [sessionsReconciled, setSessionsReconciled] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +239,10 @@ export function TerminalWorkspace() {
     activeTerminalId && mountedIds.includes(activeTerminalId)
       ? activeTerminalId
       : (mountedIds[0] ?? null);
+  const layout = useMemo(
+    () => normalizeLayout(panes[selectedWorkspaceId ?? ""] ?? null, mountedIds),
+    [mountedIds, panes, selectedWorkspaceId],
+  );
 
   useEffect(() => {
     if (!sessionsReconciled) {
@@ -223,11 +279,12 @@ export function TerminalWorkspace() {
         selectedWorkspaceId,
         activeTerminalId,
         minimizedIds,
+        panes,
       }),
     );
-  }, [activeTerminalId, minimizedIds, selectedWorkspaceId]);
+  }, [activeTerminalId, minimizedIds, panes, selectedWorkspaceId]);
 
-  const createTerminal = async () => {
+  const createTerminal = async (paneId: string) => {
     if (!selectedWorkspaceId) {
       return;
     }
@@ -236,11 +293,35 @@ export function TerminalWorkspace() {
         workspace_id: selectedWorkspaceId,
       });
       useTerminalStore.getState().applyServerEvent({ type: "terminal.state", data: record });
+      setPanes((current) => ({
+        ...current,
+        [selectedWorkspaceId]: moveIntoPane(layout, record.spec.id, paneId),
+      }));
       setActiveTerminalId(record.spec.id);
       setError(null);
     } catch (caught) {
       setError(errorMessage(caught));
     }
+  };
+
+  const moveTerminal = (terminalId: string, paneId: string, side?: PaneSide) => {
+    if (!selectedWorkspaceId) {
+      return;
+    }
+    const next = side
+      ? splitPane(layout, terminalId, paneId, side)
+      : moveIntoPane(layout, terminalId, paneId);
+    setPanes((current) => ({ ...current, [selectedWorkspaceId]: next }));
+  };
+
+  const resizePanes = (path: number[], sizes: number[]) => {
+    if (!selectedWorkspaceId) {
+      return;
+    }
+    setPanes((current) => ({
+      ...current,
+      [selectedWorkspaceId]: setSizesAt(layout, path, sizes),
+    }));
   };
 
   const closeTerminal = async (record: TerminalRecord) => {
@@ -289,6 +370,11 @@ export function TerminalWorkspace() {
       await deleteWorkspace(workspaceId);
       const remaining = workspaces.filter((workspace) => workspace.id !== workspaceId);
       setWorkspaces(remaining);
+      setPanes((current) => {
+        const rest = { ...current };
+        delete rest[workspaceId];
+        return rest;
+      });
       if (workspaceId === selectedWorkspaceId) {
         setSelectedWorkspaceId(remaining[0]?.id ?? null);
       }
@@ -333,12 +419,15 @@ export function TerminalWorkspace() {
         />
         <TerminalBody
           records={workspaceRecords}
+          panes={layout}
           activeTerminalId={selectedId}
-          minimizedIds={minimizedIds}
           canCreate={canCreate}
-          onCreate={() => void createTerminal()}
+          onCreate={(paneId) => void createTerminal(paneId)}
           onMinimize={minimizeTerminal}
           onSelect={setActiveTerminalId}
+          onClose={(record) => void closeTerminal(record)}
+          onMove={moveTerminal}
+          onResize={resizePanes}
         />
       </div>
       {dialogOpen && (

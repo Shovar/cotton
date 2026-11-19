@@ -89,6 +89,19 @@ in `localStorage`. Terminal sessions themselves are owned by the Cotton instance
 and listed by the backend, so another authorized frontend tab can reconnect to
 them. A stale local layout entry is discarded if its session no longer exists.
 
+### Terminal mosaics (update 2026-11-19)
+
+The implemented workspace does not use groups: a workspace's terminals share one
+terminal panel divided into panes, arranged as a tree of horizontal and vertical
+splits. Each pane has its own tab strip and shows its active terminal. While a
+tab is dragged, every pane exposes four docking edges; hovering one highlights
+only that border, and dropping there splits the pane on that side (left, right,
+top or bottom) with the terminal in a new pane. Dropping the tab on another
+pane's tab strip joins that pane's tabs. Dragging the divider between two panes
+resizes them while keeping a minimum pane size. Every tab has a close button
+that terminates that terminal, with the same confirmation as the group list. The
+mosaic, including its split sizes, is stored per workspace in `localStorage`.
+
 ### Backend sessions and lifecycle
 
 Add a terminal-session manager that owns PTY file descriptors and child process
