@@ -114,7 +114,30 @@ show it with a warning in the tab.
 3. **Sidecar manager** indexed by environment: tabs, lazy start, auto-follow by
    workspace.
 
-## 6. Constraints for the implementation
+## 6. Graph canvas (frontend)
+
+The panel draws the snapshot on a `<canvas>` instead of SVG/DOM, so a few
+hundred entities stay interactive:
+
+- force simulation (repulsion, link distance, link strength, centering) with
+  fixed defaults; settled positions survive incremental graph updates;
+- the view frames the graph once the layout rests, so it never opens oversized;
+- labels appear for hubs, for the hovered/selected point and when zooming in;
+- hovering highlights a point and its neighbours and dims the rest;
+- search keeps one hop around every match;
+- selecting a point keeps the whole graph on screen and only dims the points
+  that are unrelated to it; clicking a dimmed point moves the focus to it;
+- `/rosout`, `/rosout_agg`, `/parameter_events`, `/tf`, `/tf_static` and
+  `/clock` are always hidden;
+- services and actions are drawn as their own shapes and colours;
+- dragging a point pins it and keeps the layout running, so the points linked
+  to it follow; double-clicking releases it again.
+
+The simulation runs next to the animation frame on the main thread, which is
+fine for the graph sizes ROS usually produces. A Web Worker is the next step if
+a deployment ever shows thousands of entities.
+
+## 7. Constraints for the implementation
 
 - The core keeps a `GraphSource` port; `rclpy` lives only in the sidecar, so the
   backend no longer needs a system ROS installation to start.

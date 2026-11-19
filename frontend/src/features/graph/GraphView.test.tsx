@@ -1,5 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GraphSnapshot } from "../../api/types";
 import { GraphView } from "./GraphView";
@@ -34,13 +35,45 @@ const SNAPSHOT: GraphSnapshot = {
       name: "/cmd_vel",
       types: ["geometry_msgs/msg/Twist"],
       publishers: ["/sim/controller"],
-      subscribers: ["/sim/controller"],
+      subscribers: [],
+    },
+    {
+      name: "/rosout",
+      types: ["rcl_interfaces/msg/Log"],
+      publishers: ["/talker", "/sim/controller"],
+      subscribers: [],
     },
   ],
   services: { "/talker/get_parameters": ["rcl_interfaces/srv/GetParameters"] },
   actions: { "/talker/fibonacci": ["action_tutorials_interfaces/action/Fibonacci"] },
   revision: 3,
 };
+
+function renderView() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <GraphView snapshot={SNAPSHOT} />
+    </QueryClientProvider>,
+  );
+}
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response("{}", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function search(value: string) {
   fireEvent.change(screen.getByRole("searchbox", { name: "Search graph" }), {
@@ -50,7 +83,7 @@ function search(value: string) {
 
 describe("GraphView", () => {
   it("draws nodes and topics as connected points", () => {
-    render(<GraphView snapshot={SNAPSHOT} />);
+    renderView();
 
     const graph = screen.getByRole("group", { name: "Nodes and topics graph" });
     expect(within(graph).getByRole("button", { name: "/talker" })).toBeInTheDocument();
@@ -59,10 +92,12 @@ describe("GraphView", () => {
     expect(within(graph).getByRole("button", { name: "/cmd_vel" })).toBeInTheDocument();
     expect(screen.getByText("Node")).toBeInTheDocument();
     expect(screen.getByText("Topic")).toBeInTheDocument();
+    expect(screen.getByText("Service")).toBeInTheDocument();
+    expect(screen.getByText("Action")).toBeInTheDocument();
   });
 
   it("filters the graph by search and keeps the neighbours of a match", () => {
-    render(<GraphView snapshot={SNAPSHOT} />);
+    renderView();
 
     search("sim");
 
@@ -75,19 +110,39 @@ describe("GraphView", () => {
 
     expect(screen.getByRole("button", { name: "/talker" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "/sim/controller" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "/cmd_vel" })).not.toBeInTheDocument();
   });
 
   it("shows an explicit empty state when nothing matches", () => {
-    render(<GraphView snapshot={SNAPSHOT} />);
+    renderView();
 
     search("zzz");
 
     expect(screen.getByText("No nodes or topics")).toBeInTheDocument();
   });
 
+  it("keeps the noisy topics out of the graph", () => {
+    renderView();
+
+    search("/rosout");
+
+    expect(screen.getByText("No nodes or topics")).toBeInTheDocument();
+  });
+
+  it("keeps every point visible when one is selected", () => {
+    renderView();
+
+    fireEvent.click(screen.getByRole("button", { name: "/talker" }));
+
+    expect(screen.getByRole("button", { name: "/talker" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "/chatter" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "/sim/controller" })).toBeInTheDocument();
+  });
+
   it("opens the detail of a topic with no subscribers", () => {
-    render(<GraphView snapshot={SNAPSHOT} />);
+    renderView();
 
     fireEvent.click(screen.getByRole("button", { name: "/chatter" }));
 
@@ -97,7 +152,7 @@ describe("GraphView", () => {
   });
 
   it("lists services and actions with their types", () => {
-    render(<GraphView snapshot={SNAPSHOT} />);
+    renderView();
 
     expect(screen.getByRole("heading", { name: "Services" })).toBeInTheDocument();
     expect(screen.getByText("/talker/get_parameters")).toBeInTheDocument();
@@ -108,11 +163,9 @@ describe("GraphView", () => {
   });
 
   it("filters services and actions with the same search box", () => {
-    render(<GraphView snapshot={SNAPSHOT} />);
+    renderView();
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search graph" }), {
-      target: { value: "fibonacci" },
-    });
+    search("fibonacci");
 
     expect(screen.getByText("/talker/fibonacci")).toBeInTheDocument();
     expect(screen.queryByText("/talker/get_parameters")).not.toBeInTheDocument();

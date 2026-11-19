@@ -338,14 +338,53 @@
   font-size: 0.8125rem;
 }
 
-.topic-graph {
-  display: block;
-  width: 100%;
-  /* Definite height so the grid row is sized before the SVG paints. */
+.graph-canvas {
+  position: relative;
   height: min(34rem, 62.5cqw);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
+  overflow: hidden;
+}
+
+.graph-canvas-surface {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.graph-canvas-surface:active {
+  cursor: grabbing;
+}
+
+.graph-canvas-hint {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.375rem;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  pointer-events: none;
+}
+
+.graph-canvas-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: var(--card);
+}
+
+.graph-items {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .graph-legend {
@@ -378,45 +417,15 @@
   border: 2px solid var(--primary);
 }
 
-.graph-link {
-  stroke: var(--muted-foreground);
-  stroke-width: 1;
-  opacity: 0.7;
+.graph-legend-service::before {
+  background: #e8a33d;
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
-.graph-arrow {
-  fill: var(--muted-foreground);
-}
-
-.graph-point {
-  cursor: pointer;
-}
-
-.graph-point-node circle {
-  fill: var(--primary);
-  stroke: var(--card);
-  stroke-width: 1.5;
-}
-
-.graph-point-topic circle {
-  fill: var(--card);
-  stroke: var(--primary);
-  stroke-width: 2;
-}
-
-.graph-point[aria-pressed="true"] circle,
-.graph-point:focus-visible circle {
-  stroke: var(--foreground);
-  stroke-width: 3;
-}
-
-.graph-point text {
-  fill: var(--foreground);
-  font-size: 11px;
-  text-anchor: middle;
-  paint-order: stroke;
-  stroke: var(--card);
-  stroke-width: 3px;
+.graph-legend-action::before {
+  background: #b267e6;
+  border-radius: 1px;
 }
 
 .node-params-header {
