@@ -1,3 +1,4 @@
+import { ArrowUp, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,11 @@ function errorMessage(error: unknown): string {
 
 function folderName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).at(-1) ?? "workspace";
+}
+
+function folderCount(listing: FolderListing): string {
+  const { length } = listing.folders;
+  return `${length} ${length === 1 ? "folder" : "folders"}`;
 }
 
 export function WorkspaceDialog({
@@ -69,6 +75,8 @@ export function WorkspaceDialog({
     }
   };
 
+  const currentName = listing ? folderName(listing.path) : null;
+
   return (
     <Dialog
       open
@@ -81,50 +89,87 @@ export function WorkspaceDialog({
       <DialogContent>
         <DialogTitle>Add workspace</DialogTitle>
         <DialogDescription>
-          Pick the folder that contains your colcon workspace. New shells start there.
+          Choose the folder that contains your colcon workspace. New shells start there.
         </DialogDescription>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 rounded-md border border-border bg-background py-1 pr-2 pl-1">
           <Button
             type="button"
             size="sm"
-            variant="outline"
+            variant="ghost"
+            className="h-6 shrink-0 gap-1 px-1.5 text-[11px]"
             disabled={!listing?.parent}
             onClick={() => open(listing?.parent ?? undefined)}
           >
+            <ArrowUp aria-hidden="true" />
             Up
           </Button>
+          <FolderOpen aria-hidden="true" className="shrink-0 text-muted-foreground" />
           <p
             className="min-w-0 flex-1 truncate font-mono text-xs"
             title={listing?.path}
           >
-            {listing?.path ?? "Loading…"}
+            {listing?.path ?? (error ? "Folder unavailable" : "Loading…")}
           </p>
-        </div>
-        <ul aria-label="Folders" className="max-h-64 space-y-1 overflow-y-auto">
-          {listing?.folders.map((folder) => (
-            <li key={folder.path}>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="w-full justify-start truncate"
-                onClick={() => open(folder.path)}
-              >
-                {folder.name}
-              </Button>
-            </li>
-          ))}
-          {listing && listing.folders.length === 0 && (
-            <li className="px-1 text-xs text-muted-foreground">No folders here</li>
+          {listing && (
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              {folderCount(listing)}
+            </span>
           )}
-        </ul>
+        </div>
+        <div className="space-y-1.5">
+          <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Folders
+          </p>
+          <ul
+            aria-label="Folders"
+            aria-busy={!listing}
+            className="max-h-64 space-y-0.5 overflow-y-auto pr-1"
+          >
+            {!listing && !error && (
+              <li className="px-2 py-1.5 text-xs text-muted-foreground">
+                Loading folders…
+              </li>
+            )}
+            {listing?.folders.map((folder) => {
+              const hidden = folder.name.startsWith(".");
+              return (
+                <li key={folder.path}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="group h-8 w-full justify-start gap-2 px-2 text-sm font-normal"
+                    onClick={() => open(folder.path)}
+                  >
+                    <Folder aria-hidden="true" className="text-muted-foreground" />
+                    <span
+                      className={`min-w-0 flex-1 truncate text-left ${
+                        hidden ? "text-muted-foreground" : ""
+                      }`}
+                    >
+                      {folder.name}
+                    </span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                    />
+                  </Button>
+                </li>
+              );
+            })}
+            {listing && listing.folders.length === 0 && (
+              <li className="px-2 py-1.5 text-xs text-muted-foreground">
+                No subfolders. You can still add this folder.
+              </li>
+            )}
+          </ul>
+        </div>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
           <Button type="button" size="sm" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button type="button" size="sm" disabled={!listing || busy} onClick={() => void create()}>
-            Use this folder
+            {busy ? "Adding…" : currentName ? `Add ${currentName}` : "Add workspace"}
           </Button>
         </div>
       </DialogContent>

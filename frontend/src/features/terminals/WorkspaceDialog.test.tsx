@@ -43,6 +43,13 @@ describe("WorkspaceDialog", () => {
     expect(screen.getByRole("button", { name: "notes" })).toBeInTheDocument();
   });
 
+  it("counts the listed folders and names the workspace after the current folder", async () => {
+    render(<WorkspaceDialog onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    expect(await screen.findByText("2 folders")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add me" })).toBeInTheDocument();
+  });
+
   it("navigates into a folder and back up", async () => {
     mocks.apiGet.mockImplementation(async (path: string) =>
       path.includes("colcon_ws") ? CHILD : HOME,
@@ -72,7 +79,7 @@ describe("WorkspaceDialog", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "colcon_ws" }));
     await screen.findByText("/home/me/colcon_ws");
-    fireEvent.click(screen.getByRole("button", { name: "Use this folder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add colcon_ws" }));
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/workspaces", {
@@ -92,6 +99,6 @@ describe("WorkspaceDialog", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "not an existing directory",
     );
-    expect(screen.getByRole("button", { name: "Use this folder" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add workspace" })).toBeDisabled();
   });
 });

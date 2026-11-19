@@ -4,7 +4,7 @@ import {
   type DockviewApi,
   type DockviewReadyEvent,
 } from "dockview-react";
-import { Boxes, Puzzle, Waypoints, type LucideIcon } from "lucide-react";
+import { Boxes, Puzzle, SquareTerminal, Waypoints, type LucideIcon } from "lucide-react";
 
 import {
   Tooltip,
@@ -19,8 +19,11 @@ import { getPanel, getPanels, type PanelDefinition } from "./panelRegistry";
 
 type LayoutState = ReturnType<DockviewApi["toJSON"]>;
 
+const LAYOUT_REVISION = 2;
+
 const PANEL_ICONS: Record<string, LucideIcon> = {
   graph: Waypoints,
+  terminals: SquareTerminal,
   plugins: Puzzle,
 };
 
@@ -37,7 +40,11 @@ function buildDefaultLayout(api: DockviewApi, panels: PanelDefinition[]): void {
 }
 
 function persistLayout(api: DockviewApi): void {
-  savePreferences({ ...loadPreferences(), layout: api.toJSON() });
+  savePreferences({
+    ...loadPreferences(),
+    layout: api.toJSON(),
+    layoutRevision: LAYOUT_REVISION,
+  });
 }
 
 export function Workbench() {
@@ -51,7 +58,9 @@ export function Workbench() {
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
-      const layout = loadPreferences().layout;
+      const preferences = loadPreferences();
+      const layout =
+        preferences.layoutRevision === LAYOUT_REVISION ? preferences.layout : null;
       if (layout) {
         try {
           event.api.fromJSON(layout as LayoutState);

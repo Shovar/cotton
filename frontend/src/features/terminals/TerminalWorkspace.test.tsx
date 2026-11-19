@@ -294,7 +294,7 @@ describe("TerminalWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "New workspace" }));
     await screen.findByText("/home/me/colcon_ws");
-    fireEvent.click(screen.getByRole("button", { name: "Use this folder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add colcon_ws" }));
 
     await waitFor(() =>
       expect(mocks.apiSend).toHaveBeenCalledWith("POST", "/api/workspaces", {

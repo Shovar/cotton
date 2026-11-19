@@ -1,6 +1,8 @@
+import { RotateCcw, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
-import type { TerminalRecord } from "../../api/types";
+import type { TerminalRecord, TerminalState } from "../../api/types";
 
 const STATE_LABELS = {
   starting: "Starting",
@@ -8,6 +10,13 @@ const STATE_LABELS = {
   exited: "Exited",
   failed: "Failed",
 } as const;
+
+const STATE_DOTS: Record<TerminalState, string> = {
+  starting: "animate-pulse bg-warning",
+  running: "bg-success",
+  exited: "bg-muted-foreground/50",
+  failed: "bg-destructive",
+};
 
 export function TerminalList({
   records,
@@ -25,62 +34,67 @@ export function TerminalList({
   onClose: (record: TerminalRecord) => void;
 }) {
   if (records.length === 0) {
-    return <p className="px-1 text-xs text-muted-foreground">No terminals</p>;
+    return <p className="px-2 py-1.5 text-xs text-muted-foreground">No terminals</p>;
   }
 
   return (
-    <ul className="space-y-1">
+    <ul
+      aria-label="Terminal sessions"
+      className="mb-1 ml-3 space-y-px border-l border-border pl-1.5"
+    >
       {records.map((record) => {
         const id = record.spec.id;
         const minimized = minimizedIds.includes(id);
         return (
           <li
             key={id}
-            className="rounded-md border border-border px-1 py-1"
+            className="group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-accent/60"
             data-state={record.state}
           >
-            <div className="flex min-w-0 items-center gap-1">
-              <Button
-                type="button"
-                size="sm"
-                variant={id === activeTerminalId ? "secondary" : "ghost"}
-                aria-pressed={id === activeTerminalId}
-                className="h-7 min-w-0 flex-1 justify-start truncate px-1 text-xs"
-                onClick={() => (minimized ? onRestore(id) : onSelect(id))}
-              >
-                {id}
-              </Button>
-              <span className="shrink-0 text-[11px] text-muted-foreground">
-                {STATE_LABELS[record.state]}
+            <span
+              className={`size-1.5 shrink-0 rounded-full ${STATE_DOTS[record.state]}`}
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              aria-pressed={id === activeTerminalId}
+              className="min-w-0 flex-1 truncate rounded text-left font-mono text-xs text-muted-foreground outline-none group-hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-pressed:font-semibold aria-pressed:text-foreground"
+              onClick={() => (minimized ? onRestore(id) : onSelect(id))}
+            >
+              {id}
+            </button>
+            <span className="shrink-0 text-[10px] text-muted-foreground">
+              {STATE_LABELS[record.state]}
+            </span>
+            {record.exit_code !== null && (
+              <span className="shrink-0 text-[10px] text-muted-foreground">
+                exit {record.exit_code}
               </span>
-              {record.exit_code !== null && (
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  exit {record.exit_code}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center justify-end gap-1">
-              {minimized && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  aria-label={`Restore ${id}`}
-                  onClick={() => onRestore(id)}
-                >
-                  Restore
-                </Button>
-              )}
+            )}
+            {minimized && (
               <Button
                 type="button"
-                size="sm"
+                size="icon"
                 variant="ghost"
-                aria-label={`Close ${id}`}
-                onClick={() => onClose(record)}
+                className="size-6"
+                aria-label={`Restore ${id}`}
+                title={`Restore ${id}`}
+                onClick={() => onRestore(id)}
               >
-                Close
+                <RotateCcw aria-hidden="true" />
               </Button>
-            </div>
+            )}
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="size-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+              aria-label={`Close ${id}`}
+              title={`Close ${id}`}
+              onClick={() => onClose(record)}
+            >
+              <X aria-hidden="true" />
+            </Button>
           </li>
         );
       })}

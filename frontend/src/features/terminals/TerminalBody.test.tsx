@@ -57,6 +57,9 @@ function bodyProps(overrides: Partial<TerminalBodyProps> = {}): TerminalBodyProp
     records: [record("t1"), record("t2")],
     activeTerminalId: null,
     minimizedIds: [],
+    canCreate: true,
+    onCreate: vi.fn(),
+    onMinimize: vi.fn(),
     onSelect: vi.fn(),
     ...overrides,
   };
@@ -114,6 +117,28 @@ describe("TerminalBody", () => {
     fireEvent.click(screen.getByRole("tab", { name: "t1" }));
 
     expect(onSelect).toHaveBeenCalledWith("t1");
+  });
+
+  it("creates and minimizes shells from the tab bar", () => {
+    const onCreate = vi.fn();
+    const onMinimize = vi.fn();
+    render(
+      <TerminalBody
+        {...bodyProps({ activeTerminalId: "t1", onCreate, onMinimize })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "New shell" }));
+    fireEvent.click(screen.getByRole("button", { name: "Minimize terminal" }));
+
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(onMinimize).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables shell creation while no workspace is available", () => {
+    render(<TerminalBody {...bodyProps({ canCreate: false })} />);
+
+    expect(screen.getByRole("button", { name: "New shell" })).toBeDisabled();
   });
 
   it("does not mount minimized terminals", () => {

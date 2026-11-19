@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 
 import { ApiError, apiGet, apiSend } from "../../api/client";
 import type { ServerEvent, TerminalRecord, Workspace } from "../../api/types";
@@ -188,9 +187,6 @@ export function TerminalWorkspace() {
     activeTerminalId && mountedIds.includes(activeTerminalId)
       ? activeTerminalId
       : (mountedIds[0] ?? null);
-  const selectedWorkspace = workspaces.find(
-    (workspace) => workspace.id === selectedWorkspaceId,
-  );
 
   useEffect(() => {
     if (!sessionsReconciled) {
@@ -312,29 +308,16 @@ export function TerminalWorkspace() {
   const canCreate = sessionsReconciled && Boolean(selectedWorkspaceId);
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-3 p-3" aria-label="Terminal workspace">
-      <header className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">Terminals</h2>
-        {selectedWorkspace && (
-          <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
-            {selectedWorkspace.path}
-          </p>
-        )}
-        <Button type="button" size="sm" disabled={!canCreate} onClick={() => void createTerminal()}>
-          New shell
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={!selectedId}
-          onClick={minimizeTerminal}
+    <section className="flex h-full min-h-0 flex-col" aria-label="Terminal workspace">
+      {error && (
+        <p
+          role="alert"
+          className="shrink-0 border-b border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs text-destructive"
         >
-          Minimize terminal
-        </Button>
-      </header>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <div className="flex min-h-0 flex-1 gap-3">
+          {error}
+        </p>
+      )}
+      <div className="flex min-h-0 flex-1">
         <TerminalSidebar
           workspaces={workspaces}
           selectedWorkspaceId={selectedWorkspaceId}
@@ -352,6 +335,9 @@ export function TerminalWorkspace() {
           records={workspaceRecords}
           activeTerminalId={selectedId}
           minimizedIds={minimizedIds}
+          canCreate={canCreate}
+          onCreate={() => void createTerminal()}
+          onMinimize={minimizeTerminal}
           onSelect={setActiveTerminalId}
         />
       </div>
